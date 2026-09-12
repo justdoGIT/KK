@@ -27,7 +27,7 @@ describe("repository-controlled SVG assets", () => {
       '<svg><script>alert("x")</script></svg>',
     );
     expect(result.clean).toBe(false);
-    expect(result.errors).toContain("unsafe.svg: script content is not allowed");
+    expect(result.errors).toContain("unsafe.svg: executable script content is not allowed");
   });
 
   it("rejects external and data references", () => {
@@ -38,6 +38,37 @@ describe("repository-controlled SVG assets", () => {
     expect(result.clean).toBe(false);
     expect(result.errors).toContain(
       "unsafe.svg: external or data references are not allowed",
+    );
+  });
+
+  it("rejects executable event-handler attributes", () => {
+    const result = validateSvgAsset(
+      "unsafe.svg",
+      '<svg onclick="fetch(\'https://example.com\')"><circle /></svg>',
+    );
+    expect(result.clean).toBe(false);
+    expect(result.errors).toContain(
+      "unsafe.svg: event-handler attributes are not allowed",
+    );
+  });
+
+  it("rejects external CSS url references and imports", () => {
+    const urlResult = validateSvgAsset(
+      "unsafe.svg",
+      '<svg><style>.node { fill: url(https://example.com/pattern.svg); }</style></svg>',
+    );
+    expect(urlResult.clean).toBe(false);
+    expect(urlResult.errors).toContain(
+      "unsafe.svg: external or data CSS references are not allowed",
+    );
+
+    const importResult = validateSvgAsset(
+      "unsafe.svg",
+      '<svg><style>@import url("https://example.com/theme.css");</style></svg>',
+    );
+    expect(importResult.clean).toBe(false);
+    expect(importResult.errors).toContain(
+      "unsafe.svg: external or data CSS references are not allowed",
     );
   });
 });
