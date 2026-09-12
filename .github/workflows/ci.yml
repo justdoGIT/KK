@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Publication validation
+        run: npm run validate:publication
+
+      - name: Check bundle budgets
+        run: |
+          max_shell=150
+          max_scene=350
+          max_motion=80
+          shell_kb=$(cat dist/assets/index-*.js | gzip -c | wc -c | awk '{print int($1/1024)}')
+          scene_kb=$(cat dist/assets/scene-vendor-*.js | gzip -c | wc -c | awk '{print int($1/1024)}')
+          motion_kb=$(cat dist/assets/motion-*.js | gzip -c | wc -c | awk '{print int($1/1024)}')
+          echo "Shell JS (gzipped): ${shell_kb}KB / ${max_shell}KB"
+          echo "Scene JS (gzipped): ${scene_kb}KB / ${max_scene}KB"
+          echo "Motion JS (gzipped): ${motion_kb}KB / ${max_motion}KB"
+          fail=0
+          [ "$shell_kb" -gt "$max_shell" ] && echo "FAIL: shell exceeds budget" && fail=1
+          [ "$scene_kb" -gt "$max_scene" ] && echo "FAIL: scene exceeds budget" && fail=1
+          [ "$motion_kb" -gt "$max_motion" ] && echo "FAIL: motion exceeds budget" && fail=1
+          exit "$fail"
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 90
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            evidence/manifest.v1.json
+            docs/dependency-matrix.json
+          retention-days: 90
