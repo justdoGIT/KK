@@ -30,6 +30,12 @@
       "publicIdentity": "Interaction design inspiration",
       "approvedClaimText": "Dark editorial interaction language with glass surfaces and scroll-led storytelling inspired by publicly visible interaction patterns.",
       "publicationState": "approved"
+    },
+    {
+      "evidenceId": "career-ai-readme",
+      "publicIdentity": "Career automation pipeline",
+      "approvedClaimText": "Career automation pipeline with job discovery, matching, resume tailoring, and dry-run submission gate.",
+      "publicationState": "approved"
     }
   ]
 }

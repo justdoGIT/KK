@@ -4,29 +4,42 @@
   "approvedClaims": [
     {
       "text": "Career automation pipeline with job discovery, matching, resume tailoring, and dry-run submission gate.",
-      "evidenceIds": [],
-      "publicationStatus": "omitted",
+      "evidenceIds": ["career-ai-readme"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    },
+    {
+      "text": "Runs as CLI, daemon, and Claude Code plugin sharing a SQLite database and pipeline state machine.",
+      "evidenceIds": ["career-ai-readme"],
+      "publicationStatus": "approved",
       "metricLabel": "not-a-metric"
     }
   ],
   "excludedClaims": [
-    "repository URL pending verification",
-    "local remote identity"
+    "local remote identity",
+    "private configuration details"
   ],
   "approvedCommitOrTag": null,
   "clientApproval": {
-    "status": "pending",
-    "recordId": "career-pending-2026-09-12"
+    "status": "not-applicable",
+    "recordId": "career-verified-2026-09-12"
   },
   "publicationApproval": {
     "owner": "Kamal Pandey",
     "date": "2026-09-12",
-    "status": "omitted"
+    "status": "approved"
   },
   "redactionReview": {
     "reviewer": "Kamal Pandey",
     "date": "2026-09-12",
     "status": "passed"
   },
-  "links": []
+  "links": [
+    {
+      "label": "Career AI repository",
+      "url": "https://github.com/aikepeer/career-ai",
+      "finalUrl": "https://github.com/aikepeer/career-ai",
+      "verifiedOn": "2026-09-12"
+    }
+  ]
 }

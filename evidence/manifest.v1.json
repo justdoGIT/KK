@@ -58,6 +58,23 @@
           "verifiedOn": "2026-09-12"
         }
       ]
+    },
+    {
+      "evidenceId": "career-ai-readme",
+      "sourceKind": "github",
+      "claimHash": "560201dee67d99d59c24cc70d3d3781007f1919a021e89db7f08f6bef81ba534",
+      "approvalState": "approved",
+      "publicationState": "approved",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": [
+        {
+          "label": "Career AI repository",
+          "url": "https://github.com/aikepeer/career-ai",
+          "finalUrl": "https://github.com/aikepeer/career-ai",
+          "verifiedOn": "2026-09-12"
+        }
+      ]
     }
   ]
 }

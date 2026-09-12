@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./components.css";
 
 /*
  * Dark editorial palette.
@@ -87,6 +88,8 @@ body {
   font-weight: 600;
   font-size: 0.95rem;
   letter-spacing: -0.01em;
+  color: var(--color-fg);
+  text-decoration: none;
 }
 
 /* Hero */
@@ -99,7 +102,15 @@ body {
   padding: 4rem 1.5rem;
 }
 
-.hero-section h1 {
+.hero-eyebrow {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-accent);
+  margin-bottom: 1rem;
+}
+
+.hero-headline {
   font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 700;
   letter-spacing: -0.03em;

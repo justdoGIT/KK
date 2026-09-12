@@ -1,29 +1,28 @@
+import { NavBar } from "./components/layout/NavBar.tsx";
+import { Footer } from "./components/layout/Footer.tsx";
+import { Hero } from "./components/sections/Hero.tsx";
+import { Services } from "./components/sections/Services.tsx";
+import { CareerTimeline } from "./components/sections/CareerTimeline.tsx";
+import { CaseStudies } from "./components/sections/CaseStudies.tsx";
+import { SkillMatrix } from "./components/sections/SkillMatrix.tsx";
+import { ContactCTA } from "./components/sections/ContactCTA.tsx";
+
 export default function App() {
   return (
     <div className="app-shell">
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      <header className="nav-bar" role="banner">
-        <nav aria-label="Primary navigation">
-          <span className="nav-brand">Kamal Pandey</span>
-        </nav>
-      </header>
+      <NavBar />
       <main id="main" role="main">
-        <section aria-label="Hero" className="hero-section">
-          <h1>Embedded Systems, Linux BSP &amp; Low-Level Architecture</h1>
-          <p className="hero-tagline">
-            Board bring-up, firmware, and systems software for hardware that
-            ships.
-          </p>
-        </section>
-        <section aria-label="Status" className="status-section">
-          <p>App shell initialized.</p>
-        </section>
+        <Hero />
+        <Services />
+        <CaseStudies />
+        <CareerTimeline />
+        <SkillMatrix />
+        <ContactCTA />
       </main>
-      <footer role="contentinfo">
-        <p>&copy; 2026 Kamal Pandey. All rights reserved.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
