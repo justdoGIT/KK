@@ -41,11 +41,11 @@ describe("repository-controlled SVG assets", () => {
     );
   });
 
-  it("rejects executable event-handler attributes", () => {
-    const result = validateSvgAsset(
-      "unsafe.svg",
-      '<svg onclick="fetch(\'https://example.com\')"><circle /></svg>',
-    );
+  it.each([
+    '<svg onclick="fetch(\'https://example.com\')"><circle /></svg>',
+    "<svg onclick=alert(1)><circle /></svg>",
+  ])("rejects quoted and unquoted executable event handlers", (svg) => {
+    const result = validateSvgAsset("unsafe.svg", svg);
     expect(result.clean).toBe(false);
     expect(result.errors).toContain(
       "unsafe.svg: event-handler attributes are not allowed",

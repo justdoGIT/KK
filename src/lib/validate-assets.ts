@@ -7,7 +7,7 @@ export type AssetValidationResult = ScanResult & {
 const EXTERNAL_REFERENCE =
   /(?:href|src|xlink:href)\s*=\s*["'](?:https?:|\/\/|data:)/i;
 const SCRIPT_CONTENT = /<script\b|javascript:/i;
-const EVENT_HANDLER_ATTRIBUTE = /\bon[a-z][\w:-]*\s*=\s*["']/i;
+const EVENT_HANDLER_ATTRIBUTE = /\bon[a-z][\w:-]*\s*=\s*(?:["'][^"']*["']|[^\s>]+)/i;
 const EXTERNAL_CSS_URL = /url\(\s*["']?(?:https?:|\/\/|data:)/i;
 const CSS_IMPORT = /@import\s+(?:url\()?\s*["']?(?:https?:|\/\/|data:)/i;
 
