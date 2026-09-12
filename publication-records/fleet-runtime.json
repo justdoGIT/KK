@@ -1,0 +1,45 @@
+{
+  "slug": "fleet-runtime",
+  "publicTitle": "Distributed fleet runtime",
+  "approvedClaims": [
+    {
+      "text": "Distributed fleet runtime with typed worker protocol, agent/API/dashboard component boundaries, telemetry, and evidence collection.",
+      "evidenceIds": ["fleet-9ab8927"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    },
+    {
+      "text": "Agent binary handles health collection, heartbeat, manifest sync, and authentication.",
+      "evidenceIds": ["fleet-9ab8927"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    },
+    {
+      "text": "Planned extension into distributed model serving and harness integration is documented as planned, not shipped.",
+      "evidenceIds": ["fleet-9ab8927"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    }
+  ],
+  "excludedClaims": [
+    "client names",
+    "private topology",
+    "planned features presented as shipped"
+  ],
+  "approvedCommitOrTag": null,
+  "clientApproval": {
+    "status": "not-applicable",
+    "recordId": "fleet-local-2026-09-12"
+  },
+  "publicationApproval": {
+    "owner": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "approved"
+  },
+  "redactionReview": {
+    "reviewer": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "passed"
+  },
+  "links": []
+}

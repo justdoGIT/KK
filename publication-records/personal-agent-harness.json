@@ -1,0 +1,41 @@
+{
+  "slug": "personal-agent-harness",
+  "publicTitle": "Personal agent harness",
+  "approvedClaims": [
+    {
+      "text": "Personal agent harness with TUI, headless mode, and canonical task AST for structured task management.",
+      "evidenceIds": ["harness-3586d49e"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    },
+    {
+      "text": "Personal agent harness with rollout controls, observability, benchmarks, and recovery for reliable operation.",
+      "evidenceIds": ["harness-2e267322"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    }
+  ],
+  "excludedClaims": [
+    "repository names",
+    "source URLs",
+    "ownership claims",
+    "availability claims",
+    "commit identifiers"
+  ],
+  "approvedCommitOrTag": null,
+  "clientApproval": {
+    "status": "not-applicable",
+    "recordId": "harness-local-2026-09-12"
+  },
+  "publicationApproval": {
+    "owner": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "approved"
+  },
+  "redactionReview": {
+    "reviewer": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "passed"
+  },
+  "links": []
+}

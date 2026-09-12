@@ -1,0 +1,63 @@
+{
+  "manifestVersion": 1,
+  "registryVersion": 1,
+  "entries": [
+    {
+      "evidenceId": "fleet-9ab8927",
+      "sourceKind": "local-history",
+      "claimHash": "9bffbf00faa193aedf63d8806029ecba4332c79feaf72aedf08420c2241905a0",
+      "approvalState": "approved",
+      "publicationState": "approved",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": []
+    },
+    {
+      "evidenceId": "harness-3586d49e",
+      "sourceKind": "local-history",
+      "claimHash": "a3e85ac62bee42fa41efc40c2524968e849a554c1526191dd89dfba81a782e19",
+      "approvalState": "approved",
+      "publicationState": "claim-only",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": []
+    },
+    {
+      "evidenceId": "harness-2e267322",
+      "sourceKind": "local-history",
+      "claimHash": "931ecedfa6e193722cfca11053f210fec69ad18ed197ee02f8ee201674c3f8a3",
+      "approvalState": "approved",
+      "publicationState": "claim-only",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": []
+    },
+    {
+      "evidenceId": "resume-001",
+      "sourceKind": "resume",
+      "claimHash": "4ad2e174940b997e7467cc08eb5573ffda1824339aee9216904406e7c5f47636",
+      "approvalState": "approved",
+      "publicationState": "approved",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": []
+    },
+    {
+      "evidenceId": "inspiration-lusion",
+      "sourceKind": "inspiration",
+      "claimHash": "750283968dd2c67631a27d0636f5ac0dee031aee29b9b81e9c0cf2bfe5c32c44",
+      "approvalState": "approved",
+      "publicationState": "approved",
+      "approvedOn": "2026-09-12",
+      "reviewedOn": "2026-09-12",
+      "links": [
+        {
+          "label": "Lusion (inspiration only)",
+          "url": "https://lusion.co",
+          "finalUrl": "https://lusion.co",
+          "verifiedOn": "2026-09-12"
+        }
+      ]
+    }
+  ]
+}

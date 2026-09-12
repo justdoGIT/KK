@@ -1,0 +1,35 @@
+{
+  "registryVersion": 1,
+  "entries": [
+    {
+      "evidenceId": "fleet-9ab8927",
+      "publicIdentity": "Distributed fleet runtime",
+      "approvedClaimText": "Distributed fleet runtime with typed worker protocol, agent/API/dashboard component boundaries, telemetry, and evidence collection.",
+      "publicationState": "approved"
+    },
+    {
+      "evidenceId": "harness-3586d49e",
+      "publicIdentity": "Personal agent harness",
+      "approvedClaimText": "Personal agent harness with TUI, headless mode, and canonical task AST for structured task management.",
+      "publicationState": "claim-only"
+    },
+    {
+      "evidenceId": "harness-2e267322",
+      "publicIdentity": "Personal agent harness",
+      "approvedClaimText": "Personal agent harness with rollout controls, observability, benchmarks, and recovery for reliable operation.",
+      "publicationState": "claim-only"
+    },
+    {
+      "evidenceId": "resume-001",
+      "publicIdentity": "Career and skills summary",
+      "approvedClaimText": "Embedded Software and Systems Engineer with experience in board bring-up, BSP development, and low-level debugging across Qualcomm, TI, NXP, and Xilinx platforms.",
+      "publicationState": "approved"
+    },
+    {
+      "evidenceId": "inspiration-lusion",
+      "publicIdentity": "Interaction design inspiration",
+      "approvedClaimText": "Dark editorial interaction language with glass surfaces and scroll-led storytelling inspired by publicly visible interaction patterns.",
+      "publicationState": "approved"
+    }
+  ]
+}

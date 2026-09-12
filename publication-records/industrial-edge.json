@@ -1,0 +1,46 @@
+{
+  "slug": "industrial-edge",
+  "publicTitle": "Industrial edge deployment",
+  "approvedClaims": [
+    {
+      "text": "Board bring-up and BSP development for Qualcomm QCM2290 platform with watchdog and power-aware state management.",
+      "evidenceIds": ["resume-001"],
+      "publicationStatus": "approved",
+      "metricLabel": "resume-reported"
+    },
+    {
+      "text": "OSTree-based atomic OTA updates for reliable field deployment of embedded devices.",
+      "evidenceIds": ["resume-001"],
+      "publicationStatus": "approved",
+      "metricLabel": "resume-reported"
+    },
+    {
+      "text": "Low-level debugging using JTAG, UART, ftrace, and oscilloscopes across multiple board platforms.",
+      "evidenceIds": ["resume-001"],
+      "publicationStatus": "approved",
+      "metricLabel": "not-a-metric"
+    }
+  ],
+  "excludedClaims": [
+    "client names",
+    "specific device model numbers beyond platform family",
+    "deployment topology details",
+    "99.9% uptime presented as independently measured"
+  ],
+  "approvedCommitOrTag": null,
+  "clientApproval": {
+    "status": "not-applicable",
+    "recordId": "edge-resume-2026-09-12"
+  },
+  "publicationApproval": {
+    "owner": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "approved"
+  },
+  "redactionReview": {
+    "reviewer": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "passed"
+  },
+  "links": []
+}

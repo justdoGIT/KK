@@ -1,0 +1,32 @@
+{
+  "slug": "career-automation",
+  "publicTitle": "Career automation pipeline",
+  "approvedClaims": [
+    {
+      "text": "Career automation pipeline with job discovery, matching, resume tailoring, and dry-run submission gate.",
+      "evidenceIds": [],
+      "publicationStatus": "omitted",
+      "metricLabel": "not-a-metric"
+    }
+  ],
+  "excludedClaims": [
+    "repository URL pending verification",
+    "local remote identity"
+  ],
+  "approvedCommitOrTag": null,
+  "clientApproval": {
+    "status": "pending",
+    "recordId": "career-pending-2026-09-12"
+  },
+  "publicationApproval": {
+    "owner": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "omitted"
+  },
+  "redactionReview": {
+    "reviewer": "Kamal Pandey",
+    "date": "2026-09-12",
+    "status": "passed"
+  },
+  "links": []
+}
