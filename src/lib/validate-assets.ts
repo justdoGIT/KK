@@ -38,6 +38,7 @@ function parseAttributes(raw: string): Attribute[] {
 
     if (raw[cursor] !== "=") {
       attributes.push({ name, value: "" });
+      cursor = Math.max(cursor, ATTRIBUTE_NAME.lastIndex + 1);
       continue;
     }
 

@@ -57,4 +57,12 @@ describe("repository-controlled SVG assets", () => {
     );
     expect(result.clean, result.errors.join("; ")).toBe(true);
   });
+
+  it("terminates on valueless SVG attributes", () => {
+    const result = validateSvgAsset(
+      "safe.svg",
+      '<svg><rect focusable /></svg>',
+    );
+    expect(result.clean, result.errors.join("; ")).toBe(true);
+  });
 });
