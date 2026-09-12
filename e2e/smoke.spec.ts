@@ -31,10 +31,15 @@ test.describe("Portfolio smoke tests", () => {
   test("keyboard navigation reaches skip link first", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");
-    const focused = await page.evaluate(() =>
-      document.activeElement?.textContent,
-    );
-    expect(focused).toContain("Skip to main content");
+    const focused = await page.evaluate(() => {
+      const element = document.activeElement;
+      return {
+        href: element instanceof HTMLAnchorElement ? element.getAttribute("href") : null,
+        text: element?.textContent?.trim() ?? "",
+      };
+    });
+    expect(focused.href).toBe("#main");
+    expect(focused.text).toBe("Skip to main content");
   });
 
   test("career timeline disclosure expands", async ({ page }) => {
