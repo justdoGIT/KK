@@ -7,6 +7,8 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { validateSvgAsset } from "../src/lib/validate-assets.ts";
+import { scanText } from "../src/lib/prohibited-terms.ts";
 
 const root = resolve(import.meta.dirname, "..");
 
@@ -25,6 +27,20 @@ const records = existsSync(recordsDir)
   : [];
 
 let exitCode = 0;
+
+// 0. Validate repository-controlled SVG assets before they enter dist/
+for (const filename of ["favicon.svg", "og-preview.svg"]) {
+  const assetPath = join(root, "public", filename);
+  const result = validateSvgAsset(filename, readFileSync(assetPath, "utf-8"));
+  if (!result.clean) {
+    console.error(`FAIL: SVG asset validation for ${filename}`);
+    console.error(`  ${JSON.stringify(result)}`);
+    exitCode = 1;
+  }
+}
+if (exitCode === 0) {
+  console.log("PASS: SVG asset validation");
+}
 
 // 1. Validate manifest against registry
 const { validateManifest } = await import(
@@ -80,7 +96,9 @@ if (existsSync(distDir)) {
     const content = readFileSync(join(distDir, file), "utf-8");
     const result = file.endsWith(".html")
       ? scanHtml(content)
-      : scanText(content);
+      : file.endsWith(".svg")
+        ? validateSvgAsset(file, content)
+        : scanText(content);
     if (!result.clean) {
       console.error(`FAIL: prohibited content in dist/${file}`);
       console.error(`  ${JSON.stringify(result)}`);

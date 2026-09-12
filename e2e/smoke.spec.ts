@@ -56,7 +56,27 @@ test.describe("Portfolio smoke tests", () => {
     ).toBeVisible();
   });
 
-  test("no prohibited terms in rendered HTML", async ({ page }) => {
+  test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+      "href",
+      "./favicon.svg",
+    );
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      "content",
+      "./og-preview.svg",
+    );
+
+    const favicon = await page.request.get("./favicon.svg");
+    expect(favicon.ok()).toBe(true);
+    expect(await favicon.text()).toContain("<svg");
+
+    const preview = await page.request.get("./og-preview.svg");
+    expect(preview.ok()).toBe(true);
+    expect(await preview.text()).toContain("Kamal Pandey");
+  });
+
+  test("no prohibited terms or private paths in rendered HTML", async ({ page }) => {
     await page.goto("/");
     const html = await page.content();
     expect(html.toLowerCase()).not.toContain("grok-build");
