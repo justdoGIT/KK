@@ -1,5 +1,67 @@
 /* === Component styles === */
 
+/* Scene and cursor (enhanced mode) */
+.scene-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.css-artifact {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.css-orb {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--color-accent-glow) 0%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  opacity: 0.5;
+}
+.app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+/* Reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Magnetic cursor */
+.magnetic-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  margin-left: -8px;
+  margin-top: -8px;
+}
+.magnetic-cursor-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

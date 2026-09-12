@@ -6,23 +6,50 @@ import { CareerTimeline } from "./components/sections/CareerTimeline.tsx";
 import { CaseStudies } from "./components/sections/CaseStudies.tsx";
 import { SkillMatrix } from "./components/sections/SkillMatrix.tsx";
 import { ContactCTA } from "./components/sections/ContactCTA.tsx";
+import { MotionModeProvider } from "./motion/motion-mode.tsx";
+import { Reveal } from "./motion/Reveal.tsx";
+import { useLenisGsap } from "./motion/lenis-gsap.ts";
+import { MagneticCursor } from "./motion/MagneticCursor.tsx";
+import { SceneEntry } from "./scene/SceneEntry.tsx";
 
-export default function App() {
+function AppContent() {
+  useLenisGsap();
+
   return (
     <div className="app-shell">
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
+      <MagneticCursor />
+      <SceneEntry />
       <NavBar />
       <main id="main" role="main">
         <Hero />
-        <Services />
-        <CaseStudies />
-        <CareerTimeline />
-        <SkillMatrix />
-        <ContactCTA />
+        <Reveal>
+          <Services />
+        </Reveal>
+        <Reveal>
+          <CaseStudies />
+        </Reveal>
+        <Reveal>
+          <CareerTimeline />
+        </Reveal>
+        <Reveal>
+          <SkillMatrix />
+        </Reveal>
+        <Reveal>
+          <ContactCTA />
+        </Reveal>
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <MotionModeProvider>
+      <AppContent />
+    </MotionModeProvider>
   );
 }
