@@ -7,6 +7,9 @@
   z-index: 0;
   pointer-events: none;
 }
+.scene-container * {
+  pointer-events: none;
+}
 .css-artifact {
   position: fixed;
   inset: 0;
@@ -15,18 +18,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 .css-orb {
-  width: 300px;
-  height: 300px;
+  position: relative;
+  width: 320px;
+  height: 320px;
+}
+.css-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   background: radial-gradient(
     circle,
     var(--color-accent-glow) 0%,
-    transparent 70%
+    transparent 65%
   );
-  filter: blur(40px);
-  opacity: 0.5;
+  filter: blur(30px);
+}
+.css-orb::after {
+  content: "";
+  position: absolute;
+  inset: 60px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 50%;
+  animation: css-orb-rotate 20s linear infinite;
+}
+@keyframes css-orb-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .app-shell {
   position: relative;

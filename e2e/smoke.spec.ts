@@ -44,7 +44,10 @@ test.describe("Portfolio smoke tests", () => {
       .filter({ hasText: /SYMX\.AI/ });
     await firstButton.click();
     await expect(
-      page.getByText("Board bring-up and BSP development"),
+      page.locator(".disclosure-panel").first(),
+    ).toBeVisible();
+    await expect(
+      page.locator(".disclosure-panel").first().getByText(/Watchdog/),
     ).toBeVisible();
   });
 
