@@ -38,7 +38,8 @@ function parseAttributes(raw: string): Attribute[] {
 
     if (raw[cursor] !== "=") {
       attributes.push({ name, value: "" });
-      cursor = Math.max(cursor, ATTRIBUTE_NAME.lastIndex + 1);
+      // `cursor` already points at the first non-space character after the name.
+      // Leave it there so the next loop parses that attribute in full.
       continue;
     }
 

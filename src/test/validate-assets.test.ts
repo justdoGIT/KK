@@ -58,11 +58,20 @@ describe("repository-controlled SVG assets", () => {
     expect(result.clean, result.errors.join("; ")).toBe(true);
   });
 
-  it("terminates on valueless SVG attributes", () => {
-    const result = validateSvgAsset(
+  it("terminates on valueless SVG attributes without skipping the next attribute", () => {
+    const safeResult = validateSvgAsset(
       "safe.svg",
       '<svg><rect focusable /></svg>',
     );
-    expect(result.clean, result.errors.join("; ")).toBe(true);
+    expect(safeResult.clean, safeResult.errors.join("; ")).toBe(true);
+
+    const unsafeResult = validateSvgAsset(
+      "unsafe.svg",
+      "<svg><image foo href=https://evil.example/x /></svg>",
+    );
+    expect(unsafeResult.clean).toBe(false);
+    expect(unsafeResult.errors).toContain(
+      "unsafe.svg: external or data references are not allowed",
+    );
   });
 });
