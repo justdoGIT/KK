@@ -1,5 +1,6 @@
 import { NavBar } from "./components/layout/NavBar.tsx";
 import { Footer } from "./components/layout/Footer.tsx";
+import { ScrollNavigator } from "./components/layout/ScrollNavigator.tsx";
 import { Hero } from "./components/sections/Hero.tsx";
 import { Services } from "./components/sections/Services.tsx";
 import { CareerTimeline } from "./components/sections/CareerTimeline.tsx";
@@ -26,6 +27,7 @@ function AppContent() {
       </a>
       <MagneticCursor />
       <SceneEntry />
+      <ScrollNavigator />
       <NavBar />
       <main id="main" role="main">
         <Hero />
