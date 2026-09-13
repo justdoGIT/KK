@@ -67,6 +67,18 @@ test.describe("Portfolio smoke tests", () => {
     await expect(page).toHaveURL(/#services$/);
   });
 
+  test("page journey navigator tracks sections and links to the next stop", async ({ page }) => {
+    await page.goto("/");
+    const navigator = page.getByRole("complementary", { name: "Page journey" });
+    await expect(navigator).toBeVisible();
+    await expect(navigator.getByRole("link", { name: "Go to Start" })).toHaveAttribute("aria-current", "step");
+    const workLink = navigator.getByRole("link", { name: "Go to Work" });
+    await expect(workLink).toHaveAttribute("href", "#work");
+    await workLink.click();
+    await expect(page).toHaveURL(/#work$/);
+    await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
+  });
+
   test("case study visual responds to pointer movement", async ({ page }) => {
     await page.goto("/");
     const visual = page.locator(".interactive-visual").first();

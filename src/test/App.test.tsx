@@ -30,6 +30,7 @@ describe("App shell", () => {
     expect(screen.getByLabelText("Services and offers")).toBeInTheDocument();
     expect(screen.getByLabelText("Visual project lab")).toBeInTheDocument();
     expect(screen.getByLabelText("Working approach")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Page journey" })).toBeInTheDocument();
     expect(screen.getByLabelText("Career timeline")).toBeInTheDocument();
     expect(screen.getByLabelText("Skill matrix")).toBeInTheDocument();
     expect(screen.getByLabelText("Contact")).toBeInTheDocument();
@@ -53,6 +54,12 @@ describe("App shell", () => {
     render(<App />);
     expect(screen.getByText("SYMX.AI")).toBeInTheDocument();
     expect(screen.getByText("Vestel International")).toBeInTheDocument();
+  });
+
+  it("renders the page journey stops", () => {
+    render(<App />);
+    expect(screen.getByRole("complementary", { name: "Page journey" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to Lab" })).toHaveAttribute("href", "#visual-lab");
   });
 
   it("toggles the mobile navigation menu", () => {
