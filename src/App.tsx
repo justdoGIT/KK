@@ -6,6 +6,8 @@ import { CareerTimeline } from "./components/sections/CareerTimeline.tsx";
 import { CaseStudies } from "./components/sections/CaseStudies.tsx";
 import { SkillMatrix } from "./components/sections/SkillMatrix.tsx";
 import { ContactCTA } from "./components/sections/ContactCTA.tsx";
+import { Offers } from "./components/sections/Offers.tsx";
+import { StoryJourney } from "./components/sections/StoryJourney.tsx";
 import { MotionModeProvider } from "./motion/motion-mode.tsx";
 import { Reveal } from "./motion/Reveal.tsx";
 import { useLenisGsap } from "./motion/lenis-gsap.ts";
@@ -29,7 +31,13 @@ function AppContent() {
           <Services />
         </Reveal>
         <Reveal>
+          <StoryJourney />
+        </Reveal>
+        <Reveal>
           <CaseStudies />
+        </Reveal>
+        <Reveal>
+          <Offers />
         </Reveal>
         <Reveal>
           <CareerTimeline />

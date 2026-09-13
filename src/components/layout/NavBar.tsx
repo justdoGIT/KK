@@ -3,7 +3,9 @@ import { contactInfo } from "../../content/contact.ts";
 
 const navItems = [
   { href: "#services", label: "Services" },
+  { href: "#journey", label: "Journey" },
   { href: "#work", label: "Work" },
+  { href: "#offers", label: "Offers" },
   { href: "#career", label: "Career" },
   { href: "#skills", label: "Skills" },
   { href: "#contact", label: "Contact" },

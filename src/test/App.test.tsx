@@ -25,7 +25,9 @@ describe("App shell", () => {
     render(<App />);
     expect(screen.getByLabelText("Hero")).toBeInTheDocument();
     expect(screen.getByLabelText("Services")).toBeInTheDocument();
+    expect(screen.getByLabelText("Systems journey")).toBeInTheDocument();
     expect(screen.getByLabelText("Case studies")).toBeInTheDocument();
+    expect(screen.getByLabelText("Services and offers")).toBeInTheDocument();
     expect(screen.getByLabelText("Career timeline")).toBeInTheDocument();
     expect(screen.getByLabelText("Skill matrix")).toBeInTheDocument();
     expect(screen.getByLabelText("Contact")).toBeInTheDocument();

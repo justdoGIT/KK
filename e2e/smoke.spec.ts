@@ -19,12 +19,14 @@ test.describe("Portfolio smoke tests", () => {
     for (const label of [
       "Hero",
       "Services",
+      "Systems journey",
       "Case studies",
+      "Services and offers",
       "Career timeline",
       "Skill matrix",
       "Contact",
     ]) {
-      await expect(page.getByLabel(label)).toBeVisible();
+      await expect(page.getByLabel(label, { exact: true })).toBeVisible();
     }
   });
 
@@ -61,6 +63,14 @@ test.describe("Portfolio smoke tests", () => {
     ).toHaveAttribute("aria-expanded", "true");
     await page.getByRole("link", { name: "Services", exact: true }).click();
     await expect(page).toHaveURL(/#services$/);
+  });
+
+  test("case study visual responds to pointer movement", async ({ page }) => {
+    await page.goto("/");
+    const visual = page.locator(".interactive-visual").first();
+    await visual.hover({ position: { x: 30, y: 30 } });
+    await expect(visual).toHaveClass(/interactive-visual-active/);
+    await expect(visual.getByText("Pointer signal detected")).toBeVisible();
   });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
