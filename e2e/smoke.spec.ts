@@ -22,6 +22,8 @@ test.describe("Portfolio smoke tests", () => {
       "Systems journey",
       "Case studies",
       "Services and offers",
+      "Visual project lab",
+      "Working approach",
       "Career timeline",
       "Skill matrix",
       "Contact",

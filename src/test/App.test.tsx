@@ -28,6 +28,8 @@ describe("App shell", () => {
     expect(screen.getByLabelText("Systems journey")).toBeInTheDocument();
     expect(screen.getByLabelText("Case studies")).toBeInTheDocument();
     expect(screen.getByLabelText("Services and offers")).toBeInTheDocument();
+    expect(screen.getByLabelText("Visual project lab")).toBeInTheDocument();
+    expect(screen.getByLabelText("Working approach")).toBeInTheDocument();
     expect(screen.getByLabelText("Career timeline")).toBeInTheDocument();
     expect(screen.getByLabelText("Skill matrix")).toBeInTheDocument();
     expect(screen.getByLabelText("Contact")).toBeInTheDocument();
