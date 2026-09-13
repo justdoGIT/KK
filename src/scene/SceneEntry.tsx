@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useMotionMode } from "../motion/motion-mode.tsx";
+import { useMotionMode } from "../motion/use-motion-mode.ts";
 import { checkWebGL } from "./useCapability.ts";
 
 const SceneCanvas = lazy(() =>

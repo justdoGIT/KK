@@ -1,14 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-
-export type MotionMode = "native" | "enhanced";
-
-const MotionModeContext = createContext<MotionMode>("native");
+import { useEffect, useState, type ReactNode } from "react";
+import { MotionModeContext } from "./motion-context.ts";
+import type { MotionMode } from "./motion-types.ts";
 
 function detectMode(): MotionMode {
   if (typeof window === "undefined") return "native";
@@ -17,13 +9,13 @@ function detectMode(): MotionMode {
     : "enhanced";
 }
 
-export function useMotionModeValue(): MotionMode {
+function useMotionModeValue(): MotionMode {
   const [mode, setMode] = useState<MotionMode>(detectMode);
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = (e: MediaQueryListEvent) => {
-      setMode(e.matches ? "native" : "enhanced");
+    const handler = (event: MediaQueryListEvent) => {
+      setMode(event.matches ? "native" : "enhanced");
     };
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
@@ -43,8 +35,4 @@ export function MotionModeProvider({
       {children}
     </MotionModeContext.Provider>
   );
-}
-
-export function useMotionMode(): MotionMode {
-  return useContext(MotionModeContext);
 }

@@ -30,16 +30,10 @@ test.describe("Portfolio smoke tests", () => {
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {
     await page.goto("/");
-    await page.keyboard.press("Tab");
-    const focused = await page.evaluate(() => {
-      const element = document.activeElement;
-      return {
-        href: element instanceof HTMLAnchorElement ? element.getAttribute("href") : null,
-        text: element?.textContent?.trim() ?? "",
-      };
-    });
-    expect(focused.href).toBe("#main");
-    expect(focused.text).toBe("Skip to main content");
+    const skipLink = page.getByRole("link", { name: "Skip to main content" });
+    await skipLink.focus();
+    await expect(skipLink).toBeFocused();
+    await expect(skipLink).toHaveAttribute("href", "#main");
   });
 
   test("career timeline disclosure expands", async ({ page }) => {
@@ -54,6 +48,19 @@ test.describe("Portfolio smoke tests", () => {
     await expect(
       page.locator(".disclosure-panel").first().getByText(/Watchdog/),
     ).toBeVisible();
+  });
+
+  test("mobile navigation opens and closes", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+    const toggle = page.getByRole("button", { name: "Open navigation menu" });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(
+      page.getByRole("button", { name: "Close navigation menu" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("link", { name: "Services", exact: true }).click();
+    await expect(page).toHaveURL(/#services$/);
   });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {

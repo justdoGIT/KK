@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import App from "../App";
 
 describe("App shell", () => {
@@ -49,5 +49,17 @@ describe("App shell", () => {
     render(<App />);
     expect(screen.getByText("SYMX.AI")).toBeInTheDocument();
     expect(screen.getByText("Vestel International")).toBeInTheDocument();
+  });
+
+  it("toggles the mobile navigation menu", () => {
+    render(<App />);
+    const toggle = screen.getByRole("button", { name: "Open navigation menu" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "Close navigation menu" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("link", { name: "Services" })).toBeVisible();
   });
 });

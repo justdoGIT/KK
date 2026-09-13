@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useMotionMode } from "./motion-mode.tsx";
+import { useMotionMode } from "./use-motion-mode.ts";
 
 type RevealProps = {
   children: ReactNode;

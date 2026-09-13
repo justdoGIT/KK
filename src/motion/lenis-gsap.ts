@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useMotionMode } from "./motion-mode.tsx";
+import { useMotionMode } from "./use-motion-mode.ts";
 
 /**
  * Lenis + GSAP ScrollTrigger integration.

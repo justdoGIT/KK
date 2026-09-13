@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMotionMode } from "./motion-mode.tsx";
+import { useMotionMode } from "./use-motion-mode.ts";
 
 /**
  * Magnetic cursor: a custom cursor that follows the pointer with

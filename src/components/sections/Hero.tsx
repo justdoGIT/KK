@@ -15,7 +15,7 @@ export function Hero() {
       </p>
       <div className="hero-actions">
         <a href="#work" className="btn btn-primary">
-          Explore Projects
+          Explore Projects <span aria-hidden="true">↗</span>
         </a>
         <a href="#services" className="btn btn-secondary">
           View Services
@@ -24,8 +24,13 @@ export function Hero() {
           href={`mailto:${contactInfo.email}`}
           className="btn btn-tertiary"
         >
-          Start a conversation
+          Start a conversation <span aria-hidden="true">↗</span>
         </a>
+      </div>
+      <div className="hero-meta" aria-label="Capabilities">
+        <span>Board bring-up</span>
+        <span>Firmware</span>
+        <span>Systems software</span>
       </div>
     </section>
   );
