@@ -14,6 +14,20 @@ npm test        # unit tests
 npm run validate:publication  # publication provenance check
 ```
 
+The development server omits the production CSP so Vite can inject styles
+and connect hot reload. Production builds and previews retain the strict
+policy from `index.html`; do not use the development server for deployment.
+
+Browser regression checks (run after `npm run build`):
+
+```bash
+npm exec -- playwright install chromium
+npm exec -- playwright test e2e/smoke.spec.ts e2e/runtime.spec.ts
+```
+
+The runtime suite checks development styling, hot reload, mobile navigation,
+and production restrictions on network connections and injected styles.
+
 ## Architecture
 
 - **Semantic HTML first**: all content is usable without WebGL, smooth scroll, or JavaScript scene chunks.

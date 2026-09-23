@@ -4,7 +4,21 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: "development-csp",
+      apply: "serve",
+      transformIndexHtml(html) {
+        // Vite injects styles and uses HMR; builds retain the strict policy.
+        return html.replace(
+          /<meta http-equiv="Content-Security-Policy"[^>]*>/,
+          "",
+        );
+      },
+    },
+  ],
   build: {
     target: "es2020",
     cssCodeSplit: true,
