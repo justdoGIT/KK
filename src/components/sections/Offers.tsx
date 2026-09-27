@@ -1,10 +1,14 @@
+import { type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 
 type Offer = {
   index: string;
+  badge: string;
   title: string;
+  timeline: string;
   promise: string;
-  details: string[];
+  deliverables: string[];
+  bestFor: string;
   cta: string;
   featured?: boolean;
 };
@@ -12,53 +16,136 @@ type Offer = {
 const offers: Offer[] = [
   {
     index: "01",
-    title: "Bring-up Sprint",
-    promise: "Turn an unknown board into a measurable system.",
-    details: ["Boot chain audit", "Kernel and device-tree path", "UART/JTAG evidence pack"],
-    cta: "Start a bring-up sprint",
+    badge: "RAPID EXECUTION",
+    title: "Turnkey Bring-Up & BSP Sprint",
+    timeline: "2 – 4 Weeks",
+    promise: "Transform prototype silicon into a verified, production-stable hardware platform.",
+    deliverables: [
+      "PMIC power rail sequencing & reset timing validation",
+      "Custom U-Boot bootloader & device tree authoring",
+      "Kernel device drivers for all onboard peripherals (SPI/I2C/UART/CAN)",
+      "Comprehensive JTAG, oscilloscope & ftrace diagnostic evidence pack",
+      "Factory test firmware & flashing scripts for manufacturing lines",
+    ],
+    bestFor: "Hardware teams with newly fabricated prototype boards needing rapid first-boot validation.",
+    cta: "Book Bring-Up Sprint",
   },
   {
     index: "02",
-    title: "Embedded Linux Platform",
-    promise: "Build the reliable layer your product can grow on.",
-    details: ["Yocto/BSP architecture", "OTA and power strategy", "Hardware-in-the-loop verification"],
-    cta: "Plan the platform",
+    badge: "MOST POPULAR",
+    title: "Production Embedded Linux Platform",
+    timeline: "4 – 8 Weeks",
+    promise: "Build an industrial-grade, secure, and atomic-updatable Linux distribution.",
+    deliverables: [
+      "Custom Yocto Project (Kirkstone / Scarthgap) layer & recipe repo",
+      "Hardware Security Module (HSM) Root-of-Trust & signed Secure Boot",
+      "Hardened SELinux userspace policies & encrypted storage",
+      "Atomic OSTree A/B OTA update server & fail-safe rollback daemon",
+      "Automated Hardware-in-the-Loop (HIL) regression testing pipeline",
+    ],
+    bestFor: "Commercial products scaling to mass production requiring zero field bricking and long-term LTS support.",
+    cta: "Architect Linux Platform",
     featured: true,
   },
   {
     index: "03",
-    title: "Fleet & Runtime Advisory",
-    promise: "Make deployed systems observable, recoverable, and ready to scale.",
-    details: ["Runtime boundaries", "Telemetry and evidence", "Deployment and recovery design"],
-    cta: "Map the runtime",
+    badge: "ADVANCED SYSTEMS",
+    title: "Robotics, Control & Edge AI Systems",
+    timeline: "6 – 10 Weeks",
+    promise: "Deploy deterministic real-time motion control and on-device neural intelligence.",
+    deliverables: [
+      "ROS / ROS2 real-time node architecture & trajectory kinematics",
+      "EtherCAT & CAN-FD industrial motor driver coordination",
+      "3D Time-of-Flight (IFM O3D) point cloud & V4L2 video capture pipelines",
+      "On-device NPU quantization (INT8 / FP8) with Qualcomm SNPE / TensorRT",
+      "Sub-3ms deterministic control loops with zero-copy shared memory",
+    ],
+    bestFor: "Autonomous robots, EV chargers, smart medical devices, and intelligent computer vision platforms.",
+    cta: "Launch Robotics & AI System",
+  },
+  {
+    index: "04",
+    badge: "STRATEGIC LEADERSHIP",
+    title: "Fractional Staff Systems Architect",
+    timeline: "Quarterly / Ongoing",
+    promise: "Senior technical direction, silicon selection, and high-velocity team acceleration.",
+    deliverables: [
+      "Silicon selection audits (Qualcomm vs TI vs NXP vs Xilinx vs STM32)",
+      "Schematic & PCB layout review for signal integrity and bring-up readiness",
+      "Zero-copy architecture design (Stratum-TSDB, asynchronous IPC)",
+      "Production security compliance & penetration test remediation",
+      "Mentoring and unblocking embedded firmware & systems teams",
+    ],
+    bestFor: "Engineering leadership and hardware startups needing staff-level architectural guidance.",
+    cta: "Retain Staff Architect",
   },
 ];
 
-export function Offers() {
+export function Offers(): JSX.Element {
   return (
     <section className="offers-section" id="offers" aria-label="Services and offers">
       <div className="section-header offers-header">
         <div>
-          <p className="section-kicker">Ways to work together</p>
-          <h2>Choose the next mission.</h2>
+          <p className="section-kicker">Client Engagement Models</p>
+          <h2>How We Can Collaborate</h2>
         </div>
-        <p className="section-subtitle">Focused engagements for teams building hardware, platforms, and dependable connected products.</p>
+        <p className="section-subtitle">
+          High-impact, deterministic engineering engagements designed to de-risk hardware,
+          accelerate time-to-market, and establish rock-solid production platforms.
+        </p>
       </div>
+
       <div className="offers-grid">
         {offers.map((offer) => (
-          <article className={`offer-card ${offer.featured ? "offer-card-featured" : ""}`} key={offer.title}>
+          <article
+            className={`offer-card ${offer.featured ? "offer-card-featured" : ""}`}
+            key={offer.title}
+          >
+            {/* Topline Badge & Index */}
             <div className="offer-topline">
-              <span>{offer.index}</span>
-              {offer.featured && <span className="offer-badge">Most useful starting point</span>}
+              <span className="offer-index">{offer.index}</span>
+              <div className="offer-badges-group">
+                <span className="offer-timeline-pill">{offer.timeline}</span>
+                {offer.featured && (
+                  <span className="offer-badge">{offer.badge}</span>
+                )}
+              </div>
             </div>
+
+            {/* Title & Promise */}
             <h3>{offer.title}</h3>
             <p className="offer-promise">{offer.promise}</p>
-            <ul>
-              {offer.details.map((detail) => <li key={detail}>{detail}</li>)}
-            </ul>
-            <a className="offer-link" href={`mailto:${contactInfo.email}?subject=${encodeURIComponent(offer.title)}`}>
-              {offer.cta} <span aria-hidden="true">↗</span>
-            </a>
+
+            {/* Target Client Profile */}
+            <div className="offer-bestfor">
+              <span className="bestfor-label">IDEAL FOR:</span>
+              <p className="bestfor-text">{offer.bestFor}</p>
+            </div>
+
+            {/* Key Deliverables */}
+            <div className="offer-deliverables-block">
+              <span className="deliv-heading">GUARANTEED DELIVERABLES:</span>
+              <ul className="offer-deliv-list">
+                {offer.deliverables.map((detail) => (
+                  <li key={detail}>
+                    <span className="deliv-bullet" aria-hidden="true">✓</span>
+                    <span>{detail}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Action CTA */}
+            <div className="offer-cta-wrap">
+              <a
+                className="btn btn-primary offer-link-btn"
+                href={`mailto:${contactInfo.email}?subject=${encodeURIComponent(
+                  `Project Inquiry: ${offer.title}`,
+                )}`}
+              >
+                {offer.cta} <span aria-hidden="true">↗</span>
+              </a>
+            </div>
           </article>
         ))}
       </div>

@@ -1,7 +1,9 @@
+import { type JSX } from "react";
 import { NavBar } from "./components/layout/NavBar.tsx";
 import { Footer } from "./components/layout/Footer.tsx";
 import { ScrollNavigator } from "./components/layout/ScrollNavigator.tsx";
 import { Hero } from "./components/sections/Hero.tsx";
+import { ClientMetricsStrip } from "./components/ui/ClientMetricsStrip.tsx";
 import { Services } from "./components/sections/Services.tsx";
 import { CareerTimeline } from "./components/sections/CareerTimeline.tsx";
 import { CaseStudies } from "./components/sections/CaseStudies.tsx";
@@ -17,7 +19,7 @@ import { useLenisGsap } from "./motion/lenis-gsap.ts";
 import { MagneticCursor } from "./motion/MagneticCursor.tsx";
 import { SceneEntry } from "./scene/SceneEntry.tsx";
 
-function AppContent() {
+function AppContent(): JSX.Element {
   useLenisGsap();
 
   return (
@@ -31,6 +33,9 @@ function AppContent() {
       <NavBar />
       <main id="main" role="main">
         <Hero />
+        <Reveal>
+          <ClientMetricsStrip />
+        </Reveal>
         <Reveal>
           <Services />
         </Reveal>
@@ -64,7 +69,7 @@ function AppContent() {
   );
 }
 
-export default function App() {
+export default function App(): JSX.Element {
   return (
     <MotionModeProvider>
       <AppContent />
