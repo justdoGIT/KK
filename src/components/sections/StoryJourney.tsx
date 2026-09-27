@@ -14,94 +14,94 @@ type JourneyStage = {
 
 const STAGES: JourneyStage[] = [
   {
-    id: "sand-quartz",
+    id: "meteor-genesis",
     step: "01",
-    chemical: "SiO₂ QUARTZ CRYSTAL",
-    eyebrow: "01 // THE MINERAL FOUNDATION",
-    headline: "The raw desert sands: Silica quartz from the earth.",
+    chemical: "COSMIC METEOR STORM ➔ SiO₂ SAND",
+    eyebrow: "01 // THE GENESIS",
+    headline: "The Genesis: Cosmic meteor storm forging desert sand into silicon chips.",
     description:
-      "Every modern microprocessor begins as raw quartz crystal sand (Silicon Dioxide, SiO₂) found in the desert. Composed of silicon and oxygen atoms locked in a crystalline tetrahedral lattice, it represents the raw material substrate for all global computation.",
+      "A vast, quiet desert under an open night sky. A sudden plasma meteor shower strikes the silica sand dunes. Plasma trails impact the earth, crystallizing granular quartz grains into glowing microchips that assemble into cold, dormant hardware boards.",
     metrics: [
-      { label: "RAW MINERAL", value: "Silica Quartz (SiO₂)" },
-      { label: "ABUNDANCE", value: "28% of Earth's Crust" },
-      { label: "STATE", value: "Ambient 25°C" },
+      { label: "GENESIS EVENT", value: "Meteor Plasma Strike" },
+      { label: "RAW MINERAL", value: "Silica Sand (SiO₂)" },
+      { label: "CRYSTAL STATE", value: "Silicon Dies Forming" },
     ],
-    tags: ["Silica Sand", "SiO₂ Tetrahedral", "Quartz Crystal", "Mining & Refining"],
+    tags: ["Meteor Shower", "Silica Sand", "Plasma Impact", "Silicon Crystallization"],
   },
   {
-    id: "arc-furnace",
+    id: "cold-bringup",
     step: "02",
-    chemical: "SiO₂ + 2C → Si + 2CO (2000°C)",
-    eyebrow: "02 // THERMAL REDUCTION",
-    headline: "Extreme arc heat: Stripping oxygen atoms to forge pure silicon.",
+    chemical: "PMIC SEQUENCING ➔ 480MHz CLOCK PULSE",
+    eyebrow: "02 // THE FIRST HEARTBEAT",
+    headline: "The Spark of Life: PMIC power sequencing & first electrical pulse.",
     description:
-      "Quartz sand is submerged into an electric arc furnace and blasted with graphite electrodes at 2,000°C. Carbon chemically bonds with the oxygen atoms to produce molten Metallurgical Grade Silicon, further purified via the Siemens process to an astonishing 99.9999999% (9N) Electronic Grade purity.",
+      "A dark, dormant hardware device rests on the bench. Power is injected: PMIC power rails cascade in sequence (3.3V ➔ 1.8V ➔ 0.85V core), the 480MHz crystal oscillator locks, and JTAG/UART diagnostic signals pulse through golden PCB traces, awakening cold silicon.",
     metrics: [
-      { label: "FURNACE TEMP", value: "2,000°C Arc Discharge" },
-      { label: "REACTION", value: "Oxygen Reduction" },
-      { label: "PURITY", value: "99.9999999% (9N)" },
+      { label: "POWER RAILS", value: "3.3V ➔ 1.8V ➔ 0.85V Core" },
+      { label: "OSCILLATOR", value: "480MHz Precision Crystal" },
+      { label: "DIAGNOSTICS", value: "JTAG / UART Probing" },
     ],
-    tags: ["Arc Furnace", "Oxygen Stripping", "Siemens Process", "9N Purity"],
+    tags: ["Power Sequencing", "PMIC Rails", "Clock Oscillator", "JTAG / UART"],
   },
   {
-    id: "ingot-wafer",
+    id: "kernel-boot",
     step: "03",
-    chemical: "CZOCHRALSKI MONOCRYSTAL",
-    eyebrow: "03 // INGOT CRYSTAL GROWTH",
-    headline: "The Czochralski pull: Growing single-crystal ingots & wafer slicing.",
+    chemical: "U-BOOT ➔ LINUX 5.15 ➔ ROOT-OF-TRUST",
+    eyebrow: "03 // KERNEL GENESIS",
+    headline: "Kernel Genesis: U-Boot, Device Trees & Hardware Root-of-Trust.",
     description:
-      "A flawless seed crystal is lowered into molten silicon at 1,420°C and slowly rotated while being drawn upward. Atoms align with atomic perfection to form a continuous monocrystalline ingot (boule), which is diamond-wire sliced into mirror-polished 300mm wafer discs.",
+      "The CPU exits reset. U-Boot initializes DDR memory, parses device tree pinmux topologies, and launches Linux 5.15 LTS. Hardware Root-of-Trust (HSM keys, Secure Boot, and SELinux) locks down the userspace as status LEDs transition to solid emerald green.",
     metrics: [
-      { label: "CRYSTAL TYPE", value: "Monocrystalline Boule" },
-      { label: "WAFER DIAMETER", value: "300mm Diameter" },
-      { label: "SAW WIRE", value: "100µm Diamond Slicing" },
+      { label: "BOOTLOADER", value: "U-Boot 2026.04" },
+      { label: "KERNEL", value: "Linux 5.15 LTS Hardened" },
+      { label: "SECURITY", value: "Root-of-Trust / HSM / SELinux" },
     ],
-    tags: ["Czochralski Growth", "Monocrystal Ingot", "300mm Wafers", "CMP Polishing"],
+    tags: ["U-Boot", "Device Tree", "Linux Kernel", "Secure Boot / HSM"],
   },
   {
-    id: "euv-lithography",
+    id: "peripherals-robotics",
     step: "04",
-    chemical: "EUV 13.5nm PHOTOLITHOGRAPHY",
-    eyebrow: "04 // NANOMETER FABRICATION",
-    headline: "Extreme Ultraviolet Lithography: Printing billions of transistors.",
+    chemical: "3D ToF VISION ➔ CAN-FD ➔ WI-FI 6 / SATELLITE",
+    eyebrow: "04 // SENSORS & ACTUATORS",
+    headline: "Peripherals Ignite: 3D ToF vision, motor actuators & Wi-Fi 6/Satellite.",
     description:
-      "Inside an ISO Class 1 cleanroom, Extreme Ultraviolet (EUV 13.5nm) laser beams pass through high-precision circuit photomasks. Billions of microscopic FinFET transistor gates and copper interconnects are etched layer-by-layer with single-nanometer precision.",
+      "The board bridges into physical reality. V4L2 camera pipelines stream 3D Time-of-Flight (IFM O3D) point clouds, EtherCAT and CAN-FD motor actuators execute precision kinematics, while MediaTek MT7668 Wi-Fi 6 and Iridium satellite links open global communication channels.",
     metrics: [
-      { label: "LIGHT WAVELENGTH", value: "13.5nm EUV Plasma" },
-      { label: "GATE DENSITY", value: "15+ Billion Transistors" },
-      { label: "CLEANROOM", value: "ISO Class 1 Standard" },
+      { label: "VISION PIPELINE", value: "3D ToF V4L2 Video Stream" },
+      { label: "MOTION BUS", value: "CAN-FD / EtherCAT 5Mbps" },
+      { label: "RF COMM", value: "Wi-Fi 6E & Satellite SBD" },
     ],
-    tags: ["EUV Lithography", "Transistor Gates", "Photomasks", "Plasma Etching"],
+    tags: ["3D ToF Vision", "CAN-FD / EtherCAT", "MediaTek MT7668", "Satellite Iridium"],
   },
   {
-    id: "packaging-bringup",
+    id: "edge-ai-neural",
     step: "05",
-    chemical: "BGA / QFP & FIRST CLOCK PULSE",
-    eyebrow: "05 // PACKAGING & FIRST BOOT",
-    headline: "Die singulation, packaging & the first electrical clock pulse.",
+    chemical: "128 TOPS NPU ➔ INT8 NEURAL QUANTIZATION",
+    eyebrow: "05 // NEURAL AWAKENING",
+    headline: "Neural Awakening: INT8 model quantization & on-device NPU inference.",
     description:
-      "Stealth lasers slice the wafer into independent dies, wire-bonded and sealed into BGA/QFP epoxy resin packages (Qualcomm, TI Sitara, STM32, NXP). Soldered onto multi-layer PCBs, PMIC power sequencing fires up U-Boot and the Linux kernel emits the board's first alive signal.",
+      "Onboard neural accelerators (Qualcomm Hexagon NPU / NVIDIA TensorRT) fire up. Quantized INT8 deep learning models execute real-time object classification, sensor fusion, and autonomous obstacle avoidance with sub-millisecond deterministic latency.",
     metrics: [
-      { label: "PACKAGE TYPE", value: "Micro-BGA / QFP48" },
-      { label: "SYSTEM CLOCK", value: "480MHz Core Freq" },
-      { label: "BOOT SEQUENCE", value: "U-Boot & Linux 5.15" },
+      { label: "NPU CAPACITY", value: "128 TOPS INT8 / FP8" },
+      { label: "LATENCY", value: "< 2.8ms Inference Loop" },
+      { label: "RUNTIMES", value: "Qualcomm SNPE / TensorRT" },
     ],
-    tags: ["Die Singulation", "QFP/BGA Packaging", "Board Bring-Up", "U-Boot Kernel"],
+    tags: ["Hexagon NPU", "INT8 Quantization", "Sensor Fusion", "Autonomous Loops"],
   },
   {
-    id: "fleet-intelligence",
+    id: "fleet-army",
     step: "06",
-    chemical: "AUTONOMOUS FLEET INTELLIGENCE",
-    eyebrow: "06 // DISTRIBUTED EDGE AI",
-    headline: "From grains of sand to distributed autonomous intelligence.",
+    chemical: "AUTONOMOUS FLEET MESH ➔ STRATUM-TSDB",
+    eyebrow: "06 // SWARM ASCENDANCY",
+    headline: "Swarm Intelligence: An army of autonomous fleet devices.",
     description:
-      "The physical journey reaches its zenith. Cold sand has transformed into intelligent edge nodes operating across robotics, real-time CAN/EtherCAT motion control, INT8 neural acceleration, and zero-copy Stratum-TSDB streaming telemetry in a self-healing fleet.",
+      "The solitary board multiplies into a vast, synchronized army of fleet devices across the globe. Powered by zero-copy Stratum-TSDB time-series streaming, distributed Slurm cluster scheduling, and self-healing agentic CI/CD harnesses, the fleet operates as one autonomous hive mind.",
     metrics: [
-      { label: "NEURAL INFERENCE", value: "128 TOPS NPU Acceleration" },
-      { label: "FLEET TOPOLOGY", value: "Heterogeneous Multi-Node" },
-      { label: "TELEMETRY", value: "Zero-Copy Stratum-TSDB" },
+      { label: "FLEET SCALE", value: "Heterogeneous Multi-Node" },
+      { label: "DATA INGEST", value: "Zero-Copy Stratum-TSDB" },
+      { label: "ORCHESTRATION", value: "Self-Healing Agent Harness" },
     ],
-    tags: ["Edge AI NPU", "Autonomous Fleet", "ROS2 Robotics", "Zero-Copy TSDB"],
+    tags: ["Autonomous Fleet", "Stratum-TSDB", "Slurm Cluster", "Agentic CI/CD"],
   },
 ];
 
@@ -117,7 +117,7 @@ export function StoryJourney(): JSX.Element {
 
     const timer = window.setInterval(() => {
       setActiveStageIdx((prev) => (prev + 1) % STAGES.length);
-    }, 6000);
+    }, 6500);
 
     return () => clearInterval(timer);
   }, [autoPlay]);
@@ -132,17 +132,18 @@ export function StoryJourney(): JSX.Element {
       {/* Section Header */}
       <div className="journey-intro">
         <div className="journey-kicker-row">
-          <span className="section-kicker">The Epic Silicon Odyssey</span>
+          <span className="section-kicker">The Systems Odyssey</span>
           <span className="journey-auto-indicator" aria-hidden="true">
             <span className={`auto-dot ${autoPlay ? "auto-dot-live" : ""}`} />
-            <span>{autoPlay ? "AUTO-SCROLLING ODYSSEY" : "PAUSED"}</span>
+            <span>{autoPlay ? "IMMERSIVE AUTO-SCROLL JOURNEY" : "PAUSED"}</span>
           </span>
         </div>
-        <h2>From desert sand to autonomous fleet intelligence.</h2>
+        <h2>From desert sand to an army of intelligent fleet devices.</h2>
         <p>
-          Witness the complete transformation: how ordinary quartz sand is
-          stripped of oxygen at 2,000°C, grown into single crystals, etched with
-          EUV lasers, and brought to life as autonomous edge systems.
+          An epic journey of hardware transformation: from a cosmic meteor storm
+          crystallizing desert quartz into chips, to power rail sequencing,
+          hardened Linux bring-up, and a globally synchronized army of
+          autonomous edge systems.
         </p>
       </div>
 
@@ -172,7 +173,7 @@ export function StoryJourney(): JSX.Element {
               }}
             >
               <span className="step-num">{st.step}</span>
-              <span className="step-label">{st.chemical.split(" ")[0]}</span>
+              <span className="step-label">{st.eyebrow.split("// ")[1]}</span>
             </button>
           ))}
         </div>
@@ -217,7 +218,7 @@ export function StoryJourney(): JSX.Element {
           {/* Viewport Overlay Caption */}
           <div className="journey-canvas-caption" aria-hidden="true">
             <span className="caption-live-dot" />
-            <span>3D SIMULATION // STAGE {currentStage.step}: {currentStage.chemical}</span>
+            <span>3D SIMULATION // ACT {currentStage.step}: {currentStage.chemical}</span>
           </div>
         </div>
       </div>

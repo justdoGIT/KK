@@ -1,10 +1,10 @@
 import { type JSX } from "react";
-import { SandStage } from "./SandStage.tsx";
-import { HeatFurnaceStage } from "./HeatFurnaceStage.tsx";
-import { IngotWaferStage } from "./IngotWaferStage.tsx";
-import { LithographyStage } from "./LithographyStage.tsx";
-import { PackagingBoardStage } from "./PackagingBoardStage.tsx";
-import { FleetIntelligenceStage } from "./FleetIntelligenceStage.tsx";
+import { MeteorGenesisStage } from "./MeteorGenesisStage.tsx";
+import { ColdSiliconBringupStage } from "./ColdSiliconBringupStage.tsx";
+import { KernelBootStage } from "./KernelBootStage.tsx";
+import { PeripheralsRoboticsStage } from "./PeripheralsRoboticsStage.tsx";
+import { EdgeAiNeuralStage } from "./EdgeAiNeuralStage.tsx";
+import { FleetArmyStage } from "./FleetArmyStage.tsx";
 
 type SandToSiliconSceneProps = {
   currentStage: number; // 0 to 5
@@ -13,29 +13,29 @@ type SandToSiliconSceneProps = {
 export function SandToSiliconScene({ currentStage }: SandToSiliconSceneProps): JSX.Element {
   return (
     <>
-      {/* Studio Lighting */}
+      {/* Dynamic Lighting adapted for active stage */}
       <ambientLight intensity={0.7} />
-      <directionalLight position={[5, 8, 6]} intensity={1.5} />
-      <pointLight position={[-4, 3, 3]} intensity={1.2} color="#38bdf8" />
-      <pointLight position={[4, -4, -2]} intensity={1.0} color="#f59e0b" />
+      <directionalLight position={[5, 8, 6]} intensity={1.6} />
+      <pointLight position={[-4, 3, 3]} intensity={1.3} color="#38bdf8" />
+      <pointLight position={[4, -4, -2]} intensity={1.1} color="#f59e0b" />
 
-      {/* Stage 0: Desert Quartz Sand */}
-      <SandStage active={currentStage === 0} />
+      {/* Act I: Meteor Shower & Desert Sand Genesis */}
+      <MeteorGenesisStage active={currentStage === 0} />
 
-      {/* Stage 1: Arc Furnace & Oxygen Stripping */}
-      <HeatFurnaceStage active={currentStage === 1} />
+      {/* Act II: Cold Silicon Bring-Up & Power Rail Cascades */}
+      <ColdSiliconBringupStage active={currentStage === 1} />
 
-      {/* Stage 2: Monocrystalline Ingot & Wafer Slicing */}
-      <IngotWaferStage active={currentStage === 2} />
+      {/* Act III: U-Boot, Linux Kernel & Hardware Root-of-Trust */}
+      <KernelBootStage active={currentStage === 2} />
 
-      {/* Stage 3: Photolithography & EUV Laser Etching */}
-      <LithographyStage active={currentStage === 3} />
+      {/* Act IV: Sensor, Robotics & Wireless Peripherals Integration */}
+      <PeripheralsRoboticsStage active={currentStage === 3} />
 
-      {/* Stage 4: Die Packaging & First Board Bring-Up */}
-      <PackagingBoardStage active={currentStage === 4} />
+      {/* Act V: Edge AI Neural Quantization & Local NPU Inference */}
+      <EdgeAiNeuralStage active={currentStage === 4} />
 
-      {/* Stage 5: Autonomous Fleet Intelligence */}
-      <FleetIntelligenceStage active={currentStage === 5} />
+      {/* Act VI: The Autonomous Fleet Ascendancy (Army of Swarm Intelligence) */}
+      <FleetArmyStage active={currentStage === 5} />
     </>
   );
 }
