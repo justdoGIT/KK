@@ -1,155 +1,224 @@
 import { useEffect, useRef, useState, type JSX } from "react";
+import { SandToSiliconCanvas } from "../../scene/journey/SandToSiliconCanvas.tsx";
 
-type JourneyChapter = {
+type JourneyStage = {
   id: string;
-  index: string;
+  step: string;
+  chemical: string;
   eyebrow: string;
-  title: string;
-  body: string;
-  signal: string;
-  chips: string[];
+  headline: string;
+  description: string;
+  metrics: { label: string; value: string }[];
+  tags: string[];
 };
 
-const chapters: JourneyChapter[] = [
+const STAGES: JourneyStage[] = [
   {
-    id: "signal",
-    index: "01",
-    eyebrow: "The Signal",
-    title: "First silicon bring-up & hardware state verification.",
-    body: "Bring-up begins at the physical boundary between custom PCB traces, PMIC power sequencing, clock domains, and the first trustworthy heartbeat over UART and JTAG. The hardware is verifiable from the very first power cycle.",
-    signal: "JTAG / SWD • PMIC POWER SEQUENCING • UART TELEMETRY",
-    chips: ["TI Sitara AM665x", "STM32H7", "Qualcomm QCM2290", "Oscilloscopes"],
+    id: "sand-quartz",
+    step: "01",
+    chemical: "SiO₂ QUARTZ CRYSTAL",
+    eyebrow: "01 // THE MINERAL FOUNDATION",
+    headline: "The raw desert sands: Silica quartz from the earth.",
+    description:
+      "Every modern microprocessor begins as raw quartz crystal sand (Silicon Dioxide, SiO₂) found in the desert. Composed of silicon and oxygen atoms locked in a crystalline tetrahedral lattice, it represents the raw material substrate for all global computation.",
+    metrics: [
+      { label: "RAW MINERAL", value: "Silica Quartz (SiO₂)" },
+      { label: "ABUNDANCE", value: "28% of Earth's Crust" },
+      { label: "STATE", value: "Ambient 25°C" },
+    ],
+    tags: ["Silica Sand", "SiO₂ Tetrahedral", "Quartz Crystal", "Mining & Refining"],
   },
   {
-    id: "kernel",
-    index: "02",
-    eyebrow: "The Kernel",
-    title: "Custom Yocto BSP, Root-of-Trust & Video Pipelines.",
-    body: "Crafting hardened embedded Linux images from scratch. From signed bootloaders (U-Boot) and hardware security modules (HSM) to low-latency V4L2 camera subdevices and GStreamer/FFMPEG video encoding engines.",
-    signal: "YOCTO PROJECT • SECURE BOOT / HSM • V4L2 VIDEO",
-    chips: ["NXP i.MX8M Plus", "Device Trees", "SELinux", "OSTree Atomic A/B"],
+    id: "arc-furnace",
+    step: "02",
+    chemical: "SiO₂ + 2C → Si + 2CO (2000°C)",
+    eyebrow: "02 // THERMAL REDUCTION",
+    headline: "Extreme arc heat: Stripping oxygen atoms to forge pure silicon.",
+    description:
+      "Quartz sand is submerged into an electric arc furnace and blasted with graphite electrodes at 2,000°C. Carbon chemically bonds with the oxygen atoms to produce molten Metallurgical Grade Silicon, further purified via the Siemens process to an astonishing 99.9999999% (9N) Electronic Grade purity.",
+    metrics: [
+      { label: "FURNACE TEMP", value: "2,000°C Arc Discharge" },
+      { label: "REACTION", value: "Oxygen Reduction" },
+      { label: "PURITY", value: "99.9999999% (9N)" },
+    ],
+    tags: ["Arc Furnace", "Oxygen Stripping", "Siemens Process", "9N Purity"],
   },
   {
-    id: "robot",
-    index: "03",
-    eyebrow: "The Robot",
-    title: "Real-time robotics, 3D ToF vision & wireless mesh.",
-    body: "Deterministic motion control meets intelligent vision. Orchestrating ROS2 kinematics, 3D Time-of-Flight (IFM O3D) point clouds, EtherCAT and CAN-FD motor actuators alongside MediaTek MT7668 Wi-Fi 6 and Iridium satellite uplinks.",
-    signal: "ROS / ROS2 • 3D ToF VISION • CAN-FD / ETHERCAT • WI-FI 6E",
-    chips: ["Xilinx ZynqMP (R5+A53)", "IFM O3D Camera", "MediaTek MT7668", "Satellite SBD"],
+    id: "ingot-wafer",
+    step: "03",
+    chemical: "CZOCHRALSKI MONOCRYSTAL",
+    eyebrow: "03 // INGOT CRYSTAL GROWTH",
+    headline: "The Czochralski pull: Growing single-crystal ingots & wafer slicing.",
+    description:
+      "A flawless seed crystal is lowered into molten silicon at 1,420°C and slowly rotated while being drawn upward. Atoms align with atomic perfection to form a continuous monocrystalline ingot (boule), which is diamond-wire sliced into mirror-polished 300mm wafer discs.",
+    metrics: [
+      { label: "CRYSTAL TYPE", value: "Monocrystalline Boule" },
+      { label: "WAFER DIAMETER", value: "300mm Diameter" },
+      { label: "SAW WIRE", value: "100µm Diamond Slicing" },
+    ],
+    tags: ["Czochralski Growth", "Monocrystal Ingot", "300mm Wafers", "CMP Polishing"],
   },
   {
-    id: "fleet",
-    index: "04",
-    eyebrow: "The Fleet",
-    title: "Edge AI acceleration, zero-copy TSDB & autonomous CI/CD.",
-    body: "Deploying quantized INT8 neural networks to Qualcomm Hexagon NPUs and NVIDIA Jetson accelerators. Pairing high-throughput sensor telemetry in Stratum-TSDB with automated Hardware-in-the-Loop fleet testing harnesses.",
-    signal: "QUALCOMM SNPE • TENSORRT • STRATUM-TSDB • FLEET AGENT",
-    chips: ["Jetson Orin Nano", "Hexagon NPU", "Stratum-TSDB", "Distributed Slurm"],
+    id: "euv-lithography",
+    step: "04",
+    chemical: "EUV 13.5nm PHOTOLITHOGRAPHY",
+    eyebrow: "04 // NANOMETER FABRICATION",
+    headline: "Extreme Ultraviolet Lithography: Printing billions of transistors.",
+    description:
+      "Inside an ISO Class 1 cleanroom, Extreme Ultraviolet (EUV 13.5nm) laser beams pass through high-precision circuit photomasks. Billions of microscopic FinFET transistor gates and copper interconnects are etched layer-by-layer with single-nanometer precision.",
+    metrics: [
+      { label: "LIGHT WAVELENGTH", value: "13.5nm EUV Plasma" },
+      { label: "GATE DENSITY", value: "15+ Billion Transistors" },
+      { label: "CLEANROOM", value: "ISO Class 1 Standard" },
+    ],
+    tags: ["EUV Lithography", "Transistor Gates", "Photomasks", "Plasma Etching"],
+  },
+  {
+    id: "packaging-bringup",
+    step: "05",
+    chemical: "BGA / QFP & FIRST CLOCK PULSE",
+    eyebrow: "05 // PACKAGING & FIRST BOOT",
+    headline: "Die singulation, packaging & the first electrical clock pulse.",
+    description:
+      "Stealth lasers slice the wafer into independent dies, wire-bonded and sealed into BGA/QFP epoxy resin packages (Qualcomm, TI Sitara, STM32, NXP). Soldered onto multi-layer PCBs, PMIC power sequencing fires up U-Boot and the Linux kernel emits the board's first alive signal.",
+    metrics: [
+      { label: "PACKAGE TYPE", value: "Micro-BGA / QFP48" },
+      { label: "SYSTEM CLOCK", value: "480MHz Core Freq" },
+      { label: "BOOT SEQUENCE", value: "U-Boot & Linux 5.15" },
+    ],
+    tags: ["Die Singulation", "QFP/BGA Packaging", "Board Bring-Up", "U-Boot Kernel"],
+  },
+  {
+    id: "fleet-intelligence",
+    step: "06",
+    chemical: "AUTONOMOUS FLEET INTELLIGENCE",
+    eyebrow: "06 // DISTRIBUTED EDGE AI",
+    headline: "From grains of sand to distributed autonomous intelligence.",
+    description:
+      "The physical journey reaches its zenith. Cold sand has transformed into intelligent edge nodes operating across robotics, real-time CAN/EtherCAT motion control, INT8 neural acceleration, and zero-copy Stratum-TSDB streaming telemetry in a self-healing fleet.",
+    metrics: [
+      { label: "NEURAL INFERENCE", value: "128 TOPS NPU Acceleration" },
+      { label: "FLEET TOPOLOGY", value: "Heterogeneous Multi-Node" },
+      { label: "TELEMETRY", value: "Zero-Copy Stratum-TSDB" },
+    ],
+    tags: ["Edge AI NPU", "Autonomous Fleet", "ROS2 Robotics", "Zero-Copy TSDB"],
   },
 ];
 
-function OrbitVisual({ active }: { active: string }): JSX.Element {
-  const currentChapter = chapters.find((c) => c.id === active) ?? chapters[0];
-
-  return (
-    <div
-      className={`journey-visual journey-visual-${active}`}
-      data-testid="journey-visual"
-    >
-      <div className="visual-grid" aria-hidden="true" />
-      <div className="orbit-system" aria-hidden="true">
-        <span className="orbit-ring orbit-ring-one" />
-        <span className="orbit-ring orbit-ring-two" />
-        <span className="orbit-node orbit-node-core" />
-        <span className="orbit-node orbit-node-one" />
-        <span className="orbit-node orbit-node-two" />
-        <span className="orbit-node orbit-node-three" />
-      </div>
-
-      <div className="journey-visual-overlay">
-        <span className="visual-caption">{currentChapter.signal}</span>
-        <div className="visual-chip-tags">
-          {currentChapter.chips.map((chip) => (
-            <span key={chip} className="visual-tag-item">
-              {chip}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function StoryJourney(): JSX.Element {
-  const [active, setActive] = useState(chapters[0].id);
-  const chapterRefs = useRef<Array<HTMLElement | null>>([]);
+  const [activeStageIdx, setActiveStageIdx] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const sectionRef = useRef<HTMLElement>(null);
+  const currentStage = STAGES[activeStageIdx];
 
+  // Auto-play timer that advances through the journey when enabled
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target) {
-          const index = chapterRefs.current.indexOf(
-            visible.target as HTMLElement,
-          );
-          if (index >= 0) {
-            setActive(chapters[index].id);
-          }
-        }
-      },
-      { threshold: [0.2, 0.5, 0.8], rootMargin: "-20% 0px -30%" },
-    );
+    if (!autoPlay) return;
 
-    chapterRefs.current.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
+    const timer = window.setInterval(() => {
+      setActiveStageIdx((prev) => (prev + 1) % STAGES.length);
+    }, 6000);
 
-    return () => observer.disconnect();
-  }, []);
+    return () => clearInterval(timer);
+  }, [autoPlay]);
 
   return (
     <section
+      ref={sectionRef}
       className="journey-section"
       id="journey"
       aria-label="Systems journey"
     >
+      {/* Section Header */}
       <div className="journey-intro">
-        <p className="section-kicker">The Systems Narrative</p>
-        <h2>From silicon bring-up to autonomous fleet intelligence.</h2>
+        <div className="journey-kicker-row">
+          <span className="section-kicker">The Epic Silicon Odyssey</span>
+          <span className="journey-auto-indicator" aria-hidden="true">
+            <span className={`auto-dot ${autoPlay ? "auto-dot-live" : ""}`} />
+            <span>{autoPlay ? "AUTO-SCROLLING ODYSSEY" : "PAUSED"}</span>
+          </span>
+        </div>
+        <h2>From desert sand to autonomous fleet intelligence.</h2>
         <p>
-          Embedded engineering is an interconnected story. Every layer — power
-          rail, bootloader, kernel driver, protocol bus, and Edge AI inference —
-          acts as one synchronized organism.
+          Witness the complete transformation: how ordinary quartz sand is
+          stripped of oxygen at 2,000°C, grown into single crystals, etched with
+          EUV lasers, and brought to life as autonomous edge systems.
         </p>
       </div>
 
-      <div className="journey-layout">
-        <div className="journey-chapters">
-          {chapters.map((chapter, index) => (
-            <article
-              key={chapter.id}
-              ref={(el) => {
-                chapterRefs.current[index] = el;
+      {/* Interactive Playback Control Bar */}
+      <div className="journey-controls-bar">
+        <button
+          type="button"
+          className="journey-play-btn"
+          onClick={() => setAutoPlay(!autoPlay)}
+          aria-label={autoPlay ? "Pause automated journey" : "Play automated journey"}
+        >
+          {autoPlay ? "⏸ Pause Journey" : "▶ Auto-Play Story"}
+        </button>
+
+        {/* Stage Timeline Steps */}
+        <div className="journey-timeline-steps" role="tablist">
+          {STAGES.map((st, idx) => (
+            <button
+              key={st.id}
+              type="button"
+              role="tab"
+              aria-selected={activeStageIdx === idx}
+              className={`journey-step-tab ${activeStageIdx === idx ? "step-active" : ""}`}
+              onClick={() => {
+                setActiveStageIdx(idx);
+                setAutoPlay(false);
               }}
-              className={`journey-chapter ${
-                active === chapter.id ? "journey-chapter-active" : ""
-              }`}
             >
-              <span className="journey-index">{chapter.index}</span>
-              <div>
-                <p className="journey-eyebrow">{chapter.eyebrow}</p>
-                <h3>{chapter.title}</h3>
-                <p>{chapter.body}</p>
-              </div>
-            </article>
+              <span className="step-num">{st.step}</span>
+              <span className="step-label">{st.chemical.split(" ")[0]}</span>
+            </button>
           ))}
         </div>
+      </div>
 
-        <div className="journey-sticky">
-          <OrbitVisual active={active} />
+      {/* Main Split Layout: 3D Animated Canvas + Synchronized Story Text */}
+      <div className="journey-layout-stage">
+        {/* Left Side: Animated Narrative & Chemical Telemetry */}
+        <div className="journey-narrative-card">
+          <div className="narrative-meta-bar">
+            <span className="narrative-step-badge">{currentStage.eyebrow}</span>
+            <span className="narrative-chemical-tag">{currentStage.chemical}</span>
+          </div>
+
+          <h3 className="narrative-headline">{currentStage.headline}</h3>
+          <p className="narrative-desc">{currentStage.description}</p>
+
+          {/* Scientific Metrics Grid */}
+          <div className="narrative-metrics-grid">
+            {currentStage.metrics.map((m) => (
+              <div key={m.label} className="metric-box">
+                <span className="metric-label">{m.label}</span>
+                <span className="metric-val">{m.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Domain Tags */}
+          <div className="narrative-tags-wrap">
+            {currentStage.tags.map((t) => (
+              <span key={t} className="narrative-tag-chip">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Side: Interactive 3D Canvas Stage */}
+        <div className="journey-3d-viewport">
+          <SandToSiliconCanvas currentStage={activeStageIdx} />
+
+          {/* Viewport Overlay Caption */}
+          <div className="journey-canvas-caption" aria-hidden="true">
+            <span className="caption-live-dot" />
+            <span>3D SIMULATION // STAGE {currentStage.step}: {currentStage.chemical}</span>
+          </div>
         </div>
       </div>
     </section>
