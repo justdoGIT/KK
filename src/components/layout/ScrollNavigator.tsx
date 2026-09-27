@@ -33,8 +33,8 @@ export function ScrollNavigator() {
         {pageJourneyStops.map((stop, index) => (
           <li key={stop.id} className={stop.id === active ? "scroll-stop-active" : ""}>
             <a href={`#${stop.id}`} aria-label={`Go to ${stop.label}`} aria-current={stop.id === active ? "step" : undefined}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
               <b>{stop.label}</b>
+              <span>{String(index + 1).padStart(2, "0")}</span>
             </a>
           </li>
         ))}
