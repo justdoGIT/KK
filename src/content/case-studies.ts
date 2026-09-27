@@ -10,6 +10,9 @@ export type CaseStudyDetail = {
   constraints: string[];
   solution: string;
   diagram: DiagramNode[];
+  mermaidDiagram: string;
+  protocols: string[];
+  dataFlowDescription: string;
   results: { label: string; value: string; source: string }[];
   limitations: string[];
 };
@@ -19,6 +22,7 @@ export type DiagramNode = {
   label: string;
   x: number;
   y: number;
+  protocol?: string;
   connectsTo?: string[];
 };
 
@@ -41,11 +45,30 @@ const details: Record<string, Omit<CaseStudyDetail, "record">> = {
     solution:
       "Implemented board bring-up with watchdog timers, power state management, and OSTree-based atomic updates. Used JTAG, UART, ftrace, and oscilloscopes for diagnosis.",
     diagram: [
-      { id: "soc", label: "QCM2290 SoC", x: 50, y: 30 },
-      { id: "boot", label: "U-Boot / Kernel", x: 50, y: 55, connectsTo: ["soc"] },
-      { id: "ota", label: "OSTree OTA", x: 25, y: 80, connectsTo: ["boot"] },
-      { id: "watchdog", label: "Watchdog", x: 75, y: 80, connectsTo: ["boot"] },
+      { id: "soc", label: "QCM2290 SoC", x: 25, y: 35, protocol: "AXI Bus" },
+      { id: "boot", label: "U-Boot / Kernel", x: 50, y: 35, protocol: "Secure Boot", connectsTo: ["soc"] },
+      { id: "ota", label: "OSTree A/B OTA", x: 75, y: 35, protocol: "eMMC 5.1", connectsTo: ["boot"] },
+      { id: "watchdog", label: "PMIC Watchdog", x: 50, y: 75, protocol: "I2C Reset", connectsTo: ["boot"] },
     ],
+    mermaidDiagram: `graph LR
+    subgraph SiliconLayer[Hardware & Power Subsystem]
+      PMIC[Qualcomm PMIC & Hardware Watchdog] -->|I2C / Power Reset| QCM2290[Qualcomm QCM2290 Industrial SoC]
+      Sensor[Industrial Sensors / RS485] -->|UART / SPI / I2C| QCM2290
+    end
+
+    subgraph BootloaderBSP[Boot & BSP Layer]
+      QCM2290 -->|XBL -> ABL| UBoot[Hardened U-Boot Bootloader]
+      UBoot -->|Signed Device Tree| Kernel[Linux Kernel 5.15 LTS + Custom Drivers]
+    end
+
+    subgraph UserSpaceOTA[Production User Space]
+      Kernel -->|Systemd / OSTree| RootfsA[Rootfs Slot A (Active)]
+      Kernel -.->|Dual-Partition Fallback| RootfsB[Rootfs Slot B (Pending)]
+      OSTree[OSTree Atomic OTA Daemon] -->|Signed Payload| RootfsB
+    end`,
+    protocols: ["AXI Bus", "Secure Boot", "I2C Fast+", "eMMC 5.1", "UART", "RS-485"],
+    dataFlowDescription:
+      "Sensors stream over UART/RS-485 into the QCM2290 SoC. The PMIC maintains hardware watchdog heartbeats. On OTA triggers, OSTree deploys an atomic rootfs diff to the standby partition slot, verifying signatures before switching boot targets.",
     results: [
       {
         label: "Uptime",
@@ -74,11 +97,30 @@ const details: Record<string, Omit<CaseStudyDetail, "record">> = {
     solution:
       "Built agent binary for health collection, heartbeat, manifest sync, and auth. API server with actix-web for machine management. React dashboard for monitoring. Planned extension into distributed model serving is documented as planned, not shipped.",
     diagram: [
-      { id: "agent", label: "Fleet Agent", x: 25, y: 30 },
-      { id: "api", label: "API Server", x: 50, y: 30, connectsTo: ["agent"] },
-      { id: "dash", label: "Dashboard", x: 75, y: 30, connectsTo: ["api"] },
-      { id: "telemetry", label: "Telemetry", x: 50, y: 60, connectsTo: ["api"] },
+      { id: "agent", label: "Fleet Agent Node", x: 20, y: 35, protocol: "RPC / Heartbeat" },
+      { id: "api", label: "Actix API Server", x: 48, y: 35, protocol: "REST / WebSockets", connectsTo: ["agent"] },
+      { id: "dash", label: "React Dashboard", x: 80, y: 35, protocol: "HTTPS / WSS", connectsTo: ["api"] },
+      { id: "telemetry", label: "Stratum-TSDB", x: 48, y: 75, protocol: "Zero-Copy IPC", connectsTo: ["api"] },
     ],
+    mermaidDiagram: `graph TD
+    subgraph FleetNodes[Fleet Edge Compute Nodes]
+      Worker1[Headless Worker: MSI Controller]
+      Worker2[Worker: Qualcomm Edge Node]
+      Worker3[Worker: Xilinx ZynqMP Node]
+    end
+
+    subgraph CoreRuntime[Distributed Control Plane]
+      Worker1 & Worker2 & Worker3 -->|Heartbeat / Signed Auth| FleetAgent[Fleet Agent Daemon]
+      FleetAgent -->|Typed RPC Protocol| APIServer[Rust Actix-Web Management API]
+    end
+
+    subgraph StorageObservability[Observability & UI Layer]
+      APIServer -->|mmap Zero-Copy Ingest| StratumTSDB[Stratum-TSDB Time-Series Engine]
+      APIServer -->|WebSockets Telemetry| ReactDash[Real-Time Fleet Dashboard]
+    end`,
+    protocols: ["Typed RPC", "Zero-Copy mmap", "WebSockets", "TLS Auth", "Slurm RPC"],
+    dataFlowDescription:
+      "Distributed fleet workers ingest compiler telemetry and hardware health status via signed RPC heartbeats into the Actix API server. High-frequency sensor samples stream to Stratum-TSDB via zero-copy memory maps while the React dashboard updates in real time.",
     results: [
       {
         label: "Components",
@@ -107,12 +149,29 @@ const details: Record<string, Omit<CaseStudyDetail, "record">> = {
     solution:
       "Implemented TUI and headless lifecycle with a canonical task AST for structured task management. Added rollout controls, observability, benchmarks, and recovery for production reliability.",
     diagram: [
-      { id: "tui", label: "TUI", x: 25, y: 30 },
-      { id: "core", label: "Task AST", x: 50, y: 30, connectsTo: ["tui"] },
-      { id: "headless", label: "Headless", x: 25, y: 55, connectsTo: ["core"] },
-      { id: "acp", label: "ACP", x: 75, y: 30, connectsTo: ["core"] },
-      { id: "obs", label: "Observability", x: 50, y: 60, connectsTo: ["core"] },
+      { id: "tui", label: "Rio/Terminal TUI", x: 20, y: 35, protocol: "ANSI / PTY" },
+      { id: "core", label: "Canonical Task AST", x: 50, y: 35, protocol: "State Machine", connectsTo: ["tui"] },
+      { id: "acp", label: "ACP Client Protocol", x: 80, y: 35, protocol: "JSON-RPC", connectsTo: ["core"] },
+      { id: "tools", label: "Diagnostic Engine", x: 50, y: 75, protocol: "LSP / AST Edit", connectsTo: ["core"] },
     ],
+    mermaidDiagram: `graph TD
+    subgraph Frontends[User & Agent Interfaces]
+      TUI[Rio Terminal TUI Interface] -->|PTY Input| Engine[Agent Harness Engine Core]
+      ACP[Agent Client Protocol / JSON-RPC] -->|Remote Directives| Engine
+    end
+
+    subgraph StateAndTools[Canonical Task Engine]
+      Engine -->|Immutable State Transitions| TaskAST[Canonical Task AST State Machine]
+      Engine -->|LSP / CodeMod / AST Edit| ToolSuite[Tool Orchestration Layer]
+    end
+
+    subgraph ClusterVerification[Verification & Execution]
+      ToolSuite -->|Subprocess RPC| Sandbox[Sandboxed Execution Subprocess]
+      ToolSuite -->|Telemetry Evidence| Journal[Execution Log & Artifact Journal]
+    end`,
+    protocols: ["Agent Client Protocol", "JSON-RPC 2.0", "LSP Protocol", "PTY / ANSI", "Task AST"],
+    dataFlowDescription:
+      "User directives flow from the Rio Terminal TUI or remote ACP client into the Agent Harness Engine. State is tracked deterministically in a Canonical Task AST, which orchestrates language server diagnostics, compiler checks, and sandboxed execution runs.",
     results: [
       {
         label: "Modes",
@@ -141,12 +200,31 @@ const details: Record<string, Omit<CaseStudyDetail, "record">> = {
     solution:
       "Built discovery across ATSes and job boards, matching against profiles, resume + cover letter tailoring via LLM, and submission with a hard dry-run gate. Ships as Claude Code plugin, CLI/daemon, and MCP server.",
     diagram: [
-      { id: "discover", label: "Discover", x: 20, y: 30 },
-      { id: "match", label: "Match", x: 40, y: 30, connectsTo: ["discover"] },
-      { id: "tailor", label: "Tailor", x: 60, y: 30, connectsTo: ["match"] },
-      { id: "apply", label: "Apply (dry-run)", x: 80, y: 30, connectsTo: ["tailor"] },
-      { id: "db", label: "SQLite", x: 50, y: 60, connectsTo: ["match"] },
+      { id: "discover", label: "Job Discovery", x: 18, y: 35, protocol: "ATS REST API" },
+      { id: "match", label: "Profile Matcher", x: 42, y: 35, protocol: "Semantic Vector", connectsTo: ["discover"] },
+      { id: "tailor", label: "LLM Resume Tailor", x: 68, y: 35, protocol: "LLM Prompting", connectsTo: ["match"] },
+      { id: "apply", label: "Guarded Submitter", x: 90, y: 35, protocol: "Dry-Run Gate", connectsTo: ["tailor"] },
+      { id: "db", label: "SQLite State DB", x: 50, y: 75, protocol: "SQL Storage", connectsTo: ["match"] },
     ],
+    mermaidDiagram: `graph LR
+    subgraph Ingestion[Job Ingestion & Parsing]
+      ATS[Greenhouse / Lever / ATS APIs] -->|REST Ingestion| Scraper[Job Discovery Scraper]
+      Scraper -->|Normalize Schema| SQLiteDB[(SQLite Pipeline State DB)]
+    end
+
+    subgraph Intelligence[Matching & Tailoring]
+      SQLiteDB -->|Job Spec Data| Matcher[Semantic Profile Matcher]
+      Matcher -->|Top-K Fit| LLMTailor[LLM Resume & Cover Letter Tailor]
+    end
+
+    subgraph GuardedAction[Guarded Submission Pipeline]
+      LLMTailor -->|Generated PDF / Metadata| DryRunGate{Dry-Run Safety Gate}
+      DryRunGate -->|Operator Confirm| Submitter[Guarded Application Submitter]
+      DryRunGate -.->|Default Safe Mode| LogOnly[Audit Log Record Only]
+    end`,
+    protocols: ["REST / ATS APIs", "Semantic Vector Scoring", "SQLite ACID", "Dry-Run Safety Gate"],
+    dataFlowDescription:
+      "Job opportunities from major ATS platforms are ingested into SQLite. Profile matching ranks target roles, passing context to the LLM tailoring engine. Generated applications require human clearance at the Dry-Run Safety Gate prior to transmission.",
     results: [
       {
         label: "Sources",
