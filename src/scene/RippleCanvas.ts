@@ -1,7 +1,7 @@
 /**
  * High-performance mouse ripple simulation.
- * Manages expanding, dissipating circular wave packets that generate
- * normal/displacement vectors for fluid refraction and chromatic dispersion.
+ * Manages expanding circular wave packets and continuous hovering pulses
+ * that generate normal/displacement vectors for fluid refraction and chromatic dispersion.
  */
 
 export type RipplePoint = {
@@ -21,6 +21,7 @@ export class RippleCanvas {
   private lastX = -1;
   private lastY = -1;
   private lastTime = 0;
+  private lastPulseTime = 0;
 
   constructor(public width = 256, public height = 256) {
     if (typeof document !== "undefined") {
@@ -49,19 +50,18 @@ export class RippleCanvas {
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = dist / dt;
 
-      // Only add ripple if moving sufficiently
-      if (dist > 2) {
+      // Add dynamic ripple on movement
+      if (dist > 1.5) {
         this.ripples.push({
           x: px,
           y: py,
-          radius: 2,
-          maxRadius: Math.min(80, 25 + speed * 15),
-          intensity: Math.min(1.0, 0.4 + speed * 0.4) * force,
-          speed: 1.8 + speed * 0.6,
+          radius: 3,
+          maxRadius: Math.min(95, 30 + speed * 18),
+          intensity: Math.min(1.0, 0.45 + speed * 0.4) * force,
+          speed: 1.6 + speed * 0.6,
         });
 
-        // Cap active ripples for performance
-        if (this.ripples.length > 32) {
+        if (this.ripples.length > 36) {
           this.ripples.shift();
         }
       }
@@ -69,6 +69,33 @@ export class RippleCanvas {
 
     this.lastX = px;
     this.lastY = py;
+  }
+
+  /**
+   * Generates continuous breathing fluid micro-ripples while the cursor
+   * is present, ensuring the ripple effect never finishes as long as the mouse is active.
+   */
+  public addContinuousPulse(normalizedX: number, normalizedY: number, force = 0.55): void {
+    const now = performance.now();
+    // Emit periodic breathing pulse every 140ms
+    if (now - this.lastPulseTime < 140) return;
+    this.lastPulseTime = now;
+
+    const px = (normalizedX * 0.5 + 0.5) * this.width;
+    const py = (-normalizedY * 0.5 + 0.5) * this.height;
+
+    this.ripples.push({
+      x: px,
+      y: py,
+      radius: 4,
+      maxRadius: 65,
+      intensity: 0.65 * force,
+      speed: 1.4,
+    });
+
+    if (this.ripples.length > 36) {
+      this.ripples.shift();
+    }
   }
 
   public update(): boolean {
@@ -83,25 +110,32 @@ export class RippleCanvas {
     for (let i = this.ripples.length - 1; i >= 0; i--) {
       const r = this.ripples[i];
       r.radius += r.speed;
-      r.intensity *= 0.94;
+      r.intensity *= 0.95;
 
-      if (r.radius >= r.maxRadius || r.intensity < 0.02) {
+      if (r.radius >= r.maxRadius || r.intensity < 0.015) {
         this.ripples.splice(i, 1);
         continue;
       }
 
       // Draw expanding concentric wave rings with directional normal encoding
-      const grad = this.ctx.createRadialGradient(r.x, r.y, Math.max(0, r.radius - 8), r.x, r.y, r.radius + 8);
-      const alpha = r.intensity * 0.65;
+      const grad = this.ctx.createRadialGradient(
+        r.x,
+        r.y,
+        Math.max(0, r.radius - 10),
+        r.x,
+        r.y,
+        r.radius + 10,
+      );
+      const alpha = r.intensity * 0.7;
       grad.addColorStop(0, "rgba(128, 128, 128, 0)");
-      grad.addColorStop(0.3, `rgba(220, 180, 255, ${alpha})`);
-      grad.addColorStop(0.5, `rgba(128, 128, 128, ${alpha * 0.5})`);
-      grad.addColorStop(0.7, `rgba(35, 75, 128, ${alpha})`);
+      grad.addColorStop(0.3, `rgba(225, 185, 255, ${alpha})`);
+      grad.addColorStop(0.5, `rgba(128, 128, 128, ${alpha * 0.45})`);
+      grad.addColorStop(0.7, `rgba(30, 80, 140, ${alpha})`);
       grad.addColorStop(1, "rgba(128, 128, 128, 0)");
 
       this.ctx.fillStyle = grad;
       this.ctx.beginPath();
-      this.ctx.arc(r.x, r.y, r.radius + 8, 0, Math.PI * 2);
+      this.ctx.arc(r.x, r.y, r.radius + 10, 0, Math.PI * 2);
       this.ctx.fill();
     }
 
