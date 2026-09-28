@@ -4,9 +4,12 @@
   margin-bottom: 0.85rem;
   color: var(--color-accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  text-align: left;
+  margin-left: 0;
+  padding-left: 0;
 }
 
 /* === Epic Silicon Odyssey: Sand to Autonomous Fleet (Lusion Style) === */
@@ -1112,34 +1115,48 @@ main::before {
 }
 /* Section headers */
 .section-header {
-  padding: 4rem 1.5rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0 0 2.5rem 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: left;
 }
 .section-header h2 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: #f8fafc;
+  line-height: 1.1;
+  text-align: left;
+  margin: 0;
+  padding: 0;
 }
 .section-subtitle {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   color: var(--color-fg-muted);
-  font-size: 1.05rem;
-  max-width: 60ch;
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  line-height: 1.6;
+  max-width: 65ch;
+  text-align: left;
+  margin-left: 0;
+  padding-left: 0;
 }
 
 /* Services Stacking Card Deck (Lusion Style) */
 .services-section {
-  padding: 4rem 1.5rem 6rem;
+  scroll-margin-top: 4.5rem;
+  padding: 6rem 1.5rem 7rem;
   max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
 }
 .services-deck-nav {
   display: flex;
   gap: 0.6rem;
-  padding: 0 1.5rem 2.5rem;
-  max-width: 1440px;
-  margin: 0 auto;
+  padding: 0 0 2.5rem 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1339,10 +1356,18 @@ main::before {
   font-family: var(--font-mono);
 }
 /* Career timeline */
-.timeline {
-  padding: 0 1.5rem 2rem;
-  max-width: 800px;
+.career-section {
+  scroll-margin-top: 4.5rem;
+  padding: 6rem 1.5rem 7rem;
+  max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
+}
+.timeline {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 .timeline-entry {
   display: flex;
@@ -1438,19 +1463,26 @@ main::before {
 
 /* Case studies */
 .work-section {
-  max-width: 1560px;
+  scroll-margin-top: 4.5rem;
+  padding: 6rem 1.5rem 7rem;
+  max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
 }
 .work-section .section-header {
-  max-width: 1560px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 2.5rem 0;
 }
 .studies-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
-  padding: 0 1.5rem 2rem;
-  max-width: 1560px;
-  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 .study-card {
   position: relative;
