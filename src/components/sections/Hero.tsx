@@ -1,7 +1,20 @@
-import { type JSX } from "react";
+import { useState, type JSX, type PointerEvent } from "react";
 import { contactInfo } from "../../content/contact.ts";
 
 export function Hero(): JSX.Element {
+  const [headingHoverPos, setHeadingHoverPos] = useState<{ x: number; y: number } | null>(null);
+
+  const handleHeadingMove = (e: PointerEvent<HTMLHeadingElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setHeadingHoverPos({ x, y });
+  };
+
+  const handleHeadingLeave = () => {
+    setHeadingHoverPos(null);
+  };
+
   return (
     <section aria-label="Hero" className="hero-section" id="hero">
       <div className="hero-frame-container">
@@ -20,7 +33,19 @@ export function Hero(): JSX.Element {
             </span>
           </div>
 
-          <h1 className="hero-headline">
+          <h1
+            className={`hero-headline ${headingHoverPos ? "headline-ripple-active" : ""}`}
+            onPointerMove={handleHeadingMove}
+            onPointerLeave={handleHeadingLeave}
+            style={
+              headingHoverPos
+                ? ({
+                    "--mouse-x": `${headingHoverPos.x}%`,
+                    "--mouse-y": `${headingHoverPos.y}%`,
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             Embedded Systems, Linux BSP
             <span className="hero-headline-accent">
               &amp; Low-Level Architecture
@@ -59,7 +84,7 @@ export function Hero(): JSX.Element {
         {/* Bottom Technical Coordinate Watermark */}
         <div className="hero-frame-footer" aria-hidden="true">
           <span>[ ARCH: AARCH64 / RISC-V / DSP ]</span>
-          <span>[ INTERACTIVE 3D // MOVE CURSOR FOR FLUID RIPPLE ]</span>
+          <span>[ PERSISTENT FLUID RIPPLE // ACTIVE ON HOVER ]</span>
         </div>
       </div>
     </section>
