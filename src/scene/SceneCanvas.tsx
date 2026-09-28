@@ -2,13 +2,9 @@ import { Suspense, useEffect, useState, type JSX } from "react";
 import { Canvas } from "@react-three/fiber";
 import { FloatingField } from "./FloatingField.tsx";
 import { FluidRipplePlane } from "./FluidRipplePlane.tsx";
-import { useAdaptiveQuality } from "./useAdaptiveQuality.ts";
 import { isMobile } from "./useCapability.ts";
 
 function SceneContent(): JSX.Element {
-  const tier = useAdaptiveQuality(true);
-  const effects = tier !== "off";
-
   return (
     <>
       {/* Studio Lighting Environment */}
@@ -18,14 +14,14 @@ function SceneContent(): JSX.Element {
       <pointLight position={[5, -5, -3]} intensity={1.0} color="#f59e0b" />
       <pointLight position={[0, 6, -4]} intensity={0.8} color="#60a5fa" />
 
-      {/* Domain-specific 3D Floating Field (PCB, IC Chips, Robotics Gears, Capacitors, Resistors, AI Tensor) */}
+      {/* Domain-specific 3D Floating Field */}
       <FloatingField />
 
-      {/* Interactive Mouse Ripple & Chromatic Dispersion Plane */}
-      {effects && <FluidRipplePlane />}
+      {/* Persistent Fluid Ripple & Chromatic Dispersion Plane (Always Active) */}
+      <FluidRipplePlane />
 
       {/* Atmospheric Fog */}
-      {effects && <fog attach="fog" args={["#0a0a0b", 6, 18]} />}
+      <fog attach="fog" args={["#0a0a0b", 6, 18]} />
     </>
   );
 }

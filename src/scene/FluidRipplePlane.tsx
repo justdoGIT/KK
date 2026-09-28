@@ -9,7 +9,7 @@ const RippleShaderMaterial = {
     uRippleTexture: { value: null as THREE.CanvasTexture | null },
     uResolution: { value: new THREE.Vector2(1, 1) },
     uPointer: { value: new THREE.Vector2(0, 0) },
-    uPointerActive: { value: 0 },
+    uPointerActive: { value: 1.0 },
     uDistortionStrength: { value: 0.055 },
     uChromaticAberration: { value: 0.024 },
   },
@@ -45,20 +45,20 @@ const RippleShaderMaterial = {
       
       // Continuous harmonic breathing ripple centered on cursor (never finishes)
       float continuousWave = 0.0;
-      if (uPointerActive > 0.5) {
-        float wavePhase = distToCursor * 32.0 - uTime * 4.5;
-        float waveDecay = exp(-distToCursor * 3.8);
-        continuousWave = sin(wavePhase) * waveDecay * 0.45;
+      if (uPointerActive > 0.1) {
+        float wavePhase = distToCursor * 28.0 - uTime * 4.2;
+        float waveDecay = exp(-distToCursor * 3.2);
+        continuousWave = sin(wavePhase) * waveDecay * 0.42;
       }
 
-      vec2 normalFromCursor = (distToCursor > 0.001) ? normalize(aspectUv - aspectPtr) : vec2(0.0);
+      vec2 normalFromCursor = (distToCursor > 0.0001) ? normalize(aspectUv - aspectPtr) : vec2(0.0);
       vec2 continuousDisp = normalFromCursor * continuousWave;
 
-      // Combine both dynamic movement ripples and continuous breathing ripples
+      // Combine dynamic movement ripples and continuous breathing ripples
       vec2 totalDisplacement = canvasDisp + continuousDisp;
       float intensity = length(totalDisplacement);
 
-      if (intensity < 0.008) {
+      if (intensity < 0.004) {
         discard;
       }
 
@@ -73,11 +73,11 @@ const RippleShaderMaterial = {
       );
 
       // Specular caustic rim highlight on ripple crests
-      float crest = smoothstep(0.06, 0.6, intensity) * 0.6;
+      float crest = smoothstep(0.04, 0.55, intensity) * 0.65;
       vec3 crestGlow = mix(vec3(0.25, 0.75, 1.0), iridescence, 0.45) * crest;
 
       // Soft water tint
-      vec4 finalColor = vec4(crestGlow, min(0.65, intensity * 0.5));
+      vec4 finalColor = vec4(crestGlow, min(0.65, intensity * 0.55));
       gl_FragColor = finalColor;
     }
   `,
@@ -89,7 +89,7 @@ export function FluidRipplePlane(): JSX.Element {
   const textureRef = useRef<THREE.CanvasTexture | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const lastPointer = useRef({ x: 0, y: 0 });
-  const mouseWindow = useRef({ x: 0, y: 0, active: false });
+  const mouseWindow = useRef({ x: 0, y: 0, active: true });
 
   useEffect(() => {
     const sim = new RippleCanvas(256, 256);
@@ -128,8 +128,7 @@ export function FluidRipplePlane(): JSX.Element {
     if (!sim) return;
 
     const time = state.clock.getElapsedTime();
-    const isWindowActive = mouseWindow.current.active;
-    const ptr = isWindowActive ? mouseWindow.current : state.pointer;
+    const ptr = mouseWindow.current.active ? mouseWindow.current : state.pointer;
 
     // Track mouse velocity and inject ripples into simulation
     const dx = ptr.x - lastPointer.current.x;
@@ -141,9 +140,7 @@ export function FluidRipplePlane(): JSX.Element {
     }
 
     // Continuous pulse so ripple never finishes while hovering over heading or scene
-    if (isWindowActive || Math.abs(state.pointer.x) > 0.01 || Math.abs(state.pointer.y) > 0.01) {
-      sim.addContinuousPulse(ptr.x, ptr.y, 0.6);
-    }
+    sim.addContinuousPulse(ptr.x, ptr.y, 0.65);
 
     lastPointer.current = { x: ptr.x, y: ptr.y };
 
@@ -156,7 +153,7 @@ export function FluidRipplePlane(): JSX.Element {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uResolution.value.set(size.width, size.height);
       materialRef.current.uniforms.uPointer.value.set(ptr.x, ptr.y);
-      materialRef.current.uniforms.uPointerActive.value = isWindowActive ? 1.0 : 0.0;
+      materialRef.current.uniforms.uPointerActive.value = 1.0;
     }
   });
 
