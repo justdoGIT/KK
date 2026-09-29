@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, useMemo, type JSX } from "react";
 import { SandToSiliconCanvas } from "../../scene/journey/SandToSiliconCanvas.tsx";
 
 type JourneyStage = {
@@ -10,6 +10,7 @@ type JourneyStage = {
   description: string;
   metrics: { label: string; value: string }[];
   tags: string[];
+  ambientColor: string;
 };
 
 const STAGES: JourneyStage[] = [
@@ -18,207 +19,232 @@ const STAGES: JourneyStage[] = [
     step: "01",
     chemical: "COSMIC METEOR STORM ➔ SiO₂ SAND",
     eyebrow: "01 // THE GENESIS",
-    headline: "The Genesis: Cosmic meteor storm forging desert sand into silicon chips.",
+    headline: "The Genesis",
     description:
-      "A vast, quiet desert under an open night sky. A sudden plasma meteor shower strikes the silica sand dunes. Plasma trails impact the earth, crystallizing granular quartz grains into glowing microchips that assemble into cold, dormant hardware boards.",
+      "A vast, scorching desert under an open night sky. A plasma meteor shower strikes the silica dunes — crystallizing granular quartz into glowing microchips.",
     metrics: [
       { label: "GENESIS EVENT", value: "Meteor Plasma Strike" },
       { label: "RAW MINERAL", value: "Silica Sand (SiO₂)" },
       { label: "CRYSTAL STATE", value: "Silicon Dies Forming" },
     ],
     tags: ["Meteor Shower", "Silica Sand", "Plasma Impact", "Silicon Crystallization"],
+    ambientColor: "#f59e0b",
   },
   {
     id: "cold-bringup",
     step: "02",
     chemical: "PMIC SEQUENCING ➔ 480MHz CLOCK PULSE",
     eyebrow: "02 // THE FIRST HEARTBEAT",
-    headline: "The Spark of Life: PMIC power sequencing & first electrical pulse.",
+    headline: "First Heartbeat",
     description:
-      "A dark, dormant hardware device rests on the bench. Power is injected: PMIC power rails cascade in sequence (3.3V ➔ 1.8V ➔ 0.85V core), the 480MHz crystal oscillator locks, and JTAG/UART diagnostic signals pulse through golden PCB traces, awakening cold silicon.",
+      "PMIC power rails cascade in sequence (3.3V ➔ 1.8V ➔ 0.85V core). The 480MHz crystal oscillator locks and JTAG/UART signals pulse through golden PCB traces, awakening cold silicon.",
     metrics: [
       { label: "POWER RAILS", value: "3.3V ➔ 1.8V ➔ 0.85V Core" },
       { label: "OSCILLATOR", value: "480MHz Precision Crystal" },
       { label: "DIAGNOSTICS", value: "JTAG / UART Probing" },
     ],
     tags: ["Power Sequencing", "PMIC Rails", "Clock Oscillator", "JTAG / UART"],
+    ambientColor: "#38bdf8",
   },
   {
     id: "kernel-boot",
     step: "03",
     chemical: "U-BOOT ➔ LINUX 5.15 ➔ ROOT-OF-TRUST",
     eyebrow: "03 // KERNEL GENESIS",
-    headline: "Kernel Genesis: U-Boot, Device Trees & Hardware Root-of-Trust.",
+    headline: "Kernel Genesis",
     description:
-      "The CPU exits reset. U-Boot initializes DDR memory, parses device tree pinmux topologies, and launches Linux 5.15 LTS. Hardware Root-of-Trust (HSM keys, Secure Boot, and SELinux) locks down the userspace as status LEDs transition to solid emerald green.",
+      "The CPU exits reset. U-Boot initializes DDR memory, parses device tree pinmux topologies, and launches Linux 5.15 LTS. Hardware Root-of-Trust locks down the userspace.",
     metrics: [
       { label: "BOOTLOADER", value: "U-Boot 2026.04" },
       { label: "KERNEL", value: "Linux 5.15 LTS Hardened" },
       { label: "SECURITY", value: "Root-of-Trust / HSM / SELinux" },
     ],
     tags: ["U-Boot", "Device Tree", "Linux Kernel", "Secure Boot / HSM"],
+    ambientColor: "#10b981",
   },
   {
     id: "peripherals-robotics",
     step: "04",
     chemical: "3D ToF VISION ➔ CAN-FD ➔ WI-FI 6 / SATELLITE",
     eyebrow: "04 // SENSORS & ACTUATORS",
-    headline: "Peripherals Ignite: 3D ToF vision, motor actuators & Wi-Fi 6/Satellite.",
+    headline: "Peripherals Ignite",
     description:
-      "The board bridges into physical reality. V4L2 camera pipelines stream 3D Time-of-Flight (IFM O3D) point clouds, EtherCAT and CAN-FD motor actuators execute precision kinematics, while MediaTek MT7668 Wi-Fi 6 and Iridium satellite links open global communication channels.",
+      "V4L2 camera pipelines stream 3D Time-of-Flight point clouds. EtherCAT and CAN-FD motor actuators execute precision kinematics. Global communication channels open.",
     metrics: [
       { label: "VISION PIPELINE", value: "3D ToF V4L2 Video Stream" },
       { label: "MOTION BUS", value: "CAN-FD / EtherCAT 5Mbps" },
       { label: "RF COMM", value: "Wi-Fi 6E & Satellite SBD" },
     ],
     tags: ["3D ToF Vision", "CAN-FD / EtherCAT", "MediaTek MT7668", "Satellite Iridium"],
+    ambientColor: "#818cf8",
   },
   {
     id: "edge-ai-neural",
     step: "05",
     chemical: "128 TOPS NPU ➔ INT8 NEURAL QUANTIZATION",
     eyebrow: "05 // NEURAL AWAKENING",
-    headline: "Neural Awakening: INT8 model quantization & on-device NPU inference.",
+    headline: "Neural Awakening",
     description:
-      "Onboard neural accelerators (Qualcomm Hexagon NPU / NVIDIA TensorRT) fire up. Quantized INT8 deep learning models execute real-time object classification, sensor fusion, and autonomous obstacle avoidance with sub-millisecond deterministic latency.",
+      "Onboard neural accelerators fire up. Quantized INT8 deep learning models execute real-time object classification, sensor fusion, and autonomous obstacle avoidance with sub-millisecond latency.",
     metrics: [
       { label: "NPU CAPACITY", value: "128 TOPS INT8 / FP8" },
       { label: "LATENCY", value: "< 2.8ms Inference Loop" },
       { label: "RUNTIMES", value: "Qualcomm SNPE / TensorRT" },
     ],
     tags: ["Hexagon NPU", "INT8 Quantization", "Sensor Fusion", "Autonomous Loops"],
+    ambientColor: "#c084fc",
   },
   {
     id: "fleet-army",
     step: "06",
     chemical: "AUTONOMOUS FLEET MESH ➔ STRATUM-TSDB",
     eyebrow: "06 // SWARM ASCENDANCY",
-    headline: "Swarm Intelligence: An army of autonomous fleet devices.",
+    headline: "Swarm Intelligence",
     description:
-      "The solitary board multiplies into a vast, synchronized army of fleet devices across the globe. Powered by zero-copy Stratum-TSDB time-series streaming, distributed Slurm cluster scheduling, and self-healing agentic CI/CD harnesses, the fleet operates as one autonomous hive mind.",
+      "The solitary board multiplies into a synchronized army spanning the globe. Zero-copy Stratum-TSDB streaming, distributed Slurm scheduling, and self-healing agentic CI/CD — one autonomous hive mind.",
     metrics: [
       { label: "FLEET SCALE", value: "Heterogeneous Multi-Node" },
       { label: "DATA INGEST", value: "Zero-Copy Stratum-TSDB" },
       { label: "ORCHESTRATION", value: "Self-Healing Agent Harness" },
     ],
     tags: ["Autonomous Fleet", "Stratum-TSDB", "Slurm Cluster", "Agentic CI/CD"],
+    ambientColor: "#38bdf8",
   },
 ];
 
+const SCROLL_PER_STAGE = 1.15; // viewport-heights per stage
+const TOTAL_SCROLL = STAGES.length * SCROLL_PER_STAGE;
+
 export function StoryJourney(): JSX.Element {
-  const [activeStageIdx, setActiveStageIdx] = useState(0);
-  const [autoPlay, setAutoPlay] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
-  const currentStage = STAGES[activeStageIdx];
+  const [scrollProgress, setScrollProgress] = useState(0); // 0..1 total progress
+  const [stageIdx, setStageIdx] = useState(0);
+  const [stageProgress, setStageProgress] = useState(0); // 0..1 within current stage
 
-  // Auto-play timer that advances through the journey when enabled
   useEffect(() => {
-    if (!autoPlay) return;
+    const onScroll = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const scrollable = el.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const raw = Math.max(0, Math.min(1, -rect.top / scrollable));
+      setScrollProgress(raw);
+      const stageF = raw * STAGES.length;
+      const idx = Math.min(STAGES.length - 1, Math.floor(stageF));
+      const within = Math.min(1, stageF - idx);
+      setStageIdx(idx);
+      setStageProgress(within);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-    const timer = window.setInterval(() => {
-      setActiveStageIdx((prev) => (prev + 1) % STAGES.length);
-    }, 6500);
+  const stage = STAGES[stageIdx];
+  const nextStage = STAGES[Math.min(STAGES.length - 1, stageIdx + 1)];
 
-    return () => clearInterval(timer);
-  }, [autoPlay]);
+  // Text fade: in for first 60%, fade out for last 20%
+  const textOpacity = useMemo(() => {
+    if (stageProgress < 0.6) return 1;
+    return Math.max(0, 1 - (stageProgress - 0.6) / 0.25);
+  }, [stageProgress]);
+
+  // Slide direction: content shifts up slightly as stage exits
+  const textY = useMemo(() => {
+    if (stageProgress < 0.6) return 0;
+    return -((stageProgress - 0.6) / 0.25) * 28;
+  }, [stageProgress]);
 
   return (
     <section
       ref={sectionRef}
-      className="journey-section"
+      className="journey-scroll-section"
       id="journey"
       aria-label="Systems journey"
+      style={{ height: `${TOTAL_SCROLL * 100}vh` }}
     >
-      {/* Section Header */}
-      <div className="journey-intro">
-        <div className="journey-kicker-row">
-          <span className="section-kicker">The Systems Odyssey</span>
-          <span className="journey-auto-indicator" aria-hidden="true">
-            <span className={`auto-dot ${autoPlay ? "auto-dot-live" : ""}`} />
-            <span>{autoPlay ? "IMMERSIVE AUTO-SCROLL JOURNEY" : "PAUSED"}</span>
-          </span>
+      {/* Sticky cinematic viewport — pinned while scrolling through section */}
+      <div className="journey-sticky-stage">
+
+        {/* Full-bleed 3D background canvas */}
+        <div className="journey-canvas-bg" aria-hidden="true">
+          <SandToSiliconCanvas currentStage={stageIdx} />
         </div>
-        <h2>From desert sand to an army of intelligent fleet devices.</h2>
-        <p>
-          An epic journey of hardware transformation: from a cosmic meteor storm
-          crystallizing desert quartz into chips, to power rail sequencing,
-          hardened Linux bring-up, and a globally synchronized army of
-          autonomous edge systems.
-        </p>
-      </div>
 
-      {/* Interactive Playback Control Bar */}
-      <div className="journey-controls-bar">
-        <button
-          type="button"
-          className="journey-play-btn"
-          onClick={() => setAutoPlay(!autoPlay)}
-          aria-label={autoPlay ? "Pause automated journey" : "Play automated journey"}
-        >
-          {autoPlay ? "⏸ Pause Journey" : "▶ Auto-Play Story"}
-        </button>
+        {/* Ambient gradient overlay keyed to stage color */}
+        <div
+          className="journey-ambient-overlay"
+          style={{ background: `radial-gradient(ellipse 70% 60% at 50% 100%, ${stage.ambientColor}22 0%, transparent 70%)` }}
+          aria-hidden="true"
+        />
 
-        {/* Stage Timeline Steps */}
-        <div className="journey-timeline-steps" role="tablist">
-          {STAGES.map((st, idx) => (
-            <button
-              key={st.id}
-              type="button"
-              role="tab"
-              aria-selected={activeStageIdx === idx}
-              className={`journey-step-tab ${activeStageIdx === idx ? "step-active" : ""}`}
-              onClick={() => {
-                setActiveStageIdx(idx);
-                setAutoPlay(false);
-              }}
-            >
-              <span className="step-num">{st.step}</span>
-              <span className="step-label">{st.eyebrow.split("// ")[1]}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Split Layout: 3D Animated Canvas + Synchronized Story Text */}
-      <div className="journey-layout-stage">
-        {/* Left Side: Animated Narrative & Chemical Telemetry */}
-        <div className="journey-narrative-card">
-          <div className="narrative-meta-bar">
-            <span className="narrative-step-badge">{currentStage.eyebrow}</span>
-            <span className="narrative-chemical-tag">{currentStage.chemical}</span>
+        {/* Top bar: section title + progress */}
+        <div className="journey-top-bar">
+          <div className="journey-top-left">
+            <span className="journey-section-label">The Systems Odyssey</span>
+            <span className="journey-section-sub">From desert sand to autonomous fleet intelligence.</span>
           </div>
+          <div className="journey-progress-track" role="progressbar" aria-valuenow={Math.round(scrollProgress * 100)} aria-valuemin={0} aria-valuemax={100}>
+            {STAGES.map((st, i) => (
+              <div
+                key={st.id}
+                className={`journey-progress-pip ${i === stageIdx ? "pip-active" : ""} ${i < stageIdx ? "pip-done" : ""}`}
+              >
+                <span className="pip-step">{st.step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <h3 className="narrative-headline">{currentStage.headline}</h3>
-          <p className="narrative-desc">{currentStage.description}</p>
+        {/* Centered story text overlay */}
+        <div
+          className="journey-story-overlay"
+          style={{
+            opacity: textOpacity,
+            transform: `translateY(${textY}px)`,
+          }}
+        >
+          <div className="journey-eyebrow">
+            <span className="journey-step-num">{stage.step}</span>
+            <span className="journey-eyebrow-label">{stage.eyebrow.split("// ")[1]}</span>
+          </div>
+          <h2 className="journey-story-headline">{stage.headline}</h2>
+          <p className="journey-story-desc">{stage.description}</p>
 
-          {/* Scientific Metrics Grid */}
-          <div className="narrative-metrics-grid">
-            {currentStage.metrics.map((m) => (
-              <div key={m.label} className="metric-box">
-                <span className="metric-label">{m.label}</span>
-                <span className="metric-val">{m.value}</span>
+          <div className="journey-story-metrics">
+            {stage.metrics.map((m) => (
+              <div key={m.label} className="journey-metric-tile">
+                <span className="jm-label">{m.label}</span>
+                <span className="jm-value">{m.value}</span>
               </div>
             ))}
           </div>
 
-          {/* Domain Tags */}
-          <div className="narrative-tags-wrap">
-            {currentStage.tags.map((t) => (
-              <span key={t} className="narrative-tag-chip">
-                {t}
-              </span>
+          <div className="journey-story-tags">
+            {stage.tags.map((t) => (
+              <span key={t} className="journey-tag">{t}</span>
             ))}
           </div>
         </div>
 
-        {/* Right Side: Interactive 3D Canvas Stage */}
-        <div className="journey-3d-viewport">
-          <SandToSiliconCanvas currentStage={activeStageIdx} />
+        {/* Chemical process label */}
+        <div className="journey-chem-bar" aria-hidden="true">
+          <span className="chem-icon">⬡</span>
+          <span className="chem-text">{stage.chemical}</span>
+        </div>
 
-          {/* Viewport Overlay Caption */}
-          <div className="journey-canvas-caption" aria-hidden="true">
-            <span className="caption-live-dot" />
-            <span>3D SIMULATION // ACT {currentStage.step}: {currentStage.chemical}</span>
+        {/* Bottom scroll hint / next stage peek */}
+        <div className="journey-bottom-bar" aria-hidden="true">
+          {stageIdx < STAGES.length - 1 && (
+            <div className="journey-next-hint">
+              <span className="next-hint-label">NEXT:</span>
+              <span className="next-hint-name">{nextStage.eyebrow.split("// ")[1]}</span>
+              <span className="next-hint-arrow">↓</span>
+            </div>
+          )}
+          <div className="journey-scroll-bar-wrap">
+            <div className="journey-scroll-fill" style={{ width: `${scrollProgress * 100}%` }} />
           </div>
         </div>
       </div>
