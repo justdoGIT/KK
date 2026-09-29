@@ -16,10 +16,10 @@ import {
 // startRotZ/X = asymmetric stacking orientation in the deck.
 // targetRotZ/X = 0 → all cards land perfectly straight.
 const CARD_CONFIGS = [
-  { startRotZ: -9.0, startRotX:  2.2, startX: -40, targetX: -518, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.00, flipSpeed: 0.62, wobbleY: -6.0 },
-  { startRotZ: -3.2, startRotX: -1.4, startX: -13, targetX: -173, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.07, flipSpeed: 0.82, wobbleY:  3.5 },
-  { startRotZ:  3.5, startRotX:  1.6, startX:  13, targetX:  173, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
-  { startRotZ:  9.5, startRotX: -2.4, startX:  40, targetX:  518, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
+  { startRotZ: -9.0, startRotX:  2.2, startX: -30, targetX: -468, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.00, flipSpeed: 0.62, wobbleY: -6.0 },
+  { startRotZ: -3.2, startRotX: -1.4, startX: -10, targetX: -156, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.07, flipSpeed: 0.82, wobbleY:  3.5 },
+  { startRotZ:  3.5, startRotX:  1.6, startX:  10, targetX:  156, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
+  { startRotZ:  9.5, startRotX: -2.4, startX:  30, targetX:  468, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
 ];
 
 function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
