@@ -1461,39 +1461,102 @@ main::before {
   font-family: var(--font-mono);
 }
 
-/* Case studies */
-.work-section {
+/* === Case Studies: Lusion 3D Fanning Card Deck === */
+.case-studies-scroll-track {
+  position: relative;
+  width: 100%;
+  min-height: 280vh;
   scroll-margin-top: 4.5rem;
-  padding: 6rem 1.5rem 7rem;
+}
+.case-studies-sticky-stage {
+  position: sticky;
+  top: 3.5rem;
+  height: calc(100vh - 3.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1.5rem 0;
+}
+.case-studies-inner-container {
+  width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  width: 100%;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  max-height: 860px;
 }
-.work-section .section-header {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 0 0 2.5rem 0;
+.case-studies-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  padding-bottom: 1.25rem;
 }
-/* Case Studies Stacking Card Deck (Lusion Style) */
-.studies-deck-nav {
+.deck-stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.deck-progress-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-accent);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.deck-arrow-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+.deck-arrow-btn {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-surface-border);
+  color: #e2e8f0;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.deck-arrow-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  transform: scale(1.08);
+}
+.deck-arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Quick-Select Mission Tabs */
+.case-deck-nav-tabs {
   display: flex;
   gap: 0.6rem;
-  padding: 0 0 2.5rem 0;
+  padding-bottom: 1.25rem;
   width: 100%;
-  max-width: 100%;
-  margin: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.studies-deck-nav::-webkit-scrollbar {
+.case-deck-nav-tabs::-webkit-scrollbar {
   display: none;
 }
-.studies-deck-tab {
+.case-deck-tab {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.5rem 1.1rem;
+  padding: 0.45rem 1rem;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-surface-border);
@@ -1504,50 +1567,68 @@ main::before {
   cursor: pointer;
   transition: all 0.25s ease;
 }
-.studies-deck-tab:hover,
-.studies-deck-tab.active {
-  background: rgba(56, 189, 248, 0.12);
+.case-deck-tab:hover,
+.case-deck-tab.tab-active {
+  background: rgba(56, 189, 248, 0.15);
   border-color: rgba(56, 189, 248, 0.5);
   color: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.18);
 }
-.studies-tab-num {
+.case-tab-num {
   color: var(--color-accent);
-  font-weight: 600;
+  font-weight: 700;
 }
-.studies-deck-container {
+
+/* 3D Fanning Deck Stage */
+.case-deck-viewport {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-  padding-bottom: 4rem;
+  width: 100%;
+  height: 560px;
+  perspective: 1200px;
+  transform-style: preserve-3d;
 }
-.study-deck-card {
-  position: sticky;
+.case-study-deck-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  padding: 2.2rem 2.6rem;
   background: radial-gradient(
     circle at 85% 15%,
     rgba(56, 189, 248, 0.06) 0%,
-    rgba(15, 23, 42, 0.85) 60%,
-    rgba(10, 15, 26, 0.98) 100%
+    rgba(15, 23, 42, 0.88) 60%,
+    rgba(9, 13, 22, 0.98) 100%
   );
   border: 1px solid var(--color-surface-border);
-  border-radius: 20px;
-  padding: 2.5rem 2.8rem;
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform-origin: center top;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  will-change: transform, opacity;
+  overflow-y: auto;
 }
-.study-deck-card:hover,
-.study-deck-card.card-focused {
-  border-color: rgba(125, 211, 252, 0.4);
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.6),
-    0 0 30px rgba(56, 189, 248, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+/* Card States */
+.case-study-deck-card.card-active-open {
+  transform: translate3d(0, 0, 0) scale(1) rotateX(0deg);
+  opacity: 1;
+  pointer-events: auto;
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
+.case-study-deck-card.card-peeled-away {
+  transform: translate3d(0, -115%, -120px) scale(0.9) rotateX(16deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.case-study-deck-card.card-stacked {
+  transform: translate3d(0, calc(var(--deck-diff) * 16px), calc(var(--deck-diff) * -40px)) scale(calc(1.0 - var(--deck-diff) * 0.04)) rotateX(calc(var(--deck-diff) * -2deg));
+  opacity: calc(1.0 - var(--deck-diff) * 0.22);
+  pointer-events: none;
+}
+
 .study-deck-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(340px, 1fr);
@@ -1557,12 +1638,12 @@ main::before {
 .study-deck-left {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.1rem;
 }
 .study-deck-right {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 .study-status-badge {
   padding: 0.2rem 0.55rem;
@@ -1577,7 +1658,7 @@ main::before {
 }
 .study-diagram-container,
 .study-results-block {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
 }
 .diagram-header-label,
 .results-header-label {
@@ -1587,7 +1668,7 @@ main::before {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 600;
 }
 .study-visual-wrapper {
@@ -1606,11 +1687,31 @@ main::before {
 }
 
 @media (max-width: 980px) {
+  .case-studies-scroll-track {
+    min-height: auto;
+  }
+  .case-studies-sticky-stage {
+    position: relative;
+    top: auto;
+    height: auto;
+    padding: 4rem 0;
+  }
+  .case-deck-viewport {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .case-study-deck-card {
+    position: relative;
+    inset: auto;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    padding: 1.8rem 1.4rem;
+  }
   .study-deck-layout {
     grid-template-columns: 1fr;
-  }
-  .study-deck-card {
-    padding: 1.8rem 1.4rem;
   }
 }
 /* Case Study Architecture Diagram Pop-Out */
