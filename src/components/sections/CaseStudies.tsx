@@ -10,11 +10,16 @@ import {
   type ArchitectureDetail,
 } from "../ui/ArchitectureModal.tsx";
 
+// flipSpeed < 1 = completes flip before full scroll travel (faster)
+// flipSpeed = 1 = completes exactly at end (slowest)
+// Outer/edge cards flip fast, inner cards flip slow.
+// startRotZ/X = asymmetric stacking orientation in the deck.
+// targetRotZ/X = 0 → all cards land perfectly straight.
 const CARD_CONFIGS = [
-  { startRotZ: -7.5, startRotX: 1.5, startX: -36, targetX: -518, targetY: 8, targetRotZ: -3.4, targetRotX: 1.8, delay: 0.0, wobbleY: -4.0 },
-  { startRotZ: -2.5, startRotX: -1.0, startX: -12, targetX: -173, targetY: -6, targetRotZ: -1.2, targetRotX: -1.0, delay: 0.03, wobbleY: 2.5 },
-  { startRotZ: 2.5, startRotX: 1.2, startX: 12, targetX: 173, targetY: -4, targetRotZ: 1.5, targetRotX: 1.2, delay: 0.05, wobbleY: -2.0 },
-  { startRotZ: 8.0, startRotX: -1.8, startX: 36, targetX: 518, targetY: 12, targetRotZ: 3.8, targetRotX: -1.6, delay: 0.08, wobbleY: 4.5 },
+  { startRotZ: -9.0, startRotX:  2.2, startX: -40, targetX: -518, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.00, flipSpeed: 0.62, wobbleY: -6.0 },
+  { startRotZ: -3.2, startRotX: -1.4, startX: -13, targetX: -173, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.07, flipSpeed: 0.82, wobbleY:  3.5 },
+  { startRotZ:  3.5, startRotX:  1.6, startX:  13, targetX:  173, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
+  { startRotZ:  9.5, startRotX: -2.4, startX:  40, targetX:  518, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
 ];
 
 function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
@@ -143,14 +148,18 @@ export function CaseStudies(): JSX.Element {
             {studies.map((study, idx) => {
               const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
               const cardP = Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay)));
-              const rotY = cardP * 180 + Math.sin(cardP * Math.PI) * cfg.wobbleY;
+              // Each card's flip completes at a different scroll point (flipSpeed).
+              // Edge cards (0,3) finish the 180° flip early; inner cards (1,2) finish later.
+              const flipP = Math.min(1, cardP / cfg.flipSpeed);
+              const rotY = flipP * 180 + Math.sin(flipP * Math.PI) * cfg.wobbleY;
               const isFrontVisible = rotY >= 90;
 
+              // During travel: organic tilt from start angles back to 0 at landing.
               const currentX = THREE_lerp(cfg.startX, cfg.targetX, cardP);
               const currentY = THREE_lerp(0, cfg.targetY, cardP);
               const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP);
               const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP);
-              const currentScale = THREE_lerp(0.94, 1.0, cardP);
+              const currentScale = THREE_lerp(0.93, 1.0, cardP);
               const liftZ = Math.sin(cardP * Math.PI) * 70;
 
               return (
