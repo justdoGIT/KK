@@ -96,11 +96,13 @@ const TERMINAL_COMMANDS: TerminalCommand[] = [
 ];
 
 // Total scroll distance (in viewport-heights) the terminal stays pinned for
-// while its minimize-to-maximize reveal and 5-script sequence play out.
-const TOTAL_SCROLL = 3;
-// Portion of TOTAL_SCROLL spent on the minimize -> maximize reveal before
-// the script/typing sequence begins.
-const REVEAL_FRACTION = 0.15;
+// while its fade-in reveal and 5-script sequence play out. Kept fairly
+// large so scripts don't race by -- each script gets a comfortable, easy
+// to read amount of scroll travel.
+const TOTAL_SCROLL = 4.5;
+// Portion of TOTAL_SCROLL spent on the fade-in reveal before the
+// script/typing sequence begins.
+const REVEAL_FRACTION = 0.08;
 
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
@@ -228,18 +230,34 @@ export function InteractiveTerminal(): JSX.Element {
 
   const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
 
-  // Continuous scroll-linked minimize -> maximize transform, applied inline
-  // (rather than via a CSS transition) so it tracks the scrollbar 1:1
-  // instead of animating independently on a timer.
-  const revealStyle: CSSProperties = {
-    opacity: revealProgress,
-    filter: `blur(${((1 - revealProgress) * 5).toFixed(2)}px)`,
-    transform: `perspective(1200px) scale(${(0.68 + revealProgress * 0.32).toFixed(3)}) translate3d(${((1 - revealProgress) * -90).toFixed(1)}px, ${((1 - revealProgress) * 75).toFixed(1)}px, ${((1 - revealProgress) * -30).toFixed(1)}px) rotate(${((1 - revealProgress) * -3).toFixed(2)}deg)`,
-  };
+  // Fade-in-only reveal, applied inline so it tracks the scrollbar 1:1.
+  // Deliberately does NOT scale/translate/rotate the box: a continuously
+  // changing `transform` on a text-heavy element causes the browser to
+  // re-rasterize its text at intermediate scales every frame, which read
+  // as flicker; keeping the box's own size and position constant avoids
+  // that entirely. Once fully revealed, drop transform/filter to `none`
+  // outright (same pattern used for settled hover cards elsewhere in this
+  // codebase) so the terminal renders through the normal CPU/subpixel text
+  // path instead of sitting on a GPU-composited layer indefinitely.
+  const revealStyle: CSSProperties =
+    revealProgress >= 0.999
+      ? { opacity: 1, filter: "none", transform: "none" }
+      : {
+          opacity: revealProgress,
+          filter: `blur(${((1 - revealProgress) * 4).toFixed(2)}px)`,
+        };
 
   return (
     <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
       <div className="terminal-sticky-stage">
+        <div className="section-header terminal-pinned-heading">
+          <p className="section-kicker">Technical Capabilities</p>
+          <h2>Interactive System Console &amp; Toolchains</h2>
+          <p className="section-subtitle">
+            Live developer terminal simulation and comprehensive skill matrix —
+            inspecting verified languages, heterogeneous SoC platforms, wireless protocols, and automated CI/CD pipelines.
+          </p>
+        </div>
         <div
           className={`interactive-terminal-wrapper ${revealProgress > 0.85 ? "terminal-glow" : ""} ${
             isExpanded ? "terminal-expanded-mode" : ""

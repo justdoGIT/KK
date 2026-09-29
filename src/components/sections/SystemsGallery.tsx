@@ -99,12 +99,13 @@ export function SystemsGallery(): JSX.Element {
 
       {/* Interactive Architecture Cards Grid */}
       <div className="systems-gallery-grid" role="list">
-        {gallerySystems.map((item) => (
+        {gallerySystems.map((item, idx) => (
           <LusionShowcaseCard
             key={item.id}
             item={item}
             isSelected={activeSystemId === item.id}
             onSelect={() => setActiveSystemId(item.id)}
+            rowIndex={Math.floor(idx / 2)}
           />
         ))}
       </div>

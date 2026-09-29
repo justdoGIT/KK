@@ -16,16 +16,9 @@ export function SkillMatrix(): JSX.Element {
       className="skills-section"
       id="skills"
     >
-      <div className="section-header">
-        <p className="section-kicker">Technical Capabilities</p>
-        <h2>Interactive System Console &amp; Toolchains</h2>
-        <p className="section-subtitle">
-          Live developer terminal simulation and comprehensive skill matrix —
-          inspecting verified languages, heterogeneous SoC platforms, wireless protocols, and automated CI/CD pipelines.
-        </p>
-      </div>
-
-      {/* Cinematic Interactive Scroll/Typing Terminal */}
+      {/* Cinematic Interactive Scroll/Typing Terminal -- owns its own
+          pinned section heading so the heading stays visible alongside
+          the terminal while it's maximized/scrolling. */}
       <div className="skills-terminal-container">
         <InteractiveTerminal />
       </div>
