@@ -99,6 +99,8 @@ Required negative fixtures include a local path, repository name, commit message
 
 `CareerTimeline` uses typed entries with `period`, `title`, `organization`, `summary`, `accomplishments`, `technologies`, and approved evidence IDs. Resume-backed entries are SYMX.AI (Jan 2025–Present), Vestel (Dec 2022–Jul 2024), Dozee (Jul–Dec 2022), Capgemini (Oct 2020–Jun 2022), and IFM Engineering (Jul 2017–Mar 2020). The resume’s specific claims—OSTree atomic updates, Qualcomm QCM2290 optimization, TI AM665x/AM437x EV charger HMI, NXP BSP work, V4L2/GStreamer, and Open-AMP/RPMSG—remain resume-attributed, not independently measured.
 
+The enhanced career view is a twelve-viewport pinned film, ordered from the oldest role to the newest. The active disclosure scrolls to the center of its own list viewport so the SYMX.AI finale cannot leave the screen before its content is readable. The right-hand WebGL screen uses distinct overview, chase, tracking, orbit, low-angle, and drive-by lenses. Apache-2.0/BSD/CC0 robot and vehicle models rebuild through a reversible clean-room panel choreography: shells fold into a mechanical core, actuator lines extend, and new panels hinge and lock with sparks. The humanoid adds original vehicle armour and wheel modules before folding into the CC0 sports car; no proprietary Transformer geometry, animation, or media is included.
+
 ### Case studies and approval records
 
 The launch target is four studies; a fifth is optional only after an approved record exists. The renderer consumes **only** `publication-records/*.json`, never arbitrary README text or repository traversal. Each record contains:
@@ -132,7 +134,7 @@ Planned study candidates:
 
 Contact uses user-triggered static links: email from the resume, GitHub `https://github.com/justdoGIT`, and the LinkedIn profile URL derived from the resume identifier, subject to final URL verification. No phone number is displayed by default. External links use consistent `target="_blank" rel="noreferrer"` only when new-tab behavior is intentionally chosen, with accessible labels that state the destination; same-tab links omit both attributes.
 
-The enhanced skill-domain grid mirrors scroll progress in its filter pills: each category highlights when its card is fully revealed, then the individual progress highlights clear and `All Domains` becomes active once the complete grid is open. The contact transition uses a pinned four-beat astronaut journey inspired by Lusion’s public sequence: a compact orbital card expands to fill the stage, the astronaut tumbles through a free fall, and the screen fractures before the astronaut exits waving into the final invitation. The same semantic contact links and a static reduced-motion presentation remain available.
+The enhanced skill-domain grid mirrors scroll progress in its filter pills: each category highlights when its card is fully revealed, then the individual progress highlights clear and `All Domains` becomes active once the complete grid is open. The contact transition uses a pinned astronaut journey inspired by Lusion’s public sequence: a compact orbital card expands to fill the stage, a licensed NASA EMU tumbles through free fall, then runs, crouches, jumps, and kicks the glass at a deterministic impact frame. Shards originate at the projected boot contact, the astronaut shields the visor through the debris, drops out, and waves into the final invitation. A slow cancelable scroll cruise starts only after a downward gesture while the small card is centered. The same semantic contact links and a static reduced-motion presentation remain available.
 
 ## Runtime, Motion, and Performance
 
@@ -233,11 +235,13 @@ No runtime persistence. Public inputs are `src/content/approved/*.json`, the com
 
 ## Security, Privacy, CSP, and External Resources
 
-GitHub Pages cannot be assumed to provide arbitrary response security headers from repository files. V1 therefore uses no runtime third-party scripts, embeds, fonts, images, analytics, or remote API calls. All CSS, JS, SVG, and approved PDF assets are bundled or repository-controlled. The optional compatible meta policy is:
+GitHub Pages cannot be assumed to provide arbitrary response security headers from repository files. V1 therefore uses no runtime third-party scripts, embeds, fonts, images, analytics, or remote API calls. All CSS, JS, SVG, GLB, and approved PDF assets are bundled or repository-controlled. The compatible meta policy is:
 
 ```html
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none';">
 ```
+
+The 3D scenes fetch same-origin GLB models from `public/models/` (`connect-src 'self'`), decode meshopt geometry with a bundled WebAssembly decoder (`'wasm-unsafe-eval'`), and upload embedded textures through `blob:` URLs. No remote origin is allowed. Model provenance and licenses are listed in `public/models/CREDITS.md`; the ROS meshes are regenerated by `scripts/assets/build_robot_glbs.py`.
 
 This is defense-in-depth, not a substitute for response headers; CI must verify that the built site does not require an exception. External navigation is direct and consistent: same-tab by default; if new-tab is selected, every external anchor uses `target="_blank" rel="noreferrer"` and an accessible destination name. A published-output scan rejects external scripts, iframes, remote CSS/fonts/images, local paths, credentials-like strings, prohibited names, and unapproved domains. Actions receive no secrets beyond Pages permissions and use least-privilege `contents: read` and Pages deployment permissions.
 

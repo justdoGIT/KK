@@ -162,15 +162,24 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
     if (!near) return;
     let rafId = 0;
     let autoScrolling = false;
-    let lastWheelTime = 0;
+    let autoCompleted = false;
+    let forwardIntent = false;
 
-    const onWheel = (e: WheelEvent) => {
-      if (e.deltaY > 0) {
-        lastWheelTime = performance.now();
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY < 0) {
+        autoScrolling = false;
+        forwardIntent = false;
+      } else if (event.deltaY > 0) {
+        forwardIntent = true;
       }
+    };
+    const cancelAutoScroll = () => {
+      autoScrolling = false;
+      forwardIntent = false;
     };
 
     window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", cancelAutoScroll, { passive: true });
 
     const tick = () => {
       rafId = requestAnimationFrame(tick);
@@ -178,19 +187,27 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       const clock = els.clock.current;
       if (!section || !clock) return;
       const scrollable = section.offsetHeight - window.innerHeight;
-      const target = scrollable > 0 ? clamp01(-section.getBoundingClientRect().top / scrollable) : 0;
+      const sectionTop = section.getBoundingClientRect().top;
+      const target = scrollable > 0 ? clamp01(-sectionTop / scrollable) : 0;
       clock.t = target;
 
-      // Autoscroll momentum assistance: when user scrolls into the small card (t >= 0.05),
-      // gently drive scroll forward through the tunnel until the glass breaks (t < 0.65).
-      const now = performance.now();
-      if (target >= 0.05 && target < 0.65 && now - lastWheelTime < 800) {
-        if (!autoScrolling) {
-          autoScrolling = true;
-          window.scrollBy({ top: 18, behavior: "smooth" });
-          setTimeout(() => {
-            autoScrolling = false;
-          }, 60);
+      // Match Lusion's slow scroll scrub: one downward gesture while the
+      // centred card is pinned starts a deliberate cruise through the tunnel.
+      // A reverse wheel or touch immediately gives control back to the user.
+      if (target < 0.005) autoCompleted = false;
+      const cardCentered = sectionTop <= window.innerHeight * 0.08 && target < 0.1;
+      if (forwardIntent && cardCentered && !autoCompleted) {
+        autoScrolling = true;
+        forwardIntent = false;
+      }
+      if (autoScrolling) {
+        const destination = 0.62;
+        const remaining = (destination - target) * scrollable;
+        if (remaining <= 2) {
+          autoScrolling = false;
+          autoCompleted = true;
+        } else {
+          window.scrollBy(0, Math.min(2.6, remaining));
         }
       }
 
@@ -204,6 +221,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
     rafId = requestAnimationFrame(tick);
     return () => {
       window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", cancelAutoScroll);
       cancelAnimationFrame(rafId);
     };
   }, [near, els]);

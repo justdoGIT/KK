@@ -1,0 +1,25 @@
+{
+  "root": "base_footprint",
+  "joints": [
+    {
+      "name": "wheel_left_joint",
+      "type": "continuous",
+      "child": "wheel_left_link",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "name": "wheel_right_joint",
+      "type": "continuous",
+      "child": "wheel_right_link",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    }
+  ]
+}

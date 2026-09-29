@@ -5,13 +5,13 @@
 export const PHASES = [
   ["cardShow", 0.05],
   ["frameIn", 0.06],
-  ["title", 0.13],
-  ["blackTunnel", 0.18],
+  ["title", 0.12],
+  ["blackTunnel", 0.17],
   ["whiteTunnel", 0.06],
-  ["frameOut", 0.04],
-  ["frameBreak", 0.04],
-  ["drop", 0.04],
-  ["wait", 0.40],
+  ["frameOut", 0.05],
+  ["frameBreak", 0.09],
+  ["drop", 0.05],
+  ["wait", 0.35],
 ] as const;
 
 export type PhaseId = (typeof PHASES)[number][0];
@@ -28,7 +28,7 @@ export const PHASE_SPANS: Record<PhaseId, Span> = (() => {
 })();
 
 /** Scroll length of the pinned section, in viewport heights. */
-export const JOURNEY_VIEWPORTS = 3.5;
+export const JOURNEY_VIEWPORTS = 4.5;
 
 export function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
@@ -123,13 +123,21 @@ export function frameRect(t: number, width: number, height: number): FrameRect {
   if (white === 0) return full;
   if (white < 1) return lerpRect(full, screen, easeInOutCubic(white));
 
-  const shatter = phaseRatio(t, "frameBreak");
-  const shake = Math.sin(shatter * Math.PI) * Math.sin(shatter * Math.PI * 7) * 1.4;
+  const shatter = shatterRatio(t);
+  const shake = Math.sin(shatter * Math.PI) * Math.sin(shatter * Math.PI * 9) * 2.2;
   const rise = easeInCubic(phaseRatio(t, "drop")) * (screen.y + screen.height + height * 0.05);
   return { ...screen, y: screen.y - rise, rotation: shake };
 }
 
-/** True once the astronaut has left the masked world and renders unclipped. */
+/** frameBreak ratio at which the flying kick meets the glass. */
+export const IMPACT_AT = 0.46;
+
+/** 0..1 through the shatter, starting at the kick's impact. */
+export function shatterRatio(t: number): number {
+  return clamp01((phaseRatio(t, "frameBreak") - IMPACT_AT) / (1 - IMPACT_AT));
+}
+
+/** True once the kick has broken the glass and the astronaut renders unclipped. */
 export function heroUnmasked(t: number): boolean {
-  return t >= PHASE_SPANS.frameBreak.from;
+  return phaseRatio(t, "frameBreak") >= IMPACT_AT;
 }

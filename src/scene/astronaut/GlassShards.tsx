@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, type JSX } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferAttribute, BufferGeometry, DoubleSide, ShaderMaterial, Vector2, Vector4, type Mesh } from "three";
-import { phaseRatio, screenRect } from "../../components/ui/astronaut/journey-timeline.ts";
+import { phaseRatio, screenRect, shatterRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import { stageRectToWorld, type JourneyClockRef } from "./journey-clock.ts";
 
 // Screen glass that shatters when the astronaut pushes through. Like Lusion's
@@ -116,7 +116,9 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-export function GlassShards({ clock }: { clock: JourneyClockRef }): JSX.Element {
+type ImpactRef = { readonly current: { x: number; y: number } };
+
+export function GlassShards({ clock, impact }: { clock: JourneyClockRef; impact: ImpactRef }): JSX.Element {
   const meshRef = useRef<Mesh>(null);
   const geometry = useMemo(() => buildShardGeometry(), []);
   const material = useMemo(
@@ -150,17 +152,19 @@ export function GlassShards({ clock }: { clock: JourneyClockRef }): JSX.Element 
     const mesh = meshRef.current;
     if (!mesh) return;
     const { t, width, height } = clock.current;
-    const shatter = phaseRatio(t, "frameBreak");
+    const contact = phaseRatio(t, "frameBreak");
+    const shatter = shatterRatio(t);
     const drop = phaseRatio(t, "drop");
-    const visible = shatter > 0 && drop < 1;
+    const visible = contact > 0 && drop < 1;
     mesh.visible = visible;
     if (!visible) return;
     const rect = stageRectToWorld(screenRect(width, height), width, height, camera);
     const u = (mesh.material as ShaderMaterial).uniforms;
     u.uRect.value.set(rect.cx, rect.cy, rect.width, rect.height);
+    u.uImpact.value.set(impact.current.x, impact.current.y);
     u.uBreak.value = shatter;
     u.uFade.value = Math.max(0, (drop - 0.55) / 0.45);
-    u.uOpacity.value = Math.min(1, shatter * 6);
+    u.uOpacity.value = shatter > 0 ? Math.min(1, 0.32 + shatter * 4) : 0.12;
   });
 
   return <mesh ref={meshRef} geometry={geometry} material={material} frustumCulled={false} renderOrder={5} />;

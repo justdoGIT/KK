@@ -1,0 +1,45 @@
+{
+  "root": "base_link",
+  "joints": [
+    {
+      "name": "front_left_wheel",
+      "type": "continuous",
+      "child": "front_left_wheel_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "name": "front_right_wheel",
+      "type": "continuous",
+      "child": "front_right_wheel_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "name": "rear_left_wheel",
+      "type": "continuous",
+      "child": "rear_left_wheel_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "name": "rear_right_wheel",
+      "type": "continuous",
+      "child": "rear_right_wheel_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  ]
+}

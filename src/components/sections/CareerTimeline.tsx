@@ -1,127 +1,110 @@
-import { useState, type JSX } from "react";
+import { lazy, Suspense, useMemo, useRef, useState, type JSX } from "react";
 import { career } from "../../content/career.ts";
-import { Disclosure } from "../ui/Disclosure.tsx";
-import { RobotEvolutionCanvas } from "../../scene/career/RobotEvolutionCanvas.tsx";
-import { ROBOT_STAGES, type RobotStageId } from "../../scene/career/robot-stages.ts";
+import { CAREER_STAGE_META, CAREER_VIEWPORTS } from "../../scene/career/career-timeline.ts";
+import { createCareerClock, type CareerClock } from "../../scene/career/career-clock.ts";
+import { checkWebGL } from "../../scene/useCapability.ts";
+import { CareerEntryList } from "./career/CareerEntryList.tsx";
+import { useCareerDriver } from "./career/useCareerDriver.ts";
+import { WallFollowerHud, type HudRefs } from "./career/WallFollowerHud.tsx";
 
-function mapEntryToStage(index: number): RobotStageId {
-  if (index === 0) return 3; // SYMX.AI: Full Transformer Mech
-  if (index === 1) return 2; // Vestel: Edge AI Systems Mesh
-  if (index === 2) return 1; // Dozee: Obstacle Avoider Rover
-  return 0; // Earlier: Wall Follower Bot
+const CareerJourneyCanvas = lazy(() =>
+  import("../../scene/career/CareerJourneyCanvas.tsx").then((m) => ({ default: m.CareerJourneyCanvas })),
+);
+
+/** Journey order is oldest role first; content is stored newest first. */
+const JOURNEY_ENTRIES = CAREER_STAGE_META.map((meta) => {
+  const entry = career.find((item) => item.id === meta.entryId);
+  if (!entry) throw new Error(`career entry ${meta.entryId} missing`);
+  return entry;
+});
+
+function prefersStatic(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches || !checkWebGL();
 }
 
 export function CareerTimeline(): JSX.Element {
-  const [activeStage, setActiveStage] = useState<RobotStageId>(3);
-  const meta = ROBOT_STAGES[activeStage] ?? ROBOT_STAGES[3];
+  const [isStatic] = useState(prefersStatic);
+  const section = useRef<HTMLElement>(null);
+  const flash = useRef<HTMLDivElement>(null);
+  const clock = useRef<CareerClock>(createCareerClock());
+  const depth = useRef<HTMLCanvasElement>(null);
+  const correction = useRef<HTMLCanvasElement>(null);
+  const top = useRef<HTMLCanvasElement>(null);
+  const mode = useRef<HTMLSpanElement>(null);
+  const left = useRef<HTMLSpanElement>(null);
+  const right = useRef<HTMLSpanElement>(null);
+  const hud = useMemo<HudRefs>(() => ({ depth, correction, top, mode, left, right }), []);
+  const elements = useMemo(() => ({ section, flash, clock, hud }), [hud]);
+  const { near, active, stage } = useCareerDriver(elements, !isStatic);
+  const [override, setOverride] = useState<{ stage: number; id: string | null } | null>(null);
+
+  const meta = CAREER_STAGE_META[stage];
+  const openId = override && override.stage === stage ? override.id : meta.entryId;
 
   return (
     <section
+      ref={section}
       aria-label="Career timeline"
-      className="career-section"
       id="career"
+      className={`career-journey${isStatic ? " career-journey--static" : ""}`}
+      style={isStatic ? undefined : { height: `${CAREER_VIEWPORTS * 100}vh` }}
     >
-      <div className="section-header">
-        <h2>Career &amp; Systems Evolution</h2>
-        <p className="section-subtitle">
-          Nine years of embedded Linux, RTOS, and edge AI engineering — mapped as a 3D robotics evolution from line followers to humanoid transformers.
-        </p>
-      </div>
+      <div className="career-sticky">
+        <div className="career-column">
+          <div className="career-header">
+            <p className="career-eyebrow">Career · robotics evolution</p>
+            <h2>Career &amp; Systems Evolution</h2>
+            <p className="section-subtitle">
+              Nine years of embedded Linux, RTOS, and edge AI engineering, told as one robot that keeps rebuilding
+              itself: wall follower, rover, quadruped, humanoid, supercar.
+            </p>
+          </div>
+          <CareerEntryList
+            entries={JOURNEY_ENTRIES}
+            activeId={meta.entryId}
+            openId={openId}
+            clock={clock}
+            onOpenChange={(id, open) => setOverride({ stage, id: open ? id : null })}
+          />
+        </div>
 
-      {/* 3D Robot Journey Stage Viewer */}
-      <div className="robot-evolution-container">
-        <div className="robot-stage-display">
-          <RobotEvolutionCanvas stageId={activeStage} />
-
-          {/* Interactive HUD Overlay */}
-          <div className="robot-hud-overlay">
-            <div className="robot-hud-top">
-              <span className="robot-hud-badge">{meta.codename}</span>
-              <span className="robot-hud-era">{meta.era}</span>
-            </div>
-
-            <div className="robot-hud-bottom">
-              <h3 className="robot-hud-title">{meta.name}</h3>
-              <p className="robot-hud-desc">{meta.description}</p>
-              <div className="robot-spec-tags">
-                {meta.specs.map((spec) => (
-                  <span key={spec} className="robot-spec-tag">
-                    {spec}
-                  </span>
-                ))}
+        {!isStatic && (
+          <div className="career-screen" aria-hidden="true">
+            <div className="career-screen-inner">
+              {near && (
+                <Suspense fallback={null}>
+                  <CareerJourneyCanvas clock={clock} active={active} />
+                </Suspense>
+              )}
+              <div className="career-screen-caption">
+                <span className="career-screen-codename">{meta.codename}</span>
+                <span className="career-screen-robot">{meta.robot}</span>
+                <span className="career-screen-text">{meta.caption}</span>
               </div>
+              <WallFollowerHud
+                visible={stage === 0}
+                depthRef={depth}
+                correctionRef={correction}
+                topRef={top}
+                modeRef={mode}
+                leftRef={left}
+                rightRef={right}
+              />
+              <div ref={flash} className="career-screen-flash" />
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Stage Selector Pills */}
-        <div className="robot-stage-selector" role="tablist" aria-label="Robot evolution stages">
-          {ROBOT_STAGES.map((stage) => (
-            <button
-              key={stage.id}
-              type="button"
-              role="tab"
-              aria-selected={activeStage === stage.id}
-              className={`robot-stage-pill ${activeStage === stage.id ? "active" : ""}`}
-              onClick={() => setActiveStage(stage.id as RobotStageId)}
-            >
-              <span className="pill-step">STAGE 0{stage.id + 1}</span>
-              <span className="pill-label">{stage.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Career Timeline Disclosures */}
-      <div className="timeline">
-        {career.map((entry, index) => {
-          const entryStage = mapEntryToStage(index);
-          return (
-            <div
-              key={entry.id}
-              className={`timeline-entry ${activeStage === entryStage ? "is-active-stage" : ""}`}
-            >
-              <div className="timeline-marker" aria-hidden="true" />
-              <div className="timeline-content">
-                <Disclosure
-                  id={entry.id}
-                  summary={
-                    <span className="timeline-summary">
-                      <span className="timeline-period">{entry.period}</span>
-                      <span className="timeline-role-org">
-                        <span className="timeline-title">{entry.title}</span>
-                        <span className="timeline-sep" aria-hidden="true">•</span>
-                        <span className="timeline-org">{entry.organization}</span>
-                      </span>
-                    </span>
-                  }
-                >
-                  <div className="timeline-detail">
-                    <div className="timeline-stage-banner">
-                      <span className="stage-banner-dot" aria-hidden="true" />
-                      <span>CONNECTED ROBOTICS STAGE: {ROBOT_STAGES[entryStage].codename}</span>
-                    </div>
-                    <p className="timeline-desc">{entry.summary}</p>
-                    <h4>Accomplishments</h4>
-                    <ul className="timeline-list">
-                      {entry.accomplishments.map((a) => (
-                        <li key={a}>{a}</li>
-                      ))}
-                    </ul>
-                    <h4>Technologies</h4>
-                    <ul className="tag-list">
-                      {entry.technologies.map((tech) => (
-                        <li key={tech} className="tag">
-                          {tech}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </Disclosure>
-              </div>
-            </div>
-          );
-        })}
+        {!isStatic && (
+          <ol className="career-rail" aria-hidden="true">
+            {JOURNEY_ENTRIES.map((entry, index) => (
+              <li key={entry.id} className={index === stage ? "is-active" : index < stage ? "is-done" : undefined}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
     </section>
   );
