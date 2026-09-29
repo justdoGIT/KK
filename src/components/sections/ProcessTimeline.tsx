@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useRef, type JSX } from "react";
+import { useGridScrollReveal } from "../../motion/grid-scroll-reveal.ts";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 type ProcessStep = {
   number: string;
@@ -48,55 +50,31 @@ const steps: ProcessStep[] = [
   },
 ];
 
-function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) {
-  const cardRef = useRef<HTMLElement>(null);
-  const startsRevealed =
-    index === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const [isRevealed, setIsRevealed] = useState(startsRevealed);
-
-  useEffect(() => {
-    if (isRevealed) return;
-    const el = cardRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setIsRevealed(true);
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.15, rootMargin: "0px 0px -5% 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+// Cards swing open from their left edge like pages turning, rising into place.
+function processTransform(inv: number): string {
   return (
-    <article
-      ref={cardRef}
-      className={`process-step-card ${isRevealed ? "step-revealed" : "step-pending"}`}
-    >
-      <div className="process-step-topline">
-        <span className="process-step-number">{step.number}</span>
-        <span className="process-step-badge">{step.badge}</span>
-      </div>
-
-      <p className="process-step-label">{step.label}</p>
-      <h3>{step.title}</h3>
-      <p className="process-step-detail">{step.detail}</p>
-
-      <div className="process-benefit-box">
-        <span className="benefit-tag">CLIENT IMPACT:</span>
-        <p className="benefit-desc">{step.clientBenefit}</p>
-      </div>
-    </article>
+    `perspective(1200px) translate3d(0, ${(inv * 70).toFixed(1)}px, 0) ` +
+    `rotateY(${(-inv * 32).toFixed(2)}deg) rotateX(${(inv * 10).toFixed(2)}deg) ` +
+    `scale(${(0.88 + 0.12 * (1 - inv)).toFixed(3)})`
   );
 }
 
 export function ProcessTimeline(): JSX.Element {
+  const enhanced = useMotionMode() === "enhanced";
+  const trackRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const traceRef = useRef<HTMLSpanElement>(null);
+  const nodeRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  useGridScrollReveal(trackRef, cardRefs, processTransform, enhanced, (_opened, mean) => {
+    if (traceRef.current) {
+      traceRef.current.style.transform = `scaleX(${mean.toFixed(4)})`;
+    }
+    cardRefs.current.forEach((card, i) => {
+      nodeRefs.current[i]?.classList.toggle("is-lit", !!card?.classList.contains("is-open"));
+    });
+  });
+
   return (
     <section
       className="process-section"
@@ -111,9 +89,47 @@ export function ProcessTimeline(): JSX.Element {
         />
       </div>
 
-      <div className="process-track">
+      {/* Circuit trace: fills with scroll; each node lights as its step opens */}
+      <div className="process-circuit" aria-hidden="true">
+        <span ref={traceRef} className="process-circuit-fill" />
         {steps.map((step, idx) => (
-          <ProcessStepCard step={step} index={idx} key={step.number} />
+          <span
+            key={step.number}
+            ref={(el) => {
+              nodeRefs.current[idx] = el;
+            }}
+            className="process-circuit-node"
+            style={{ left: `${(idx + 0.5) * (100 / steps.length)}%` }}
+          />
+        ))}
+      </div>
+
+      <div
+        ref={trackRef}
+        className={`process-track ${enhanced ? "is-scroll-reveal" : ""}`}
+      >
+        {steps.map((step, idx) => (
+          <article
+            key={step.number}
+            ref={(el) => {
+              cardRefs.current[idx] = el;
+            }}
+            className="process-step-card"
+          >
+            <div className="process-step-topline">
+              <span className="process-step-number">{step.number}</span>
+              <span className="process-step-badge">{step.badge}</span>
+            </div>
+
+            <p className="process-step-label">{step.label}</p>
+            <h3>{step.title}</h3>
+            <p className="process-step-detail">{step.detail}</p>
+
+            <div className="process-benefit-box">
+              <span className="benefit-tag">CLIENT IMPACT:</span>
+              <p className="benefit-desc">{step.clientBenefit}</p>
+            </div>
+          </article>
         ))}
       </div>
     </section>

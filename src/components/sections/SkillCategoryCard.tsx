@@ -197,8 +197,12 @@ export function SkillCategoryCard({ category }: { category: SkillCategory }): JS
       </div>
 
       <div className="skill-chips-wrap">
-        {category.skills.map((skill) => (
-          <span key={skill} className="skill-badge-chip">
+        {category.skills.map((skill, idx) => (
+          <span
+            key={skill}
+            className="skill-badge-chip"
+            style={{ "--ci": idx } as React.CSSProperties}
+          >
             {skill}
           </span>
         ))}

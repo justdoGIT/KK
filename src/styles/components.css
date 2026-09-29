@@ -604,21 +604,80 @@
   flex-direction: column;
   gap: 0.6rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-  will-change: transform, opacity;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  transform-origin: 0% 50%;
+  will-change: transform, opacity, filter;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
-.process-step-card.step-pending {
+.process-track.is-scroll-reveal .process-step-card:not(.is-open) {
   opacity: 0;
-  transform: scale(0.65) translateY(20px);
 }
-.process-step-card.step-revealed {
-  opacity: 1;
-  transform: scale(1) translateY(0);
+.process-step-card.is-open {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
 }
-.process-step-card.step-revealed:hover {
+.process-step-card.is-open:hover {
   transform: scale(1.02) translateY(-6px);
   border-color: rgba(56, 189, 248, 0.35);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.1);
+}
+/* Inner staging from --r: topline, label, title, detail, impact box in turn. */
+.process-step-card > * {
+  --stage: clamp(0, calc(var(--r, 1) * 3.2 - var(--si, 0) * 0.4 - 0.4), 1);
+  opacity: var(--stage);
+  translate: 0 calc((1 - var(--stage)) * 14px);
+}
+.process-step-card > :nth-child(1) { --si: 0; }
+.process-step-card > :nth-child(2) { --si: 1; }
+.process-step-card > :nth-child(3) { --si: 2; }
+.process-step-card > :nth-child(4) { --si: 3; }
+.process-step-card > :nth-child(5) { --si: 4; }
+.process-step-card.is-open .process-benefit-box {
+  animation: process-impact-sweep 1.1s ease-out both;
+}
+@keyframes process-impact-sweep {
+  0% { border-color: rgba(56, 189, 248, 0.6); box-shadow: 0 0 18px rgba(56, 189, 248, 0.35); }
+  100% { border-color: rgba(255, 255, 255, 0.05); box-shadow: none; }
+}
+/* Circuit trace above the 4 steps */
+.process-circuit {
+  position: relative;
+  height: 14px;
+  margin: 0 0 1.25rem;
+}
+.process-circuit::before,
+.process-circuit-fill {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 2px;
+  border-radius: 2px;
+}
+.process-circuit::before {
+  background: rgba(255, 255, 255, 0.06);
+}
+.process-circuit-fill {
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #38bdf8, #fbbf24);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.55);
+}
+.process-circuit-node {
+  position: absolute;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 2px solid rgba(148, 163, 184, 0.35);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+.process-circuit-node.is-lit {
+  background: #38bdf8;
+  border-color: #bae6fd;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+  transform: scale(1.15);
 }
 .process-step-topline {
   display: flex;
@@ -712,21 +771,57 @@
   border-radius: 20px;
   padding: 2.2rem 2rem;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
-  will-change: transform, opacity;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity, filter;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
-.offer-card.offer-pending {
+.offers-grid.is-scroll-reveal .offer-card:not(.is-open) {
   opacity: 0;
-  transform: scale(0.65) translateY(24px);
 }
-.offer-card.offer-revealed {
-  opacity: 1;
-  transform: scale(1) translateY(0);
+.offer-card.is-open {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
 }
-.offer-card.offer-revealed:hover {
+.offer-card.is-open:hover {
   transform: scale(1.02) translateY(-8px);
   border-color: rgba(56, 189, 248, 0.4);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.15);
+}
+/* Inner staging from --r: header, title, promise, ideal-for, deliverables, CTA. */
+.offer-card > * {
+  --stage: clamp(0, calc(var(--r, 1) * 3.4 - var(--si, 0) * 0.4 - 0.4), 1);
+  opacity: var(--stage);
+  translate: 0 calc((1 - var(--stage)) * 16px);
+}
+.offer-card > :nth-child(1) { --si: 0; }
+.offer-card > :nth-child(2) { --si: 1; }
+.offer-card > :nth-child(3) { --si: 2; }
+.offer-card > :nth-child(4) { --si: 3; }
+.offer-card > :nth-child(5) { --si: 4; }
+.offer-card > :nth-child(6) { --si: 5; }
+/* Deliverables tick in one by one after their block appears. */
+.offer-deliv-list li {
+  --tick: clamp(0, calc(var(--r, 1) * 5 - 3.2 - var(--li, 0) * 0.3), 1);
+  opacity: var(--tick);
+  translate: calc((1 - var(--tick)) * -12px) 0;
+}
+.offer-deliv-list li:nth-child(2) { --li: 1; }
+.offer-deliv-list li:nth-child(3) { --li: 2; }
+.offer-deliv-list li:nth-child(4) { --li: 3; }
+.offer-deliv-list li:nth-child(5) { --li: 4; }
+.offer-card.is-open .offer-link-btn {
+  animation: offer-cta-flare 1.2s ease-out both;
+}
+@keyframes offer-cta-flare {
+  0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+  60% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+.offer-card-featured.is-open {
+  animation: offer-featured-glow 3.2s ease-in-out infinite;
+}
+@keyframes offer-featured-glow {
+  0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 rgba(56, 189, 248, 0); }
+  50% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 32px rgba(56, 189, 248, 0.28); }
 }
 .offer-card-featured {
   border-color: rgba(56, 189, 248, 0.45);
@@ -853,6 +948,10 @@
   .process-track,
   .offers-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Node positions assume one row of 4 steps. */
+  .process-circuit {
+    display: none;
   }
 }
 @media (max-width: 760px) {
@@ -2644,17 +2743,124 @@ main::before {
   box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
 }
 
+/* Skill domains: pinned stage, cards open one by one (4 top row + 3 below) */
+.skill-domains-section {
+  position: relative;
+  margin-top: 2rem;
+}
+.skill-domains-pinned {
+  height: calc(100vh + var(--domain-travel, 315vh));
+}
+.skill-domains-stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.skill-domains-pinned .skill-domains-stage {
+  position: sticky;
+  top: 4.5rem;
+  min-height: calc(100vh - 4.5rem);
+  padding: 1rem 0;
+}
+.skill-domains-stage .skills-filter-row {
+  margin-bottom: 1rem;
+}
+.skill-domains-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  max-width: 1320px;
+  width: 100%;
+  margin: 0 auto 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-fg-subtle);
+}
+.skill-domains-counter {
+  color: #38bdf8;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  min-width: 4.5rem;
+}
+.skill-domains-track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.skill-domains-bar {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #38bdf8, #fbbf24);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+}
 .skills-categories-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.8rem;
-  max-width: 1200px;
+  /* 8 tracks, each card spans 2: row one holds 4 cards, row two's 3 cards
+     start at track 2 so they sit centred beneath the first row. */
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 1.1rem;
+  max-width: 1320px;
+  width: 100%;
   margin: 0 auto;
 }
-@media (max-width: 860px) {
+.skill-card-reveal {
+  grid-column: span 2;
+  display: flex;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity, filter;
+}
+.skill-card-reveal > .skill-category-card {
+  flex: 1;
+}
+.skill-card-reveal:nth-child(5) {
+  grid-column: 2 / span 2;
+}
+.skill-domains-pinned .skill-card-reveal:not(.is-open) {
+  opacity: 0;
+}
+.skills-categories-grid.is-single {
+  grid-template-columns: minmax(0, 460px);
+  justify-content: center;
+}
+.skills-categories-grid.is-single .skill-card-reveal {
+  grid-column: auto;
+}
+/* Inner staging driven by --r (0..1): illustration wipes open, then chips
+   pop in one after another. */
+.skill-card-reveal .skill-cat-illustration-wrap {
+  clip-path: inset(0 calc((1 - clamp(0, calc(var(--r, 1) * 1.8 - 0.4), 1)) * 100%) 0 0 round 10px);
+}
+.skill-card-reveal .skill-badge-chip {
+  opacity: clamp(0, calc(var(--r, 1) * 3 - 1.6 - var(--ci, 0) * 0.1), 1);
+  translate: 0 calc((1 - clamp(0, calc(var(--r, 1) * 3 - 1.6 - var(--ci, 0) * 0.1), 1)) * 8px);
+}
+@media (max-width: 1100px) {
+  .skills-categories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .skill-card-reveal,
+  .skill-card-reveal:nth-child(5) {
+    grid-column: auto;
+  }
+}
+@media (max-width: 640px) {
   .skills-categories-grid {
     grid-template-columns: 1fr;
-    gap: 1.2rem;
+  }
+}
+/* Too short or narrow to pin a 2-row grid: reveal per card in normal flow. */
+@media (max-height: 780px), (max-width: 1100px) {
+  .skill-domains-pinned {
+    height: auto;
+  }
+  .skill-domains-pinned .skill-domains-stage {
+    position: static;
+    min-height: 0;
   }
 }
 .skill-category-card {
@@ -2667,7 +2873,7 @@ main::before {
   );
   border: 1px solid var(--color-surface-border);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.15rem 1.1rem;
   overflow: hidden;
   transform-style: preserve-3d;
   will-change: transform;
@@ -2689,11 +2895,11 @@ main::before {
 .skill-cat-illustration-wrap {
   position: relative;
   width: 100%;
-  height: 95px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
   border-radius: 10px;
   background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.06) 0%, rgba(9, 13, 22, 0.4) 100%);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -2702,15 +2908,15 @@ main::before {
 .cat-illustration-svg {
   width: 100%;
   height: 100%;
-  max-height: 90px;
+  max-height: 78px;
   display: block;
 }
 .skill-cat-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.6rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 .skill-cat-prompt {
@@ -2719,24 +2925,24 @@ main::before {
   font-weight: 700;
 }
 .skill-cat-title {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #f8fafc;
 }
 .skill-chips-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 .skill-badge-chip {
-  padding: 0.3rem 0.7rem;
+  padding: 0.22rem 0.5rem;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   color: #cbd5e1;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  transition: all 0.2s ease;
+  font-size: 0.66rem;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 .skill-badge-chip:hover {
   background: rgba(56, 189, 248, 0.1);
