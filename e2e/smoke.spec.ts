@@ -32,7 +32,7 @@ test.describe("Portfolio smoke tests", () => {
     }
   });
 
-  test("reveals tall sections when scrolling past their first viewport", async ({ page }) => {
+  test("reveals terminal and skill domains after the career timeline", async ({ page }) => {
     await page.goto("/");
     const skills = page.locator("#skills");
     await skills.evaluate((element) => {
@@ -41,6 +41,13 @@ test.describe("Portfolio smoke tests", () => {
     await expect(
       page.getByRole("heading", { name: "Interactive System Console & Toolchains" }),
     ).toBeVisible();
+
+    const domains = page.locator(".skill-domains-section");
+    await domains.evaluate((element) => {
+      window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY + 1000);
+    });
+    await expect(page.getByRole("tablist", { name: "Skill categories" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Languages & Core" })).toBeVisible();
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {
