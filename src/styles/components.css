@@ -1566,7 +1566,7 @@ main::before {
   width: 300px;
   height: 560px;
   cursor: pointer;
-  will-change: transform;
+
   transform-style: preserve-3d;
 }
 .lusion-card-flipper {
