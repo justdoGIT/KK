@@ -167,74 +167,75 @@ export function StoryJourney(): JSX.Element {
       {/* Sticky cinematic viewport — pinned while scrolling through section */}
       <div className="journey-sticky-stage">
 
-        {/* Full-bleed 3D background canvas */}
-        <div className="journey-canvas-bg" aria-hidden="true">
+        {/* Dark base background */}
+        <div className="journey-bg-base" aria-hidden="true" />
+
+        {/* 3D canvas pinned to RIGHT half of viewport */}
+        <div className="journey-canvas-right" aria-hidden="true">
           <SandToSiliconCanvas currentStage={stageIdx} />
+          {/* Ambient glow per stage */}
+          <div
+            className="journey-ambient-overlay"
+            style={{ background: `radial-gradient(ellipse 80% 80% at 50% 60%, ${stage.ambientColor}30 0%, transparent 70%)` }}
+          />
         </div>
 
-        {/* Ambient gradient overlay keyed to stage color */}
-        <div
-          className="journey-ambient-overlay"
-          style={{ background: `radial-gradient(ellipse 70% 60% at 50% 100%, ${stage.ambientColor}22 0%, transparent 70%)` }}
-          aria-hidden="true"
-        />
+        {/* LEFT SIDE: section heading + narrative text */}
+        <div className="journey-left-panel">
 
-        {/* Top bar: section title + progress */}
-        <div className="journey-top-bar">
-          <div className="journey-top-left">
+          {/* Section heading — always visible */}
+          <div className="journey-section-heading">
             <span className="journey-section-label">The Systems Odyssey</span>
-            <span className="journey-section-sub">From desert sand to autonomous fleet intelligence.</span>
+            <h2 className="journey-section-title">
+              From desert sand to<br />autonomous fleet intelligence.
+            </h2>
           </div>
-          <div className="journey-progress-track" role="progressbar" aria-valuenow={Math.round(scrollProgress * 100)} aria-valuemin={0} aria-valuemax={100}>
-            {STAGES.map((st, i) => (
-              <div
-                key={st.id}
-                className={`journey-progress-pip ${i === stageIdx ? "pip-active" : ""} ${i < stageIdx ? "pip-done" : ""}`}
-              >
-                <span className="pip-step">{st.step}</span>
-              </div>
-            ))}
+
+          {/* Sliding story card per stage */}
+          <div
+            className="journey-story-card"
+            style={{ opacity: textOpacity, transform: `translateY(${textY}px)` }}
+          >
+            <div className="journey-eyebrow">
+              <span className="journey-step-num">{stage.step}</span>
+              <span className="journey-eyebrow-label">{stage.eyebrow.split("// ")[1]}</span>
+            </div>
+            <h3 className="journey-story-headline">{stage.headline}</h3>
+            <p className="journey-story-desc">{stage.description}</p>
+
+            <div className="journey-story-metrics">
+              {stage.metrics.map((m) => (
+                <div key={m.label} className="journey-metric-tile">
+                  <span className="jm-label">{m.label}</span>
+                  <span className="jm-value">{m.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="journey-story-tags">
+              {stage.tags.map((t) => (
+                <span key={t} className="journey-tag">{t}</span>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Centered story text overlay */}
-        <div
-          className="journey-story-overlay"
-          style={{
-            opacity: textOpacity,
-            transform: `translateY(${textY}px)`,
-          }}
-        >
-          <div className="journey-eyebrow">
-            <span className="journey-step-num">{stage.step}</span>
-            <span className="journey-eyebrow-label">{stage.eyebrow.split("// ")[1]}</span>
-          </div>
-          <h2 className="journey-story-headline">{stage.headline}</h2>
-          <p className="journey-story-desc">{stage.description}</p>
-
-          <div className="journey-story-metrics">
-            {stage.metrics.map((m) => (
-              <div key={m.label} className="journey-metric-tile">
-                <span className="jm-label">{m.label}</span>
-                <span className="jm-value">{m.value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="journey-story-tags">
-            {stage.tags.map((t) => (
-              <span key={t} className="journey-tag">{t}</span>
-            ))}
-          </div>
+        {/* TOP RIGHT: progress pips */}
+        <div className="journey-progress-track" role="progressbar" aria-valuenow={Math.round(scrollProgress * 100)} aria-valuemin={0} aria-valuemax={100}>
+          {STAGES.map((st, i) => (
+            <div key={st.id} className={`journey-progress-pip ${i === stageIdx ? "pip-active" : ""} ${i < stageIdx ? "pip-done" : ""}`}>
+              <span className="pip-step">{st.step}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Chemical process label */}
+        {/* Chemical formula bar — bottom of canvas area */}
         <div className="journey-chem-bar" aria-hidden="true">
           <span className="chem-icon">⬡</span>
           <span className="chem-text">{stage.chemical}</span>
         </div>
 
-        {/* Bottom scroll hint / next stage peek */}
+        {/* Bottom progress strip */}
         <div className="journey-bottom-bar" aria-hidden="true">
           {stageIdx < STAGES.length - 1 && (
             <div className="journey-next-hint">
