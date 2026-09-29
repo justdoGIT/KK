@@ -1,6 +1,5 @@
-import { useState, type JSX } from "react";
+import { useState, useRef, useEffect, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
-
 type GallerySystem = {
   id: string;
   tag: string;
@@ -95,6 +94,187 @@ const gallerySystems: GallerySystem[] = [
   },
 ];
 
+function LusionShowcaseCard({
+  item,
+  isSelected,
+  onSelect,
+}: {
+  item: GallerySystem;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const cardRef = useRef<HTMLElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
+
+  // Physics animation state stored in ref for zero-rerender 60fps RAF loop
+  const physicsRef = useRef({
+    currRotX: 0,
+    currRotY: 0,
+    currScale: 1,
+    currTransZ: 0,
+    targetRotX: 0,
+    targetRotY: 0,
+    targetScale: 1,
+    targetTransZ: 0,
+    currSpotX: 0,
+    currSpotY: 0,
+    targetSpotX: 0,
+    targetSpotY: 0,
+    currOpacity: 0,
+    targetOpacity: 0,
+    rafId: 0,
+    isHovered: false,
+  });
+
+  const updatePhysics = () => {
+    const p = physicsRef.current;
+    // Spring lerp factor (smooth dampening)
+    const ease = 0.12;
+
+    p.currRotX += (p.targetRotX - p.currRotX) * ease;
+    p.currRotY += (p.targetRotY - p.currRotY) * ease;
+    p.currScale += (p.targetScale - p.currScale) * ease;
+    p.currTransZ += (p.targetTransZ - p.currTransZ) * ease;
+    p.currSpotX += (p.targetSpotX - p.currSpotX) * 0.15;
+    p.currSpotY += (p.targetSpotY - p.currSpotY) * 0.15;
+    p.currOpacity += (p.targetOpacity - p.currOpacity) * 0.15;
+
+    if (cardRef.current) {
+      cardRef.current.style.transform = `perspective(1000px) rotateX(${p.currRotX.toFixed(2)}deg) rotateY(${p.currRotY.toFixed(2)}deg) translateZ(${p.currTransZ.toFixed(2)}px) scale3d(${p.currScale.toFixed(3)}, ${p.currScale.toFixed(3)}, 1)`;
+    }
+
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background = `radial-gradient(circle 350px at ${p.currSpotX.toFixed(1)}px ${p.currSpotY.toFixed(1)}px, rgba(56, 189, 248, 0.22) 0%, rgba(129, 140, 248, 0.08) 40%, transparent 80%)`;
+      spotlightRef.current.style.opacity = p.currOpacity.toFixed(3);
+    }
+
+    const deltaRot = Math.abs(p.targetRotX - p.currRotX) + Math.abs(p.targetRotY - p.currRotY);
+    const deltaOpacity = Math.abs(p.targetOpacity - p.currOpacity);
+
+    if (p.isHovered || deltaRot > 0.01 || deltaOpacity > 0.005) {
+      p.rafId = requestAnimationFrame(updatePhysics);
+    } else {
+      p.rafId = 0;
+    }
+  };
+
+  const startLoop = () => {
+    if (!physicsRef.current.rafId) {
+      physicsRef.current.rafId = requestAnimationFrame(updatePhysics);
+    }
+  };
+
+  const handleMouseEnter = () => {
+    onSelect();
+    const p = physicsRef.current;
+    p.isHovered = true;
+    p.targetScale = 1.025;
+    p.targetTransZ = 16;
+    p.targetOpacity = 1;
+    startLoop();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!cardRef.current) return;
+    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (isReduced) return;
+
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const normX = x / rect.width - 0.5; // -0.5 to 0.5
+    const normY = y / rect.height - 0.5; // -0.5 to 0.5
+
+    const p = physicsRef.current;
+    // Interactive 3D tilt angles based on cursor offset from card center
+    p.targetRotX = -normY * 18;
+    p.targetRotY = normX * 18;
+    p.targetSpotX = x;
+    p.targetSpotY = y;
+    p.isHovered = true;
+    p.targetOpacity = 1;
+    startLoop();
+  };
+
+  const handleMouseLeave = () => {
+    const p = physicsRef.current;
+    p.isHovered = false;
+    p.targetRotX = 0;
+    p.targetRotY = 0;
+    p.targetScale = 1;
+    p.targetTransZ = 0;
+    p.targetOpacity = 0;
+    startLoop();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (physicsRef.current.rafId) {
+        cancelAnimationFrame(physicsRef.current.rafId);
+      }
+    };
+  }, []);
+
+  return (
+    <article
+      ref={cardRef}
+      className={`system-showcase-card ${isSelected ? "card-selected" : ""}`}
+      role="listitem"
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onSelect}
+    >
+      <div ref={spotlightRef} className="system-card-spotlight" />
+      <div className="system-card-content">
+        {/* Top Bar */}
+        <div className="showcase-topbar">
+          <span className="showcase-tag">{item.tag}</span>
+          <span className="showcase-badge">{item.badge}</span>
+        </div>
+
+        {/* Title & Target Silicon */}
+        <h3 className="showcase-title">{item.title}</h3>
+        <div className="showcase-silicon-pill">
+          <span className="silicon-dot" />
+          <span>{item.silicon}</span>
+        </div>
+
+        {/* Narrative Description */}
+        <p className="showcase-desc">{item.description}</p>
+
+        {/* Tech Stack Chips */}
+        <div className="showcase-chips-wrap">
+          {item.techStack.map((tech) => (
+            <span key={tech} className="showcase-chip">
+              {tech}
+            </span>
+          ))}
+        </div>
+
+        {/* Impact Metric Bar */}
+        <div className="showcase-impact-bar">
+          <span className="impact-label">OUTCOME:</span>
+          <span className="impact-text">{item.impact}</span>
+        </div>
+
+        {/* Action Link */}
+        {item.link && (
+          <a
+            className="showcase-action-link"
+            href={item.link}
+            target={item.link.startsWith("http") ? "_blank" : undefined}
+            rel={item.link.startsWith("http") ? "noreferrer" : undefined}
+          >
+            Discuss This Architecture <span aria-hidden="true">↗</span>
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export function SystemsGallery(): JSX.Element {
   const [activeSystemId, setActiveSystemId] = useState<string>(gallerySystems[0].id);
 
@@ -111,59 +291,15 @@ export function SystemsGallery(): JSX.Element {
         </p>
       </div>
 
-      {/* Interactive Architecture Cards Grid */}
+      {/* Interactive Architecture Cards Grid (Lusion 3D Staggered Layout) */}
       <div className="systems-gallery-grid" role="list">
         {gallerySystems.map((item) => (
-          <article
+          <LusionShowcaseCard
             key={item.id}
-            className={`system-showcase-card ${activeSystemId === item.id ? "card-selected" : ""}`}
-            role="listitem"
-            onMouseEnter={() => setActiveSystemId(item.id)}
-            onClick={() => setActiveSystemId(item.id)}
-          >
-            {/* Top Bar */}
-            <div className="showcase-topbar">
-              <span className="showcase-tag">{item.tag}</span>
-              <span className="showcase-badge">{item.badge}</span>
-            </div>
-
-            {/* Title & Target Silicon */}
-            <h3 className="showcase-title">{item.title}</h3>
-            <div className="showcase-silicon-pill">
-              <span className="silicon-dot" />
-              <span>{item.silicon}</span>
-            </div>
-
-            {/* Narrative Description */}
-            <p className="showcase-desc">{item.description}</p>
-
-            {/* Tech Stack Chips */}
-            <div className="showcase-chips-wrap">
-              {item.techStack.map((tech) => (
-                <span key={tech} className="showcase-chip">
-                  {tech}
-                </span>
-              ))}
-            </div>
-
-            {/* Impact Metric Bar */}
-            <div className="showcase-impact-bar">
-              <span className="impact-label">OUTCOME:</span>
-              <span className="impact-text">{item.impact}</span>
-            </div>
-
-            {/* Action Link */}
-            {item.link && (
-              <a
-                className="showcase-action-link"
-                href={item.link}
-                target={item.link.startsWith("http") ? "_blank" : undefined}
-                rel={item.link.startsWith("http") ? "noreferrer" : undefined}
-              >
-                Discuss This Architecture <span aria-hidden="true">↗</span>
-              </a>
-            )}
-          </article>
+            item={item}
+            isSelected={activeSystemId === item.id}
+            onSelect={() => setActiveSystemId(item.id)}
+          />
         ))}
       </div>
     </section>
