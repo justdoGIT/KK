@@ -96,14 +96,13 @@ const TERMINAL_COMMANDS: TerminalCommand[] = [
 ];
 
 // Total scroll distance (in viewport-heights) the terminal stays pinned for
-// while its fade-in reveal and 5-script sequence play out. Kept fairly
-// large so scripts don't race by -- each script gets a comfortable, easy
-// to read amount of scroll travel.
-const TOTAL_SCROLL = 4.5;
-// Portion of TOTAL_SCROLL spent on the fade-in reveal before the
-// script/typing sequence begins.
-const REVEAL_FRACTION = 0.08;
-
+// while its true OS-window expansion reveal and 5-script sequence play out.
+// Kept generous (5.5vh) so the user can clearly observe the window opening,
+// typing, output streaming, and reverse collapse when scrolling up.
+const TOTAL_SCROLL = 5.5;
+// Portion of TOTAL_SCROLL (20%) spent on the window pop-out / expansion reveal
+// before the script typing sequence begins.
+const REVEAL_FRACTION = 0.20;
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
@@ -230,23 +229,20 @@ export function InteractiveTerminal(): JSX.Element {
 
   const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
 
-  // Fade-in-only reveal, applied inline so it tracks the scrollbar 1:1.
-  // Deliberately does NOT scale/translate/rotate the box: a continuously
-  // changing `transform` on a text-heavy element causes the browser to
-  // re-rasterize its text at intermediate scales every frame, which read
-  // as flicker; keeping the box's own size and position constant avoids
-  // that entirely. Once fully revealed, drop transform/filter to `none`
-  // outright (same pattern used for settled hover cards elsewhere in this
-  // codebase) so the terminal renders through the normal CPU/subpixel text
-  // path instead of sitting on a GPU-composited layer indefinitely.
+  // Smooth 3D OS-Window Expansion / Maximization animation tracking scroll progress
+  // 1:1 in both directions (down to maximize, up to collapse back to dock origin).
+  // Once fully maximized (revealProgress >= 0.999), drop clip-path, transform, and
+  // filter to "none" outright so CPU subpixel text rendering stays 100% crisp.
+  const invReveal = 1 - revealProgress;
   const revealStyle: CSSProperties =
     revealProgress >= 0.999
-      ? { opacity: 1, filter: "none", transform: "none" }
+      ? { opacity: 1, filter: "none", transform: "none", clipPath: "none" }
       : {
-          opacity: revealProgress,
-          filter: `blur(${((1 - revealProgress) * 4).toFixed(2)}px)`,
+          opacity: (0.1 + revealProgress * 0.9).toFixed(3),
+          filter: invReveal > 0.05 ? `blur(${(invReveal * 4).toFixed(2)}px)` : "none",
+          transform: `perspective(1200px) translate3d(${(invReveal * -120).toFixed(1)}px, ${(invReveal * 90).toFixed(1)}px, ${(invReveal * -40).toFixed(1)}px) scale(${(0.42 + revealProgress * 0.58).toFixed(3)}) rotateX(${(invReveal * 14).toFixed(2)}deg) rotateY(${(invReveal * -9).toFixed(2)}deg)`,
+          clipPath: `inset(0% ${(invReveal * 20).toFixed(1)}% ${(invReveal * 25).toFixed(1)}% 0% round ${(16 * revealProgress).toFixed(1)}px)`,
         };
-
   return (
     <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
       <div className="terminal-sticky-stage">
@@ -328,22 +324,20 @@ export function InteractiveTerminal(): JSX.Element {
             <span className={`prompt-cursor ${isTyping || !showOutput ? "cursor-typing" : "cursor-blink"}`}>█</span>
           </div>
 
-          {/* Command Output */}
-          {showOutput && (
-            <div className="terminal-output-container">
-              {visibleOutput.map((line, idx) => (
-                <div key={idx} className="terminal-output-line">
-                  {line}
-                </div>
-              ))}
-              {visibleLineCount >= activeCommand.output.length && (
-                <div className="terminal-exit-code">
-                  <span className="exit-badge">exit 0</span>
-                  <span className="exit-time">executed in 2.4ms</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Command Output Container -- always rendered with constant height so the window size never fluctuates or jitters */}
+          <div className={`terminal-output-container ${showOutput ? "output-active" : "output-hidden"}`}>
+            {visibleOutput.map((line, idx) => (
+              <div key={idx} className="terminal-output-line">
+                {line}
+              </div>
+            ))}
+            {visibleLineCount >= activeCommand.output.length && (
+              <div className="terminal-exit-code">
+                <span className="exit-badge">exit 0</span>
+                <span className="exit-time">executed in 2.4ms</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Terminal Footer Navigation Bar */}

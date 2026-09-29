@@ -1,6 +1,7 @@
 import { useState, type JSX } from "react";
 import { skillCategories } from "../../content/skills.ts";
 import { InteractiveTerminal } from "../ui/InteractiveTerminal.tsx";
+import { SkillCategoryCard } from "./SkillCategoryCard.tsx";
 
 export function SkillMatrix(): JSX.Element {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -51,19 +52,7 @@ export function SkillMatrix(): JSX.Element {
       {/* Skills Interactive Badges Grid */}
       <div className="skills-categories-grid">
         {filteredCategories.map((cat) => (
-          <div key={cat.id} className="skill-category-card">
-            <div className="skill-cat-header">
-              <span className="skill-cat-prompt">❯</span>
-              <h3 className="skill-cat-title">{cat.label}</h3>
-            </div>
-            <div className="skill-chips-wrap">
-              {cat.skills.map((skill) => (
-                <span key={skill} className="skill-badge-chip">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
+          <SkillCategoryCard key={cat.id} category={cat} />
         ))}
       </div>
     </section>
