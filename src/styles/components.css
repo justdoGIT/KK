@@ -375,24 +375,14 @@
 .systems-gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2rem 2.5rem;
+  gap: 2.2rem;
   perspective: 1200px;
-}
-
-/* Lusion Featured Work style 2-column staggered offset on desktop */
-@media (min-width: 981px) {
-  .system-showcase-card:nth-child(even) {
-    margin-top: 3.5rem;
-  }
 }
 
 @media (max-width: 980px) {
   .systems-gallery-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-  }
-  .system-showcase-card:nth-child(even) {
-    margin-top: 0;
   }
 }
 
@@ -2957,4 +2947,95 @@ main::before {
   .contact-actions {
     flex-direction: column;
   }
+}
+/* Global Background Floating Organic Ribbon */
+.global-ribbon-wrapper {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.85;
+}
+.global-ribbon-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Lusion Kinetic Text & Heading Reveal */
+.lusion-kinetic-heading-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.lusion-kinetic-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.kicker-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent);
+  animation: kicker-dot-pulse 2s ease-in-out infinite;
+}
+@keyframes kicker-dot-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.lusion-kinetic-title {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #f8fafc;
+  line-height: 1.12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.kinetic-word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+}
+.kinetic-word-inner {
+  display: inline-block;
+  transform: translateY(110%) rotate(2deg);
+  opacity: 0;
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 60%, #38bdf8 100%);
+  -webkit-background-clip: text;
+}
+.lusion-kinetic-heading-wrap.is-revealed .kinetic-word-inner {
+  transform: translateY(0%) rotate(0deg);
+  opacity: 1;
+}
+
+.lusion-kinetic-subtitle {
+  margin-top: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.98rem;
+  max-width: 64ch;
+  line-height: 1.55;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity 0.8s ease 0.3s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+}
+.lusion-kinetic-heading-wrap.is-revealed .lusion-kinetic-subtitle {
+  opacity: 1;
+  transform: translateY(0);
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 type GallerySystem = {
   id: string;
   tag: string;
@@ -110,10 +111,16 @@ function LusionShowcaseCard({
   const physicsRef = useRef({
     currRotX: 0,
     currRotY: 0,
+    currTransX: 0,
+    currTransY: 0,
     currScale: 1,
     currTransZ: 0,
+    currVibeX: 0,
+    currVibeY: 0,
     targetRotX: 0,
     targetRotY: 0,
+    targetTransX: 0,
+    targetTransY: 0,
     targetScale: 1,
     targetTransZ: 0,
     currSpotX: 0,
@@ -122,17 +129,37 @@ function LusionShowcaseCard({
     targetSpotY: 0,
     currOpacity: 0,
     targetOpacity: 0,
+    entryTime: 0,
     rafId: 0,
     isHovered: false,
   });
 
   const updatePhysics = () => {
     const p = physicsRef.current;
-    // Spring lerp factor (smooth dampening)
-    const ease = 0.12;
+    // Damped lerp factor for smooth organic inertia
+    const ease = 0.1;
+
+    // Entry micro-vibration pulse calculation (~220ms damped high-frequency oscillation)
+    if (p.isHovered && p.entryTime > 0) {
+      const elapsed = performance.now() - p.entryTime;
+      if (elapsed < 240) {
+        const decay = Math.exp(-elapsed * 0.015);
+        const osc = Math.sin(elapsed * 0.12);
+        p.currVibeX = osc * decay * 2.2;
+        p.currVibeY = -osc * decay * 1.8;
+      } else {
+        p.currVibeX = 0;
+        p.currVibeY = 0;
+      }
+    } else {
+      p.currVibeX = 0;
+      p.currVibeY = 0;
+    }
 
     p.currRotX += (p.targetRotX - p.currRotX) * ease;
     p.currRotY += (p.targetRotY - p.currRotY) * ease;
+    p.currTransX += (p.targetTransX - p.currTransX) * ease;
+    p.currTransY += (p.targetTransY - p.currTransY) * ease;
     p.currScale += (p.targetScale - p.currScale) * ease;
     p.currTransZ += (p.targetTransZ - p.currTransZ) * ease;
     p.currSpotX += (p.targetSpotX - p.currSpotX) * 0.15;
@@ -140,18 +167,21 @@ function LusionShowcaseCard({
     p.currOpacity += (p.targetOpacity - p.currOpacity) * 0.15;
 
     if (cardRef.current) {
-      cardRef.current.style.transform = `perspective(1000px) rotateX(${p.currRotX.toFixed(2)}deg) rotateY(${p.currRotY.toFixed(2)}deg) translateZ(${p.currTransZ.toFixed(2)}px) scale3d(${p.currScale.toFixed(3)}, ${p.currScale.toFixed(3)}, 1)`;
+      const finalX = (p.currTransX + p.currVibeX).toFixed(2);
+      const finalY = (p.currTransY + p.currVibeY).toFixed(2);
+      cardRef.current.style.transform = `perspective(1000px) translate3d(${finalX}px, ${finalY}px, ${p.currTransZ.toFixed(2)}px) rotateX(${p.currRotX.toFixed(2)}deg) rotateY(${p.currRotY.toFixed(2)}deg) scale3d(${p.currScale.toFixed(3)}, ${p.currScale.toFixed(3)}, 1)`;
     }
 
     if (spotlightRef.current) {
-      spotlightRef.current.style.background = `radial-gradient(circle 350px at ${p.currSpotX.toFixed(1)}px ${p.currSpotY.toFixed(1)}px, rgba(56, 189, 248, 0.22) 0%, rgba(129, 140, 248, 0.08) 40%, transparent 80%)`;
+      spotlightRef.current.style.background = `radial-gradient(circle 380px at ${p.currSpotX.toFixed(1)}px ${p.currSpotY.toFixed(1)}px, rgba(56, 189, 248, 0.25) 0%, rgba(129, 140, 248, 0.09) 40%, transparent 80%)`;
       spotlightRef.current.style.opacity = p.currOpacity.toFixed(3);
     }
 
     const deltaRot = Math.abs(p.targetRotX - p.currRotX) + Math.abs(p.targetRotY - p.currRotY);
+    const deltaTrans = Math.abs(p.targetTransX - p.currTransX) + Math.abs(p.targetTransY - p.currTransY);
     const deltaOpacity = Math.abs(p.targetOpacity - p.currOpacity);
 
-    if (p.isHovered || deltaRot > 0.01 || deltaOpacity > 0.005) {
+    if (p.isHovered || deltaRot > 0.01 || deltaTrans > 0.01 || deltaOpacity > 0.005) {
       p.rafId = requestAnimationFrame(updatePhysics);
     } else {
       p.rafId = 0;
@@ -168,8 +198,9 @@ function LusionShowcaseCard({
     onSelect();
     const p = physicsRef.current;
     p.isHovered = true;
-    p.targetScale = 1.025;
-    p.targetTransZ = 16;
+    p.entryTime = performance.now();
+    p.targetScale = 1.02;
+    p.targetTransZ = 12;
     p.targetOpacity = 1;
     startLoop();
   };
@@ -187,9 +218,11 @@ function LusionShowcaseCard({
     const normY = y / rect.height - 0.5; // -0.5 to 0.5
 
     const p = physicsRef.current;
-    // Interactive 3D tilt angles based on cursor offset from card center
-    p.targetRotX = -normY * 18;
-    p.targetRotY = normX * 18;
+    // Eye-tracking pointer follow: subtle 4.5deg max tilt combined with 10px cursor translation
+    p.targetRotX = -normY * 4.5;
+    p.targetRotY = normX * 4.5;
+    p.targetTransX = normX * 12;
+    p.targetTransY = normY * 10;
     p.targetSpotX = x;
     p.targetSpotY = y;
     p.isHovered = true;
@@ -200,8 +233,11 @@ function LusionShowcaseCard({
   const handleMouseLeave = () => {
     const p = physicsRef.current;
     p.isHovered = false;
+    p.entryTime = 0;
     p.targetRotX = 0;
     p.targetRotY = 0;
+    p.targetTransX = 0;
+    p.targetTransY = 0;
     p.targetScale = 1;
     p.targetTransZ = 0;
     p.targetOpacity = 0;
@@ -281,17 +317,14 @@ export function SystemsGallery(): JSX.Element {
   return (
     <section className="gallery-section" id="visual-lab" aria-label="Visual project lab">
       <div className="section-header gallery-header">
-        <div>
-          <p className="section-kicker">Systems Showcase</p>
-          <h2>Proven Industrial Architectures</h2>
-        </div>
-        <p className="section-subtitle">
-          A deep dive into mission-critical platforms designed, built, and shipped across
-          automotive, industrial IoT, medical monitoring, and high-throughput edge systems.
-        </p>
+        <LusionKineticHeading
+          kicker="Systems Showcase"
+          text="Proven Industrial Architectures"
+          subtitle="A deep dive into mission-critical platforms designed, built, and shipped across automotive, industrial IoT, medical monitoring, and high-throughput edge systems."
+        />
       </div>
 
-      {/* Interactive Architecture Cards Grid (Lusion 3D Staggered Layout) */}
+      {/* Interactive Architecture Cards Grid */}
       <div className="systems-gallery-grid" role="list">
         {gallerySystems.map((item) => (
           <LusionShowcaseCard
