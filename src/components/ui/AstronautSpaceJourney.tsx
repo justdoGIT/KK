@@ -1,206 +1,147 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { SpaceBackdrop, AstronautFigure } from "./AstronautArtwork.tsx";
+
+// Total scroll distance (viewport-heights) the journey stays pinned for.
+const TOTAL_SCROLL = 2.4;
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+type Key = { t: number; v: number };
+
+// Piecewise-linear interpolation across hand-placed keyframes -- lets the
+// whole storyboard (jump out of the small screen, arc across, land) be
+// driven directly by scroll position instead of a CSS animation timeline,
+// so it can never run ahead of or behind the user's actual scroll input.
+function segLerp(t: number, keys: Key[]): number {
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (t >= keys[i].t && t <= keys[i + 1].t) {
+      const span = keys[i + 1].t - keys[i].t || 1;
+      const local = (t - keys[i].t) / span;
+      return keys[i].v + (keys[i + 1].v - keys[i].v) * local;
+    }
+  }
+  return keys[keys.length - 1].v;
+}
+
+// Keyframes expressed as % of the astronaut rig's own box (translate) or
+// plain scale/degrees. Story: idle tiny inside the screen -> jump up-right
+// and out -> long arcing travel across open space -> settle centered,
+// waving, as the "HI" dialog fades in.
+const SCALE_KEYS: Key[] = [
+  { t: 0, v: 0.22 }, { t: 0.12, v: 0.22 }, { t: 0.3, v: 0.55 },
+  { t: 0.45, v: 0.72 }, { t: 0.65, v: 1.0 }, { t: 0.78, v: 1.1 }, { t: 1, v: 1 },
+];
+const X_KEYS: Key[] = [
+  { t: 0, v: 0 }, { t: 0.12, v: 0 }, { t: 0.3, v: 60 },
+  { t: 0.45, v: 100 }, { t: 0.6, v: 40 }, { t: 0.78, v: -20 }, { t: 1, v: 0 },
+];
+const Y_KEYS: Key[] = [
+  { t: 0, v: 0 }, { t: 0.12, v: 0 }, { t: 0.28, v: -120 },
+  { t: 0.45, v: -70 }, { t: 0.65, v: -45 }, { t: 0.85, v: -40 }, { t: 1, v: -40 },
+];
+const ROT_KEYS: Key[] = [
+  { t: 0, v: 0 }, { t: 0.12, v: 0 }, { t: 0.28, v: -16 },
+  { t: 0.45, v: -6 }, { t: 0.7, v: 2 }, { t: 1, v: 0 },
+];
+const FRAME_OPACITY_KEYS: Key[] = [{ t: 0, v: 1 }, { t: 0.12, v: 1 }, { t: 0.38, v: 0 }, { t: 1, v: 0 }];
+const FRAME_SCALE_KEYS: Key[] = [{ t: 0, v: 1 }, { t: 0.12, v: 1 }, { t: 0.4, v: 0.8 }, { t: 1, v: 0.8 }];
+const BG_OPACITY_KEYS: Key[] = [{ t: 0, v: 0 }, { t: 0.25, v: 0 }, { t: 0.5, v: 1 }, { t: 1, v: 1 }];
+const DIALOG_OPACITY_KEYS: Key[] = [{ t: 0, v: 0 }, { t: 0.82, v: 0 }, { t: 1, v: 1 }];
+const DIALOG_Y_KEYS: Key[] = [{ t: 0, v: 20 }, { t: 0.82, v: 20 }, { t: 1, v: 0 }];
 
 export function AstronautSpaceJourney(): JSX.Element {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isInView, setIsInView] = useState(false);
-  const [isWaving, setIsWaving] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [journeyProgress, setJourneyProgress] = useState(0);
 
+  // Single RAF-throttled scroll listener: native "scroll" can fire many
+  // times per animation frame, and each call here rewrites several inline
+  // transform/opacity strings. Without coalescing to one write per frame,
+  // this visibly flickered/strobed instead of tracking the scrollbar
+  // smoothly (same root cause as the terminal's reveal flicker).
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    let rafId = 0;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setIsInView(true);
-            // Trigger automatic greeting wave after reveal
-            setTimeout(() => setIsWaving(true), 800);
-          }
-        }
-      },
-      { threshold: 0.25, rootMargin: "0px 0px -40px 0px" },
-    );
+    const computeAndApply = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const scrollable = el.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
+      setJourneyProgress(raw);
+    };
 
-    observer.observe(el);
-    return () => observer.disconnect();
+    const handleScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        computeAndApply();
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    computeAndApply();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
+  const t = journeyProgress;
+  const isWaving = t > 0.8;
+  const isLanded = t >= 0.995;
+
+  const frameOpacity = segLerp(t, FRAME_OPACITY_KEYS);
+  const frameScale = segLerp(t, FRAME_SCALE_KEYS);
+  const bgOpacity = segLerp(t, BG_OPACITY_KEYS);
+  const rigX = segLerp(t, X_KEYS);
+  const rigY = segLerp(t, Y_KEYS);
+  const rigScale = segLerp(t, SCALE_KEYS);
+  const rigRot = segLerp(t, ROT_KEYS);
+  const dialogOpacity = segLerp(t, DIALOG_OPACITY_KEYS);
+  const dialogY = segLerp(t, DIALOG_Y_KEYS);
+
+  const frameStyle: CSSProperties = {
+    opacity: frameOpacity,
+    transform: `translate(-50%, -50%) scale(${frameScale.toFixed(3)})`,
+    pointerEvents: frameOpacity > 0.05 ? "auto" : "none",
+  };
+  const bgStyle: CSSProperties = { opacity: bgOpacity };
+  const rigStyle: CSSProperties = {
+    transform: `translate(-50%, -50%) translate3d(${rigX.toFixed(1)}%, ${rigY.toFixed(1)}%, 0) scale(${rigScale.toFixed(3)}) rotate(${rigRot.toFixed(2)}deg)`,
+  };
+  const dialogStyle: CSSProperties = {
+    opacity: dialogOpacity,
+    transform: `translateX(-50%) translateY(${dialogY.toFixed(1)}px)`,
+  };
+
   return (
-    <div
-      ref={containerRef}
-      className={`space-journey-container ${isInView ? "in-view" : ""}`}
-      onMouseEnter={() => setIsWaving(true)}
-      onMouseLeave={() => setIsWaving(false)}
-    >
-      {/* Deep Space Starfield & Earth Atmosphere Canvas Stage */}
-      <div className="space-viewport">
-        <svg className="space-svg" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            {/* Deep Space Background Gradient */}
-            <radialGradient id="spaceBgGrad" cx="50%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#080e1a" />
-              <stop offset="60%" stopColor="#03060c" />
-              <stop offset="100%" stopColor="#010205" />
-            </radialGradient>
+    <div ref={sectionRef} className="space-journey-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
+      <div className="space-journey-sticky-stage">
+        {/* Full-stage deep space backdrop -- crossfades in as the astronaut
+            breaks out of the small screen and the journey opens up. */}
+        <div className="space-fullbg-layer" style={bgStyle} aria-hidden="true">
+          <SpaceBackdrop idPrefix="bg" />
+        </div>
 
-            {/* Earth Atmosphere Rim Glow */}
-            <linearGradient id="earthAtmosphere" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.95" />
-              <stop offset="20%" stopColor="#0284c7" stopOpacity="0.8" />
-              <stop offset="60%" stopColor="#1e3a8a" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#030712" stopOpacity="0" />
-            </linearGradient>
+        {/* Small "screen" bezel -- the astronaut starts tiny inside this,
+            then the frame shrinks and fades as it jumps out. */}
+        <div className="space-screen-frame" style={frameStyle} aria-hidden="true">
+          <SpaceBackdrop idPrefix="scr" />
+        </div>
 
-            {/* Earth Surface Texture Simulation */}
-            <radialGradient id="earthSurface" cx="40%" cy="20%" r="60%">
-              <stop offset="0%" stopColor="#1e40af" />
-              <stop offset="40%" stopColor="#1d4ed8" />
-              <stop offset="70%" stopColor="#0f172a" />
-              <stop offset="100%" stopColor="#020617" />
-            </radialGradient>
+        {/* Astronaut rig -- always on top, unclipped, travels beyond the
+            frame's bounds as journeyProgress advances. */}
+        <div className={`space-astronaut-rig ${isLanded ? "is-landed" : ""}`} style={rigStyle}>
+          <svg className="space-astronaut-svg" viewBox="0 0 1000 520">
+            <AstronautFigure isWaving={isWaving} />
+          </svg>
+        </div>
 
-            {/* Helmet Visor Reflection */}
-            <linearGradient id="visorReflection" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.85" />
-              <stop offset="40%" stopColor="#1e3a8a" stopOpacity="0.9" />
-              <stop offset="80%" stopColor="#020617" stopOpacity="0.95" />
-            </linearGradient>
-
-            {/* Atmospheric Glow Filter */}
-            <filter id="glowAtmosphere" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="12" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Visor Flare Filter */}
-            <filter id="visorFlare" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Deep Space Background */}
-          <rect width="1000" height="520" fill="url(#spaceBgGrad)" />
-
-          {/* Twinkling Star Field */}
-          <g className="space-stars" opacity="0.75">
-            <circle cx="120" cy="80" r="1.2" fill="#ffffff" />
-            <circle cx="280" cy="40" r="1.8" fill="#38bdf8" />
-            <circle cx="450" cy="110" r="1" fill="#ffffff" />
-            <circle cx="680" cy="60" r="1.5" fill="#e0f2fe" />
-            <circle cx="850" cy="90" r="1.2" fill="#ffffff" />
-            <circle cx="920" cy="150" r="1.6" fill="#38bdf8" />
-            <circle cx="180" cy="220" r="1" fill="#ffffff" />
-            <circle cx="790" cy="200" r="1.4" fill="#ffffff" />
-          </g>
-
-          {/* Earth Horizon Curvature & Atmosphere */}
-          <g className="earth-subsystem">
-            {/* Outer Cyan Atmosphere Rim */}
-            <path
-              d="M -100,530 Q 500,350 1100,530 L 1100,640 L -100,640 Z"
-              fill="url(#earthAtmosphere)"
-              filter="url(#glowAtmosphere)"
-            />
-            {/* Main Blue Earth Body */}
-            <path
-              d="M -100,540 Q 500,370 1100,540 L 1100,640 L -100,640 Z"
-              fill="url(#earthSurface)"
-            />
-          </g>
-
-          {/* Floating Astronaut Group */}
-          <g className={`astronaut-group ${isWaving ? "astronaut-waving" : ""}`} transform="translate(0, 180)">
-            {/* Shadow beneath astronaut */}
-            <ellipse cx="500" cy="370" rx="90" ry="14" fill="#000000" opacity="0.4" />
-
-            {/* Astronaut Body & Suit */}
-            <g className="astronaut-body">
-              {/* Backpack / Life Support Unit */}
-              <rect x="440" y="210" width="120" height="110" rx="16" fill="#cbd5e1" stroke="#475569" strokeWidth="3" />
-              <rect x="450" y="220" width="100" height="90" rx="10" fill="#94a3b8" />
-
-              {/* Legs */}
-              <path d="M 460,300 L 445,390 L 475,400 L 485,310 Z" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
-              <path d="M 515,310 L 525,400 L 555,390 L 540,300 Z" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
-              {/* Boots */}
-              <rect x="440" y="385" width="40" height="20" rx="6" fill="#334155" />
-              <rect x="520" y="385" width="40" height="20" rx="6" fill="#334155" />
-
-              {/* Torso & Suit Fold Details */}
-              <rect x="445" y="200" width="110" height="115" rx="22" fill="#f8fafc" stroke="#94a3b8" strokeWidth="3" />
-              <path d="M 460,225 H 540" stroke="#cbd5e1" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 460,250 H 540" stroke="#cbd5e1" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 460,275 H 540" stroke="#cbd5e1" strokeWidth="4" strokeLinecap="round" />
-
-              {/* Chest Control Box */}
-              <rect x="475" y="230" width="50" height="45" rx="8" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
-              <circle cx="490" cy="245" r="4" fill="#ef4444" />
-              <circle cx="510" cy="245" r="4" fill="#10b981" />
-              <rect x="485" y="258" width="30" height="6" rx="2" fill="#38bdf8" />
-
-              {/* Left Arm (Resting) */}
-              <path
-                d="M 445,210 C 410,240 400,270 420,300"
-                fill="none"
-                stroke="#f8fafc"
-                strokeWidth="24"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 445,210 C 410,240 400,270 420,300"
-                fill="none"
-                stroke="#cbd5e1"
-                strokeWidth="16"
-                strokeLinecap="round"
-              />
-              <circle cx="415" cy="305" r="14" fill="#334155" />
-
-              {/* Right Arm (Waving Hand Gesture) */}
-              <g className="astronaut-right-arm">
-                <path
-                  d="M 555,210 C 590,200 615,160 625,130"
-                  fill="none"
-                  stroke="#f8fafc"
-                  strokeWidth="24"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M 555,210 C 590,200 615,160 625,130"
-                  fill="none"
-                  stroke="#cbd5e1"
-                  strokeWidth="16"
-                  strokeLinecap="round"
-                />
-                {/* Waving Glove */}
-                <circle cx="630" cy="120" r="15" fill="#38bdf8" filter="url(#visorFlare)" />
-                <circle cx="630" cy="120" r="13" fill="#334155" />
-              </g>
-
-              {/* Helmet Base */}
-              <circle cx="500" cy="170" r="42" fill="#f8fafc" stroke="#94a3b8" strokeWidth="3" />
-              {/* Helmet Visor Glass with Earth Reflection */}
-              <ellipse cx="500" cy="168" rx="34" ry="26" fill="url(#visorReflection)" stroke="#0284c7" strokeWidth="2" />
-              <ellipse cx="490" cy="160" rx="18" ry="10" fill="#ffffff" opacity="0.3" />
-
-              {/* Visor Sun Flare Light */}
-              <circle cx="475" cy="152" r="6" fill="#ffffff" filter="url(#visorFlare)" />
-              <line x1="455" y1="152" x2="495" y2="152" stroke="#ffffff" strokeWidth="2" opacity="0.8" />
-              <line x1="475" y1="132" x2="475" y2="172" stroke="#ffffff" strokeWidth="2" opacity="0.8" />
-            </g>
-          </g>
-        </svg>
-
-        {/* Holographic Astronaut Greeting Speech Dialog Bubble */}
-        <div className={`space-dialog-bubble ${isWaving ? "bubble-active" : ""}`}>
+        {/* Holographic greeting, fades in once the astronaut has landed */}
+        <div className={`space-dialog-bubble ${isWaving ? "bubble-active" : ""}`} style={dialogStyle}>
           <div className="dialog-badge">
             <span className="badge-dot" />
             <span>DEEP SPACE TELEMETRY // ORBITAL STATION</span>
