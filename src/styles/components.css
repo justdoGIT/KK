@@ -1587,13 +1587,19 @@ main::before {
   perspective: 1600px;
   transform-style: preserve-3d;
 }
-.lusion-card-3d-wrapper {
+.lusion-card-isolated-cell {
   position: absolute;
   width: 325px;
   height: 530px;
-  transform-style: preserve-3d;
+  perspective: 1400px;
   cursor: pointer;
   will-change: transform;
+}
+.lusion-card-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
 }
 .lusion-card-face {
   position: absolute;
@@ -1603,6 +1609,7 @@ main::before {
   border-radius: 22px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transition: opacity 0.2s ease;
 }
 
 /* Back Face: Dark Luxury Obsidian Geometric Circuit */
@@ -1815,7 +1822,7 @@ main::before {
 }
 
 @media (max-width: 1200px) {
-  .lusion-card-3d-wrapper {
+  .lusion-card-isolated-cell {
     width: 275px;
     height: 500px;
   }
@@ -1842,10 +1849,13 @@ main::before {
     perspective: none;
     transform-style: flat;
   }
-  .lusion-card-3d-wrapper {
+  .lusion-card-isolated-cell {
     position: relative;
     width: 100%;
     height: 520px;
+    transform: none !important;
+  }
+  .lusion-card-flipper {
     transform: none !important;
   }
   .lusion-card-face {
@@ -1855,7 +1865,8 @@ main::before {
     display: none !important;
   }
   .lusion-card-front {
-    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 }
 

@@ -19,7 +19,7 @@ function MiniArchDiagram({
 }) {
   return (
     <div
-      className="lusion-mini-diagram-box"
+      className="deck-mini-diagram-box"
       onClick={(e) => {
         e.stopPropagation();
         onExpand();
@@ -33,12 +33,12 @@ function MiniArchDiagram({
       </div>
       <svg
         viewBox="0 0 280 110"
-        className="lusion-mini-svg"
+        className="deck-mini-svg"
         role="img"
         aria-label="Architecture dataflow summary"
       >
         <defs>
-          <linearGradient id="fanWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="dealWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
             <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
             <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.4" />
@@ -65,7 +65,7 @@ function MiniArchDiagram({
                   y1={`${node.y}%`}
                   x2={`${target.x}%`}
                   y2={`${target.y}%`}
-                  stroke="url(#fanWireGrad)"
+                  stroke="url(#dealWireGrad)"
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                   className="arch-animated-wire"
@@ -123,9 +123,11 @@ export function CaseStudies(): JSX.Element {
     const handleScroll = () => {
       const section = sectionRef.current;
       if (!section) return;
+
       const rect = section.getBoundingClientRect();
       const totalScroll = rect.height - window.innerHeight;
       if (totalScroll <= 0) return;
+
       const progress = Math.max(0, Math.min(1, -rect.top / totalScroll));
       setScrollProgress(progress);
     };
@@ -171,7 +173,7 @@ export function CaseStudies(): JSX.Element {
       id="work"
     >
       <div className="lusion-deck-sticky-stage">
-        {/* Subtle Glassmorphic Curved Background Ribbon */}
+        {/* Curved Background Ribbon matching Dark Theme */}
         <svg className="lusion-bg-ribbon" viewBox="0 0 1440 600" aria-hidden="true">
           <path
             d="M -100,140 Q 720,500 1540,100"
@@ -185,11 +187,11 @@ export function CaseStudies(): JSX.Element {
           {/* Section Header */}
           <div className="lusion-deck-header">
             <div className="lusion-header-left">
-              <span className="lusion-section-pill">SELECTED MISSIONS // EVIDENCE-BACKED ARCHITECTURES</span>
+              <span className="lusion-section-pill">SELECTED MISSIONS // EVIDENCE-BACKED PLATFORMS</span>
               <h2 className="lusion-deck-title">Products with a pulse.</h2>
               <p className="lusion-deck-subtitle">
-                Scroll to fan out and flip the mission deck — exploring real hardware bring-up,
-                fleet runtimes, and verified production systems.
+                Scroll to deal and flip the mission deck — revealing verified hardware bring-up,
+                distributed fleet runtimes, and autonomous agent architectures.
               </p>
             </div>
 
@@ -211,21 +213,27 @@ export function CaseStudies(): JSX.Element {
             </div>
           </div>
 
-          {/* 3D Thumb-Fanning Playing Card Deck Stage */}
+          {/* 3D Playing Card Stage with Zero-Glitch 3D Flip & Deal Animation */}
           <div className="lusion-cards-stage">
             {studies.map((study, idx) => {
+              // Staggered progressive deal & flip
               const startP = idx * 0.22;
               const endP = startP + 0.28;
               const cardP = Math.max(0, Math.min(1, (scrollProgress - startP) / (endP - startP)));
-              const isFlipped = cardP >= 0.5;
+
+              // 0deg = face-down back, 180deg = face-up front
               const rotY = cardP * 180;
+              const isFrontVisible = rotY >= 90;
 
-              // Initial thumb-fanned card deck position when P = 0
-              const fanRotZ = (idx - 1.5) * 4.5;
-              const fanOffsetX = (idx - 1.5) * 32;
+              // Initial stacked deck positions in center
+              const fanRotZ = (idx - 1.5) * 4.0;
+              const fanOffsetX = (idx - 1.5) * 28;
 
-              // Final horizontal spread position across the screen when fully revealed
+              // Final horizontal spread position across the screen
               const targetSlotX = (idx - 1.5) * 345;
+
+              // Dynamic elevation arc during flip to guarantee zero 3D intersection clipping
+              const liftZ = Math.sin(cardP * Math.PI) * 140;
 
               const currentX = THREE_lerp(fanOffsetX, targetSlotX, cardP);
               const currentRotZ = THREE_lerp(fanRotZ, 0, cardP);
@@ -234,87 +242,98 @@ export function CaseStudies(): JSX.Element {
               return (
                 <div
                   key={study.record.slug}
-                  className={`lusion-card-3d-wrapper ${isFlipped ? "card-revealed" : "card-facedown"}`}
+                  className="lusion-card-isolated-cell"
                   style={{
-                    transform: `translate3d(${currentX}px, 0px, 0px) rotateY(${rotY}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`,
-                    zIndex: isFlipped ? 10 + idx : 4 - idx,
+                    transform: `translate3d(${currentX}px, 0px, ${liftZ}px) rotateZ(${currentRotZ}deg) scale(${currentScale})`,
+                    zIndex: Math.round(10 + liftZ * 0.5 + (isFrontVisible ? idx : 4 - idx)),
                   }}
                   onClick={() => {
-                    if (!isFlipped) jumpToProgress((idx + 0.8) / 4);
+                    if (!isFrontVisible) jumpToProgress((idx + 0.8) / 4);
                   }}
                 >
-                  {/* FRONT FACE (Dark Luxury Technical System Card) */}
                   <div
-                    className="lusion-card-face lusion-card-front"
-                    style={{ visibility: cardP > 0.05 ? "visible" : "hidden" }}
+                    className="lusion-card-flipper"
+                    style={{ transform: `rotateY(${rotY}deg)` }}
                   >
-                    {/* Topline Header */}
-                    <div className="card-front-top">
-                      <div className="card-front-title-group">
-                        <span className="card-front-category">{categories[idx]}</span>
-                        <h3 className="card-front-title">{study.record.publicTitle}</h3>
-                      </div>
-                      <span className="card-front-badge">VERIFIED</span>
-                    </div>
-
-                    <p className="card-front-context">{study.context}</p>
-
-                    {/* Miniature Architecture Flow Diagram with Modal Pop-out */}
-                    <div className="card-front-diagram-wrap">
-                      <div className="diagram-title-bar">
-                        <span>DATAFLOW ARCHITECTURE</span>
-                      </div>
-                      <MiniArchDiagram
-                        nodes={study.diagram}
-                        onExpand={() => openArchitectureModal(study, idx)}
-                      />
-                    </div>
-
-                    {/* Constraints & Solution Summary */}
-                    <div className="card-front-details">
-                      <span className="details-heading">CORE SUBSYSTEMS:</span>
-                      <ul className="card-front-bullets">
-                        {study.constraints.slice(0, 2).map((c, cIdx) => (
-                          <li key={cIdx}>
-                            <span className="bullet-dot" aria-hidden="true">▹</span>
-                            <span>{c}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Verified Metrics Strip */}
-                    <div className="card-front-metrics">
-                      {study.results.map((m) => (
-                        <div key={m.label} className="card-metric-col">
-                          <span className="card-metric-label">{m.label}</span>
-                          <span className="card-metric-val">{m.value}</span>
+                    {/* FRONT FACE (Dark Luxury System Card) */}
+                    <div
+                      className="lusion-card-face lusion-card-front"
+                      style={{
+                        pointerEvents: isFrontVisible ? "auto" : "none",
+                        opacity: isFrontVisible ? 1 : 0,
+                      }}
+                    >
+                      {/* Topline Header */}
+                      <div className="card-front-top">
+                        <div className="card-front-title-group">
+                          <span className="card-front-category">{categories[idx]}</span>
+                          <h3 className="card-front-title">{study.record.publicTitle}</h3>
                         </div>
-                      ))}
+                        <span className="card-front-badge">VERIFIED</span>
+                      </div>
+
+                      <p className="card-front-context">{study.context}</p>
+
+                      {/* Mini Architecture Flow Diagram */}
+                      <div className="card-front-diagram-wrap">
+                        <div className="diagram-title-bar">
+                          <span>DATAFLOW ARCHITECTURE</span>
+                        </div>
+                        <MiniArchDiagram
+                          nodes={study.diagram}
+                          onExpand={() => openArchitectureModal(study, idx)}
+                        />
+                      </div>
+
+                      {/* Subsystems & Constraints */}
+                      <div className="card-front-details">
+                        <span className="details-heading">CORE SUBSYSTEMS:</span>
+                        <ul className="card-front-bullets">
+                          {study.constraints.slice(0, 2).map((c, cIdx) => (
+                            <li key={cIdx}>
+                              <span className="bullet-dot" aria-hidden="true">▹</span>
+                              <span>{c}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Verified Results Metrics */}
+                      <div className="card-front-metrics">
+                        {study.results.map((m) => (
+                          <div key={m.label} className="card-metric-col">
+                            <span className="card-metric-label">{m.label}</span>
+                            <span className="card-metric-val">{m.value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Card Footer with Pop-Out Trigger */}
+                      <div className="card-front-bottom">
+                        <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
+                        <button
+                          type="button"
+                          className="card-arch-popout-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openArchitectureModal(study, idx);
+                          }}
+                        >
+                          Flow Diagram [↗]
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Card Footer with Pop-Out Trigger */}
-                    <div className="card-front-bottom">
-                      <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
-                      <button
-                        type="button"
-                        className="card-arch-popout-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openArchitectureModal(study, idx);
-                        }}
-                      >
-                        Flow Diagram [↗]
-                      </button>
+                    {/* BACK FACE (Ornate Dark Obsidian Geometric Circuit Artwork) */}
+                    <div
+                      className="lusion-card-face lusion-card-back"
+                      style={{
+                        pointerEvents: !isFrontVisible ? "auto" : "none",
+                        opacity: !isFrontVisible ? 1 : 0,
+                      }}
+                    >
+                      <CardBackArtwork />
                     </div>
-                  </div>
-
-                  {/* BACK FACE (Ornate Dark Obsidian Geometric Circuit Artwork) */}
-                  <div
-                    className="lusion-card-face lusion-card-back"
-                    style={{ visibility: cardP < 0.95 ? "visible" : "hidden" }}
-                  >
-                    <CardBackArtwork />
                   </div>
                 </div>
               );
