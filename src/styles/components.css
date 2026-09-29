@@ -2383,6 +2383,8 @@ main::before {
 .interactive-terminal-wrapper {
   position: relative;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   will-change: opacity, filter;
 }
 .interactive-terminal-wrapper .terminal-window {
@@ -2408,8 +2410,10 @@ main::before {
   border: 1px solid rgba(56, 189, 248, 0.3);
   border-radius: 16px;
   overflow: hidden;
-  min-height: 440px;
+  /* Locked to Image #1 dimensions — never shrink or grow */
   height: 440px;
+  min-height: 440px;
+  max-height: 440px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -2490,10 +2494,12 @@ main::before {
 }
 
 .terminal-body {
-  padding: 1.5rem 1.8rem;
-  height: 380px;
-  min-height: 380px;
-  flex: 1;
+  padding: 1rem 1.8rem 0.75rem;
+  /* Fixed height: 440px window − 44px titlebar − 38px footer = 358px */
+  height: 358px;
+  min-height: 358px;
+  max-height: 358px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   font-family: var(--font-mono);
@@ -2537,12 +2543,14 @@ main::before {
 }
 
 .terminal-output-container {
-  margin-top: 0.9rem;
+  margin-top: 0.8rem;
   padding-left: 0.5rem;
   border-left: 2px solid rgba(56, 189, 248, 0.3);
-  flex: 1;
-  height: 260px;
-  min-height: 260px;
+  /* Fixed height: never causes layout reflow */
+  height: 240px;
+  min-height: 240px;
+  max-height: 240px;
+  flex-shrink: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
