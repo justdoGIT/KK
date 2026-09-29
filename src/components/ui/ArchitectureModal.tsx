@@ -52,14 +52,21 @@ export function ArchitectureModal({
 
   // Precomputed once per render, reused by the wires pass and the labels pass
   // (labels render AFTER nodes so protocol chips paint on top, not under, node boxes).
+  // Canvas coordinate space is wider than the visual box/label sizes would
+  // suggest: node.x/y are percentages, and widening this virtual space (while
+  // node box width stays fixed in px) opens real gaps between same-row nodes
+  // so protocol-label chips fit between boxes instead of overlapping them.
+  const VIEW_W = 720;
+  const VIEW_H = 250;
+
   const edges = architecture.nodes.flatMap((node) =>
     (node.connectsTo ?? []).map((targetId) => {
       const target = architecture.nodes.find((n) => n.id === targetId);
       if (!target) return null;
-      const x1 = (node.x / 100) * 440;
-      const y1 = (node.y / 100) * 220;
-      const x2 = (target.x / 100) * 440;
-      const y2 = (target.y / 100) * 220;
+      const x1 = (node.x / 100) * VIEW_W;
+      const y1 = (node.y / 100) * VIEW_H;
+      const x2 = (target.x / 100) * VIEW_W;
+      const y2 = (target.y / 100) * VIEW_H;
       return {
         key: `${node.id}-${targetId}`,
         x1, y1, x2, y2,
@@ -120,7 +127,7 @@ export function ArchitectureModal({
         <div className="arch-modal-body">
           {viewMode === "visual" ? (
             <div className="arch-visual-stage">
-              <svg viewBox="0 0 440 220" className="arch-modal-svg" role="img" aria-label="Expanded Architecture Flow">
+              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="arch-modal-svg" role="img" aria-label="Expanded Architecture Flow">
                 <defs>
                   <linearGradient id="busGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
@@ -164,8 +171,8 @@ export function ArchitectureModal({
                     flicker). The hover "grow" scale is applied to the inner
                     <g> instead, via .arch-node-inner in CSS. */}
                 {architecture.nodes.map((node) => {
-                  const cx = (node.x / 100) * 440;
-                  const cy = (node.y / 100) * 220;
+                  const cx = (node.x / 100) * VIEW_W;
+                  const cy = (node.y / 100) * VIEW_H;
                   const isHovered = activeNode === node.id;
 
                   return (
@@ -220,13 +227,19 @@ export function ArchitectureModal({
                     of the node boxes (SVG has no z-index; paint order is
                     strictly document order). Previously these rendered
                     before the nodes and got overdrawn by adjacent boxes. */}
-                {edges.map((edge) =>
-                  edge.protocol ? (
+                {edges.map((edge) => {
+                  if (!edge.protocol) return null;
+                  // Auto-size the chip to its text (monospace ~4.8px/char at
+                  // fontSize 8) so short labels ("I2C") don't waste width and
+                  // long ones ("Secure Boot") still fit within the gap opened
+                  // up between node boxes by the wider VIEW_W canvas above.
+                  const chipW = Math.max(44, edge.protocol.length * 4.8 + 14);
+                  return (
                     <g key={`${edge.key}-label`} transform={`translate(${edge.midX}, ${edge.midY - 8})`}>
                       <rect
-                        x="-30"
+                        x={-chipW / 2}
                         y="-8"
-                        width="60"
+                        width={chipW}
                         height="16"
                         rx="4"
                         fill="#090d16"
@@ -244,8 +257,8 @@ export function ArchitectureModal({
                         {edge.protocol}
                       </text>
                     </g>
-                  ) : null,
-                )}
+                  );
+                })}
               </svg>
 
               {/* Node Inspector Floating Pill */}
