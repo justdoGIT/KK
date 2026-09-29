@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, type JSX } from "react";
 import {
   getApprovedCaseStudies,
-  type DiagramNode,
   type CaseStudyDetail,
 } from "../../content/case-studies.ts";
 import { CardBackArtwork } from "../ui/CardBackArtwork.tsx";
@@ -9,6 +8,7 @@ import {
   ArchitectureModal,
   type ArchitectureDetail,
 } from "../ui/ArchitectureModal.tsx";
+import { CardFrontContent } from "./CaseStudyCardContent.tsx";
 
 // flipSpeed < 1 = flip completes before full scroll travel (faster).
 // Outer/edge cards flip fast; inner cards flip slower.
@@ -28,73 +28,6 @@ const CARD_CONFIGS = [
   { startRotZ:  3.5, startRotX:  1.6, startX:  10, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
   { startRotZ:  9.5, startRotX: -2.4, startX:  30, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
 ];
-
-function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
-  // Auto-size node boxes from the actual data instead of a fixed 24% width.
-  // Diagrams with 4 top-row nodes (e.g. career-automation) pack tighter than
-  // ones with 3 (e.g. personal-agent-harness), so a fixed box width overlaps
-  // on the tighter layouts. Finding the tightest gap within any shared row
-  // and deriving box width from it keeps every diagram's boxes clear of each
-  // other regardless of node count, while leaving the widest-spaced diagram
-  // (30% steps) at exactly its previous 24% width — unchanged reference look.
-  const rows = new Map<number, number[]>();
-  nodes.forEach((n) => {
-    const xs = rows.get(n.y) ?? [];
-    xs.push(n.x);
-    rows.set(n.y, xs);
-  });
-  let minGap = 100;
-  rows.forEach((xs) => {
-    const sorted = [...xs].sort((a, b) => a - b);
-    for (let i = 1; i < sorted.length; i++) {
-      minGap = Math.min(minGap, sorted[i] - sorted[i - 1]);
-    }
-  });
-  const boxW = Math.max(12, Math.min(24, minGap * 0.8));
-  const boxH = 22;
-
-  return (
-    <div
-      className="deck-mini-diagram-box"
-      onClick={(e) => { e.stopPropagation(); onExpand(); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onExpand(); } }}
-      role="button"
-      tabIndex={0}
-      aria-label="Click to pop out full architecture flow and Mermaid diagram"
-    >
-      <div className="diagram-popout-badge"><span>CLICK TO POP OUT [↗]</span></div>
-      <svg viewBox="0 0 280 160" className="deck-mini-svg" role="img" aria-label="Architecture dataflow diagram">
-        <defs>
-          <linearGradient id="dealWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
-            <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
-        {nodes.flatMap((node) => {
-          const targets = node.connectsTo ?? [];
-          return targets.map((targetId) => {
-            const target = nodes.find((n) => n.id === targetId);
-            if (!target) return null;
-            return (
-              <g key={`${node.id}-${targetId}`}>
-                <line x1={`${node.x}%`} y1={`${node.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="rgba(56, 189, 248, 0.35)" strokeWidth="1.2" />
-                <line x1={`${node.x}%`} y1={`${node.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="url(#dealWireGrad)" strokeWidth="1.6" strokeDasharray="4 4" className="arch-animated-wire" />
-              </g>
-            );
-          });
-        })}
-        {nodes.map((node) => (
-          <g key={node.id}>
-            <rect x={`${node.x - boxW / 2}%`} y={`${node.y - boxH / 2}%`} width={`${boxW}%`} height={`${boxH}%`} rx="4" fill="#060910" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="1" />
-            <rect x={`${node.x - boxW / 2}%`} y={`${node.y - boxH / 2}%`} width={`${boxW}%`} height="2.5" rx="1" fill="#38bdf8" />
-            <text x={`${node.x}%`} y={`${node.y + 2}%`} textAnchor="middle" fontSize="5.6" fontFamily="monospace" fontWeight="700" fill="#ffffff">{node.label}</text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
 
 export function CaseStudies(): JSX.Element {
   const studies = getApprovedCaseStudies();
@@ -277,6 +210,46 @@ export function CaseStudies(): JSX.Element {
               const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
               const rotYDisplay = Math.round(rotY * 100) / 100;
 
+              // Once a card finishes its flip and lands at cardP===1, it never
+              // changes again until the user scrolls back up — there's no
+              // reason to keep it in the 3D transform stack (perspective +
+              // preserve-3d + rotateY + backface-visibility) that forces GPU
+              // compositing. GPU-composited text is resampled into a texture
+              // and redrawn, which is measurably softer than the browser's
+              // normal CPU/subpixel-AA text path — this is what read as a
+              // lingering blur/shadow on the landed cards even after the
+              // rounding fix above. Settled cards render through a completely
+              // flat branch instead: no rotateY flipper, no preserve-3d, no
+              // perspective-context participation, no backface-visibility —
+              // just a plain 2D `translate()` and the front content, so the
+              // browser renders its text the exact same way as any other
+              // static page text.
+              const isSettled = cardP >= 1;
+
+              if (isSettled) {
+                return (
+                  <div
+                    key={study.record.slug}
+                    ref={(el) => { cellRefs.current[idx] = el; }}
+                    className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
+                    data-front-visible="true"
+                    style={{
+                      transform: `translate(${currentX}px, ${currentY}px)`,
+                      zIndex: 10 + idx,
+                    }}
+                  >
+                    <div className="lusion-card-face lusion-card-front lusion-card-front--static">
+                      <CardFrontContent
+                        study={study}
+                        idx={idx}
+                        category={categories[idx]}
+                        onExpand={() => openArchitectureModal(study, idx)}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={study.record.slug}
@@ -291,63 +264,12 @@ export function CaseStudies(): JSX.Element {
                 >
                   <div className="lusion-card-flipper" style={{ transform: `rotateY(${rotYDisplay}deg)` }}>
                     <div className="lusion-card-face lusion-card-front" style={{ pointerEvents: isFrontVisible ? "auto" : "none", opacity: isFrontVisible ? 1 : 0 }}>
-                      <div className="card-front-top">
-                        <div className="card-front-title-group">
-                          <span className="card-front-category">{categories[idx]}</span>
-                          <h3 className="card-front-title">{study.record.publicTitle}</h3>
-                        </div>
-                        <span className="card-front-badge">VERIFIED</span>
-                      </div>
-
-                      <div className="card-front-scroll-body">
-                        <p className="card-front-context">{study.context}</p>
-
-                        <div className="card-front-diagram-wrap">
-                          <div className="diagram-title-bar"><span>DATAFLOW ARCHITECTURE</span></div>
-                          <MiniArchDiagram nodes={study.diagram} onExpand={() => openArchitectureModal(study, idx)} />
-                        </div>
-
-                        <div className="card-front-details">
-                          <span className="details-heading">CONSTRAINTS &amp; INVARIANTS:</span>
-                          <ul className="card-front-bullets">
-                            {study.constraints.map((c, cIdx) => (
-                              <li key={cIdx}>
-                                <span className="bullet-dot" aria-hidden="true">▹</span>
-                                <span>{c}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="card-front-details">
-                          <span className="details-heading">SOLUTION ARCHITECTURE:</span>
-                          <p className="card-solution-text">{study.solution}</p>
-                        </div>
-
-                        <div className="card-front-metrics">
-                          {study.results.map((m) => (
-                            <div key={m.label} className="card-metric-col">
-                              <span className="card-metric-label">{m.label}</span>
-                              <span className="card-metric-val">{m.value}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {study.record.links.length > 0 && (
-                          <div className="card-front-links">
-                            {study.record.links.map((link) => (
-                              <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="card-study-link">
-                                {link.label} <span aria-hidden="true">↗</span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="card-front-bottom">
-                        <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
-                        <span className="card-footer-hint">CLICK DIAGRAM TO EXPAND</span>
-                      </div>
+                      <CardFrontContent
+                        study={study}
+                        idx={idx}
+                        category={categories[idx]}
+                        onExpand={() => openArchitectureModal(study, idx)}
+                      />
                     </div>
 
                     <div className="lusion-card-face lusion-card-back" style={{ pointerEvents: !isFrontVisible ? "auto" : "none", opacity: !isFrontVisible ? 1 : 0 }}>

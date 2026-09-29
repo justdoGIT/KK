@@ -1569,6 +1569,17 @@ main::before {
 
   transform-style: preserve-3d;
 }
+/* Settled state (CaseStudies.tsx: cardP >= 1, card has finished its flip
+   and will not move again until the user scrolls back up). Drops every
+   3D-context property — preserve-3d, the counter-rotateY, backface-
+   visibility — so the browser renders this card's text through its
+   normal CPU/subpixel-AA path instead of a GPU-composited texture,
+   which is visibly softer for small text even at an "identity" transform. */
+.lusion-card-isolated-cell--settled {
+  cursor: default;
+  transform-style: flat;
+}
+
 .lusion-card-flipper {
   position: relative;
   width: 100%;
@@ -1619,6 +1630,17 @@ main::before {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
+/* Overrides .lusion-card-face + .lusion-card-front above: settled cards
+   render with a plain identity transform / visible backface, see
+   .lusion-card-isolated-cell--settled above for the rationale. Must stay
+   below .lusion-card-front in source order — same specificity, so
+   cascade order decides, and this needs to win over the 3D rotateY. */
+.lusion-card-front--static {
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+}
+
 .card-front-top {
   display: flex;
   justify-content: space-between;
