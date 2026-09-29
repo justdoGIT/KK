@@ -1,5 +1,5 @@
-import { type JSX } from "react";
-
+import { useState, useEffect, useRef, type JSX } from "react";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 type ProcessStep = {
   number: string;
   badge: string;
@@ -48,6 +48,54 @@ const steps: ProcessStep[] = [
   },
 ];
 
+function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) {
+  const cardRef = useRef<HTMLElement>(null);
+  const startsRevealed =
+    index === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [isRevealed, setIsRevealed] = useState(startsRevealed);
+
+  useEffect(() => {
+    if (isRevealed) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsRevealed(true);
+            observer.disconnect();
+          }
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -5% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <article
+      ref={cardRef}
+      className={`process-step-card ${isRevealed ? "step-revealed" : "step-pending"}`}
+    >
+      <div className="process-step-topline">
+        <span className="process-step-number">{step.number}</span>
+        <span className="process-step-badge">{step.badge}</span>
+      </div>
+
+      <p className="process-step-label">{step.label}</p>
+      <h3>{step.title}</h3>
+      <p className="process-step-detail">{step.detail}</p>
+
+      <div className="process-benefit-box">
+        <span className="benefit-tag">CLIENT IMPACT:</span>
+        <p className="benefit-desc">{step.clientBenefit}</p>
+      </div>
+    </article>
+  );
+}
+
 export function ProcessTimeline(): JSX.Element {
   return (
     <section
@@ -56,31 +104,16 @@ export function ProcessTimeline(): JSX.Element {
       aria-label="Working approach"
     >
       <div className="section-header process-header">
-        <p className="section-kicker">Engineering Invariants</p>
-        <h2>A Proven Method for High-Stakes Systems</h2>
-        <p className="section-subtitle">
-          How we take high-complexity hardware projects from initial prototype uncertainty
-          to dependable, enterprise-scale production reality.
-        </p>
+        <LusionKineticHeading
+          kicker="Engineering Invariants"
+          text="A Proven Method for High-Stakes Systems"
+          subtitle="How we take high-complexity hardware projects from initial prototype uncertainty to dependable, enterprise-scale production reality."
+        />
       </div>
 
       <div className="process-track">
-        {steps.map((step) => (
-          <article className="process-step-card" key={step.number}>
-            <div className="process-step-topline">
-              <span className="process-step-number">{step.number}</span>
-              <span className="process-step-badge">{step.badge}</span>
-            </div>
-
-            <p className="process-step-label">{step.label}</p>
-            <h3>{step.title}</h3>
-            <p className="process-step-detail">{step.detail}</p>
-
-            <div className="process-benefit-box">
-              <span className="benefit-tag">CLIENT IMPACT:</span>
-              <p className="benefit-desc">{step.clientBenefit}</p>
-            </div>
-          </article>
+        {steps.map((step, idx) => (
+          <ProcessStepCard step={step} index={idx} key={step.number} />
         ))}
       </div>
     </section>

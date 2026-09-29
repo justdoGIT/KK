@@ -1,5 +1,6 @@
-import { type JSX } from "react";
+import { useState, useEffect, useRef, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 
 type Offer = {
   index: string;
@@ -80,73 +81,101 @@ const offers: Offer[] = [
     cta: "Retain Staff Architect",
   },
 ];
+function OfferCard({ offer, index }: { offer: Offer; index: number }) {
+  const cardRef = useRef<HTMLElement>(null);
+  const startsRevealed = index < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [isRevealed, setIsRevealed] = useState(startsRevealed);
+
+  useEffect(() => {
+    if (isRevealed) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsRevealed(true);
+            observer.disconnect();
+          }
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <article
+      ref={cardRef}
+      className={`offer-card ${offer.featured ? "offer-card-featured" : ""} ${
+        isRevealed ? "offer-revealed" : "offer-pending"
+      }`}
+    >
+      {/* Topline Badge & Index */}
+      <div className="offer-topline">
+        <span className="offer-index">{offer.index}</span>
+        <div className="offer-badges-group">
+          <span className="offer-timeline-pill">{offer.timeline}</span>
+          {offer.featured && (
+            <span className="offer-badge">{offer.badge}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Title & Promise */}
+      <h3>{offer.title}</h3>
+      <p className="offer-promise">{offer.promise}</p>
+
+      {/* Target Client Profile */}
+      <div className="offer-bestfor">
+        <span className="bestfor-label">IDEAL FOR:</span>
+        <p className="bestfor-text">{offer.bestFor}</p>
+      </div>
+
+      {/* Key Deliverables */}
+      <div className="offer-deliverables-block">
+        <span className="deliv-heading">GUARANTEED DELIVERABLES:</span>
+        <ul className="offer-deliv-list">
+          {offer.deliverables.map((detail) => (
+            <li key={detail}>
+              <span className="deliv-bullet" aria-hidden="true">✓</span>
+              <span>{detail}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Action CTA */}
+      <div className="offer-cta-wrap">
+        <a
+          className="btn btn-primary offer-link-btn"
+          href={`mailto:${contactInfo.email}?subject=${encodeURIComponent(
+            `Project Inquiry: ${offer.title}`,
+          )}`}
+        >
+          {offer.cta} <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </article>
+  );
+}
 
 export function Offers(): JSX.Element {
   return (
     <section className="offers-section" id="offers" aria-label="Services and offers">
       <div className="section-header offers-header">
-        <div>
-          <p className="section-kicker">Client Engagement Models</p>
-          <h2>How We Can Collaborate</h2>
-        </div>
-        <p className="section-subtitle">
-          High-impact, deterministic engineering engagements designed to de-risk hardware,
-          accelerate time-to-market, and establish rock-solid production platforms.
-        </p>
+        <LusionKineticHeading
+          kicker="Client Engagement Models"
+          text="How We Can Collaborate"
+          subtitle="High-impact, deterministic engineering engagements designed to de-risk hardware, accelerate time-to-market, and establish rock-solid production platforms."
+        />
       </div>
 
       <div className="offers-grid">
-        {offers.map((offer) => (
-          <article
-            className={`offer-card ${offer.featured ? "offer-card-featured" : ""}`}
-            key={offer.title}
-          >
-            {/* Topline Badge & Index */}
-            <div className="offer-topline">
-              <span className="offer-index">{offer.index}</span>
-              <div className="offer-badges-group">
-                <span className="offer-timeline-pill">{offer.timeline}</span>
-                {offer.featured && (
-                  <span className="offer-badge">{offer.badge}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Title & Promise */}
-            <h3>{offer.title}</h3>
-            <p className="offer-promise">{offer.promise}</p>
-
-            {/* Target Client Profile */}
-            <div className="offer-bestfor">
-              <span className="bestfor-label">IDEAL FOR:</span>
-              <p className="bestfor-text">{offer.bestFor}</p>
-            </div>
-
-            {/* Key Deliverables */}
-            <div className="offer-deliverables-block">
-              <span className="deliv-heading">GUARANTEED DELIVERABLES:</span>
-              <ul className="offer-deliv-list">
-                {offer.deliverables.map((detail) => (
-                  <li key={detail}>
-                    <span className="deliv-bullet" aria-hidden="true">✓</span>
-                    <span>{detail}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Action CTA */}
-            <div className="offer-cta-wrap">
-              <a
-                className="btn btn-primary offer-link-btn"
-                href={`mailto:${contactInfo.email}?subject=${encodeURIComponent(
-                  `Project Inquiry: ${offer.title}`,
-                )}`}
-              >
-                {offer.cta} <span aria-hidden="true">↗</span>
-              </a>
-            </div>
-          </article>
+        {offers.map((offer, idx) => (
+          <OfferCard offer={offer} index={idx} key={offer.title} />
         ))}
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 export type GallerySystem = {
   id: string;
@@ -21,21 +21,53 @@ export function LusionShowcaseCard({
   item,
   isSelected,
   onSelect,
+  rowIndex,
 }: {
   item: GallerySystem;
   isSelected: boolean;
   onSelect: () => void;
+  rowIndex: number;
 }) {
   const cardRef = useRef<HTMLElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
+  const sensorRef = useRef<HTMLDivElement>(null);
+  // First grid row renders already-grown (it's the pair visible without
+  // scrolling); every subsequent row starts small/hidden and grows to full
+  // size as it scrolls into view, matching lusion.co/projects' card grid.
+  const startsRevealed =
+    rowIndex === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [isRevealed, setIsRevealed] = useState(startsRevealed);
 
-  // Physics animation state stored in ref for zero-rerender 60fps RAF loop
+  useEffect(() => {
+    if (isRevealed) return;
+    const el = sensorRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsRevealed(true);
+            observer.disconnect();
+          }
+        }
+      },
+      { threshold: 0, rootMargin: "200px 0px 0px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Physics animation state stored in ref for zero-rerender 60fps RAF loop.
+  // Reveal (grow-from-small + fade-in) shares this same scale/opacity easing
+  // rather than a separate CSS transition, so the hover-tilt system and the
+  // scroll-triggered reveal can never fight over the same style property.
   const physicsRef = useRef({
     currRotX: 0,
     currRotY: 0,
     currTransX: 0,
     currTransY: 0,
-    currScale: 1,
+    currScale: startsRevealed ? 1 : 0.55,
     currTransZ: 0,
     currVibeX: 0,
     currVibeY: 0,
@@ -44,7 +76,7 @@ export function LusionShowcaseCard({
     targetRotY: 0,
     targetTransX: 0,
     targetTransY: 0,
-    targetScale: 1,
+    targetScale: startsRevealed ? 1 : 0.55,
     targetTransZ: 0,
     currSpotX: 0,
     currSpotY: 0,
@@ -52,6 +84,8 @@ export function LusionShowcaseCard({
     targetSpotY: 0,
     currOpacity: 0,
     targetOpacity: 0,
+    currCardOpacity: startsRevealed ? 1 : 0,
+    targetCardOpacity: startsRevealed ? 1 : 0,
     entryTime: 0,
     leaveTime: 0,
     rafId: 0,
@@ -110,17 +144,28 @@ export function LusionShowcaseCard({
     p.currSpotX += (p.targetSpotX - p.currSpotX) * 0.15;
     p.currSpotY += (p.targetSpotY - p.currSpotY) * 0.15;
     p.currOpacity += (p.targetOpacity - p.currOpacity) * 0.15;
+    p.currCardOpacity += (p.targetCardOpacity - p.currCardOpacity) * 0.08;
 
     const deltaRot = Math.abs(p.targetRotX - p.currRotX) + Math.abs(p.targetRotY - p.currRotY);
     const deltaTrans = Math.abs(p.targetTransX - p.currTransX) + Math.abs(p.targetTransY - p.currTransY);
     const deltaOpacity = Math.abs(p.targetOpacity - p.currOpacity);
     const deltaVibe = Math.abs(p.currVibeX) + Math.abs(p.currVibeY);
+    const deltaScale = Math.abs(p.targetScale - p.currScale);
+    const deltaCardOpacity = Math.abs(p.targetCardOpacity - p.currCardOpacity);
+    // Only allow the "settled -> drop transform" shortcut once the card has
+    // actually reached its fully-revealed target (scale 1, opacity 1) --
+    // otherwise a not-yet-revealed card that has merely stopped moving at
+    // its small/hidden starting size would incorrectly snap to full size.
+    const isFullyRevealed = p.targetScale >= 0.999 && p.targetCardOpacity >= 0.999;
     const isFullySettled =
       !p.isHovered &&
+      isFullyRevealed &&
       deltaRot < 0.01 &&
       deltaTrans < 0.01 &&
       deltaOpacity < 0.005 &&
       deltaVibe < 0.02 &&
+      deltaScale < 0.01 &&
+      deltaCardOpacity < 0.01 &&
       p.currBlur < 0.05;
 
     if (cardRef.current) {
@@ -130,11 +175,13 @@ export function LusionShowcaseCard({
         // GPU-composited "identity" transform layer, keeping it sharp.
         cardRef.current.style.transform = "none";
         cardRef.current.style.filter = "none";
+        cardRef.current.style.opacity = "1";
       } else {
         const finalX = (p.currTransX + p.currVibeX).toFixed(2);
         const finalY = (p.currTransY + p.currVibeY).toFixed(2);
         cardRef.current.style.transform = `perspective(1000px) translate3d(${finalX}px, ${finalY}px, ${p.currTransZ.toFixed(2)}px) rotateX(${p.currRotX.toFixed(2)}deg) rotateY(${p.currRotY.toFixed(2)}deg) scale3d(${p.currScale.toFixed(3)}, ${p.currScale.toFixed(3)}, 1)`;
         cardRef.current.style.filter = p.currBlur > 0.05 ? `blur(${p.currBlur.toFixed(2)}px)` : "none";
+        cardRef.current.style.opacity = p.currCardOpacity.toFixed(3);
       }
     }
 
@@ -155,6 +202,15 @@ export function LusionShowcaseCard({
       physicsRef.current.rafId = requestAnimationFrame(updatePhysics);
     }
   };
+
+  useEffect(() => {
+    if (!isRevealed) return;
+    const p = physicsRef.current;
+    p.targetScale = 1;
+    p.targetCardOpacity = 1;
+    startLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed]);
 
   const handleMouseEnter = () => {
     onSelect();
@@ -220,13 +276,14 @@ export function LusionShowcaseCard({
   return (
     <article
       ref={cardRef}
-      className={`system-showcase-card ${isSelected ? "card-selected" : ""}`}
+      className={`system-showcase-card ${isSelected ? "card-selected" : ""} ${isRevealed ? "" : "card-pending-reveal"}`}
       role="listitem"
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={onSelect}
     >
+      <div ref={sensorRef} className="card-reveal-sensor" aria-hidden="true" />
       <div ref={spotlightRef} className="system-card-spotlight" />
       <div className="system-card-content">
         {/* Top Bar */}
