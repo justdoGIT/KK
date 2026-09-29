@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
 
 type TerminalCommand = {
   id: string;
@@ -95,6 +95,17 @@ const TERMINAL_COMMANDS: TerminalCommand[] = [
   },
 ];
 
+// Total scroll distance (in viewport-heights) the terminal stays pinned for
+// while its minimize-to-maximize reveal and 5-script sequence play out.
+const TOTAL_SCROLL = 3;
+// Portion of TOTAL_SCROLL spent on the minimize -> maximize reveal before
+// the script/typing sequence begins.
+const REVEAL_FRACTION = 0.15;
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
 export function InteractiveTerminal(): JSX.Element {
   const [activeCmdIdx, setActiveCmdIdx] = useState(0);
   const [typedText, setTypedText] = useState("");
@@ -103,53 +114,44 @@ export function InteractiveTerminal(): JSX.Element {
   const [visibleLineCount, setVisibleLineCount] = useState<number>(TERMINAL_COMMANDS[0].output.length);
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isEntered, setIsEntered] = useState(false);
+  const [revealProgress, setRevealProgress] = useState(0);
 
-  const terminalRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const manualOverrideRef = useRef(false);
   const manualTimerRef = useRef<number | null>(null);
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 
-  // 1. Slow Creative Bottom-Left Maximize Reveal on Scroll Entry
+  // Single scroll-driven source of truth for BOTH the minimize->maximize
+  // reveal and the 5-script typing/output sequence. The terminal is pinned
+  // (position: sticky) inside a TOTAL_SCROLL-viewport-height spacer, so
+  // `raw` below maps 1:1 onto the actual scrollbar position for the whole
+  // pinned duration -- the previous version measured the outer `<section>`
+  // (which also included the filter pills and skills grid below), so the
+  // terminal had already scrolled off-screen long before `progress` reached
+  // values high enough to reveal the later scripts. A separate one-shot
+  // IntersectionObserver also drove a CSS-transition "reveal" independently
+  // of this progress, so the two were never actually in sync.
   useEffect(() => {
-    const el = terminalRef.current;
-    if (!el) return;
+    let rafId = 0;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setIsEntered(true);
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
-    );
+    const computeAndApply = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const scrollable = el.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+      setRevealProgress(clamp01(raw / REVEAL_FRACTION));
 
-  // 2. Scroll-Driven 5 Script Commands & Output Line-by-Line Stream
-  useEffect(() => {
-    const handleScroll = () => {
-      if (manualOverrideRef.current || !terminalRef.current) return;
+      if (manualOverrideRef.current) return;
 
-      const sectionEl = terminalRef.current.closest("section") || terminalRef.current;
-      const rect = sectionEl.getBoundingClientRect();
-      const viewH = window.innerHeight;
-
-      const totalDist = rect.height + viewH;
-      if (totalDist <= 0) return;
-
-      const progress = Math.max(0, Math.min(1, (viewH - rect.top) / totalDist));
-
-      // Map progress 0..1 across the 5 script tabs (0..4)
+      // Map the remaining scroll onto the 5 script tabs (0..4)
+      const scriptRaw = clamp01((raw - REVEAL_FRACTION) / (1 - REVEAL_FRACTION));
       const numScripts = TERMINAL_COMMANDS.length;
-      const scriptIdx = Math.min(numScripts - 1, Math.floor(progress * numScripts));
-      const subProgress = (progress * numScripts) - scriptIdx; // 0.0 to 1.0
+      const scriptF = scriptRaw * numScripts;
+      const scriptIdx = Math.min(numScripts - 1, Math.floor(scriptF));
+      const subProgress = scriptF - scriptIdx; // 0.0 to 1.0 within this script
 
       if (scriptIdx !== activeCmdIdx) {
         setActiveCmdIdx(scriptIdx);
@@ -177,15 +179,32 @@ export function InteractiveTerminal(): JSX.Element {
       }
     };
 
+    // RAF-throttle: native "scroll" can fire many times per animation frame
+    // (especially during momentum/trackpad scroll), and each call recomputes
+    // an inline filter+transform string. Without throttling this caused
+    // multiple conflicting style writes per frame -- the terminal's
+    // minimize/maximize reveal visibly flickered/strobed instead of tracking
+    // the scrollbar smoothly. Coalescing to one computation per frame fixes it.
+    const handleScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        computeAndApply();
+      });
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    computeAndApply();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, [activeCmdIdx]);
 
   // Tab click manual selection handler
   const handleTabClick = (idx: number) => {
     manualOverrideRef.current = true;
-    if (manualTimerRef.current) clearTimeout(manualTimerRef.current);
+    clearTimeout(manualTimerRef.current ?? undefined);
 
     setActiveCmdIdx(idx);
     setTypedText(TERMINAL_COMMANDS[idx].command);
@@ -209,14 +228,25 @@ export function InteractiveTerminal(): JSX.Element {
 
   const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
 
+  // Continuous scroll-linked minimize -> maximize transform, applied inline
+  // (rather than via a CSS transition) so it tracks the scrollbar 1:1
+  // instead of animating independently on a timer.
+  const revealStyle: CSSProperties = {
+    opacity: revealProgress,
+    filter: `blur(${((1 - revealProgress) * 5).toFixed(2)}px)`,
+    transform: `perspective(1200px) scale(${(0.68 + revealProgress * 0.32).toFixed(3)}) translate3d(${((1 - revealProgress) * -90).toFixed(1)}px, ${((1 - revealProgress) * 75).toFixed(1)}px, ${((1 - revealProgress) * -30).toFixed(1)}px) rotate(${((1 - revealProgress) * -3).toFixed(2)}deg)`,
+  };
+
   return (
-    <div
-      ref={terminalRef}
-      className={`interactive-terminal-wrapper ${isEntered ? "terminal-entered" : ""} ${
-        isExpanded ? "terminal-expanded-mode" : ""
-      }`}
-    >
-      <div className="terminal-window">
+    <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
+      <div className="terminal-sticky-stage">
+        <div
+          className={`interactive-terminal-wrapper ${revealProgress > 0.85 ? "terminal-glow" : ""} ${
+            isExpanded ? "terminal-expanded-mode" : ""
+          }`}
+          style={revealStyle}
+        >
+          <div className="terminal-window">
         {/* Terminal Title Bar */}
         <div className="terminal-titlebar">
           <div className="terminal-window-buttons" aria-hidden="true">
@@ -316,6 +346,8 @@ export function InteractiveTerminal(): JSX.Element {
           </div>
         </div>
       </div>
+      </div>
     </div>
+  </div>
   );
 }

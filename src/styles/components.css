@@ -2328,22 +2328,27 @@ main::before {
   max-width: 1200px;
   margin: 0 auto 3rem;
 }
+.terminal-scroll-section {
+  position: relative;
+}
+.terminal-sticky-stage {
+  position: sticky;
+  top: 8vh;
+  height: 84vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .interactive-terminal-wrapper {
   position: relative;
   width: 100%;
   transform-origin: bottom left;
-  transform: perspective(1200px) scale(0.68) translate3d(-90px, 75px, -30px) rotate(-3deg);
-  opacity: 0;
-  filter: blur(5px);
   will-change: transform, opacity, filter;
-  transition: transform 1.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.95s ease-out, filter 0.8s ease;
 }
-.interactive-terminal-wrapper.terminal-entered {
-  transform: perspective(1200px) scale(1) translate3d(0, 0, 0) rotate(0deg);
-  opacity: 1;
-  filter: blur(0px);
+.interactive-terminal-wrapper .terminal-window {
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
-.interactive-terminal-wrapper.terminal-entered .terminal-window {
+.interactive-terminal-wrapper.terminal-glow .terminal-window {
   border-color: rgba(56, 189, 248, 0.45);
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
@@ -2364,7 +2369,6 @@ main::before {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: border-color 0.8s ease, box-shadow 0.8s ease;
 }
 .terminal-titlebar {
   display: flex;
@@ -3058,37 +3062,67 @@ main::before {
   transform: translateY(0);
 }
 /* Deep Space Astronaut Journey Component (Lusion Space Contact Feature) */
-.space-journey-container {
+.space-journey-scroll-section {
   position: relative;
+}
+.space-journey-sticky-stage {
+  position: sticky;
+  top: 6vh;
+  height: 88vh;
   width: 100%;
+  max-width: 900px;
+  margin: 0 auto 2.5rem;
   border-radius: 20px;
   overflow: hidden;
-  margin-bottom: 2.5rem;
   border: 1px solid rgba(56, 189, 248, 0.25);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
   background: #02040a;
 }
-.space-viewport {
-  position: relative;
-  width: 100%;
-  height: 490px;
-  overflow: hidden;
+.space-fullbg-layer {
+  position: absolute;
+  inset: 0;
+  will-change: opacity;
 }
-.space-svg {
+.space-backdrop-svg {
   display: block;
   width: 100%;
   height: 100%;
 }
-
-/* Floating Astronaut Animations */
-.astronaut-group {
-  transform-origin: 500px 240px;
-  animation: astronaut-float 6s ease-in-out infinite alternate;
+.space-screen-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260px;
+  height: 165px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid rgba(148, 163, 184, 0.6);
+  box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.9), 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(56, 189, 248, 0.15);
+  will-change: opacity, transform;
 }
-@keyframes astronaut-float {
-  0% { transform: translateY(170px) rotate(0deg); }
-  50% { transform: translateY(158px) rotate(1.5deg); }
-  100% { transform: translateY(164px) rotate(-1deg); }
+.space-astronaut-rig {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  z-index: 5;
+  will-change: transform;
+}
+/* Subtle resting bob once landed -- safe from the filter+transform flicker
+   bug because AstronautFigure no longer has any SVG <filter> on its tree. */
+.space-astronaut-rig.is-landed .space-astronaut-figure {
+  animation: astronaut-idle-bob 5s ease-in-out infinite alternate;
+}
+@keyframes astronaut-idle-bob {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+.space-astronaut-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .astronaut-waving .astronaut-right-arm {
@@ -3104,9 +3138,8 @@ main::before {
 /* Holographic Astronaut Greeting Speech Dialog Bubble */
 .space-dialog-bubble {
   position: absolute;
-  top: 1rem;
+  bottom: 6%;
   left: 50%;
-  transform: translateX(-50%) translateY(15px);
   z-index: 10;
   width: 92%;
   max-width: 520px;
@@ -3117,14 +3150,14 @@ main::before {
   backdrop-filter: blur(12px);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.25);
   text-align: center;
-  opacity: 0;
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
 }
-.space-journey-container.in-view .space-dialog-bubble,
 .space-dialog-bubble.bubble-active {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 45px rgba(56, 189, 248, 0.4);
 }
+
 .dialog-badge {
   display: inline-flex;
   align-items: center;
