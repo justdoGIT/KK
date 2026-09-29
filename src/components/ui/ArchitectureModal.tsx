@@ -50,14 +50,41 @@ export function ArchitectureModal({
 
   const selectedNodeInfo = architecture.nodes.find((n) => n.id === activeNode);
 
-  // Precomputed once per render, reused by the wires pass and the labels pass
-  // (labels render AFTER nodes so protocol chips paint on top, not under, node boxes).
+  // Node box width is fixed for visual consistency across every diagram;
+  // sized to comfortably fit the longest node label seen across all case
+  // studies ("ACP Client Protocol", 19 chars) at the 9.5px monospace font.
+  const NODE_BOX_W = 130;
+  const NODE_BOX_HALF = NODE_BOX_W / 2;
+
+  // Same sizing formula used both to size the canvas below and to render the
+  // actual label chips further down — kept in one place so they can't drift.
+  const chipWidth = (protocol: string) => Math.max(48, protocol.length * 5.4 + 16);
+
   // Canvas coordinate space is wider than the visual box/label sizes would
   // suggest: node.x/y are percentages, and widening this virtual space (while
   // node box width stays fixed in px) opens real gaps between same-row nodes
   // so protocol-label chips fit between boxes instead of overlapping them.
-  const VIEW_W = 720;
-  const VIEW_H = 250;
+  // Computed PER DIAGRAM from the actual node spacing and protocol-label
+  // lengths in the data, with a comfortable extra margin, instead of a fixed
+  // constant that only happened to fit the diagrams it was tested against —
+  // a 4-node row with long labels (career-automation) needs more room than a
+  // 3-node row with short ones (industrial-edge).
+  const COMFORTABLE_MARGIN_PX = 16;
+  let neededViewW = 720;
+  architecture.nodes.forEach((node) => {
+    (node.connectsTo ?? []).forEach((targetId) => {
+      const target = architecture.nodes.find((n) => n.id === targetId);
+      // Only same-row (horizontal) edges are width-constrained; a vertical
+      // branch's label only needs vertical room, handled by fixed VIEW_H.
+      if (!target || target.y !== node.y || !node.protocol) return;
+      const spacingPct = Math.abs(target.x - node.x);
+      if (spacingPct <= 0) return;
+      const requiredHalfGapPx = NODE_BOX_HALF + chipWidth(node.protocol) / 2 + COMFORTABLE_MARGIN_PX;
+      neededViewW = Math.max(neededViewW, (200 * requiredHalfGapPx) / spacingPct);
+    });
+  });
+  const VIEW_W = neededViewW;
+  const VIEW_H = VIEW_W * (250 / 720);
 
   const edges = architecture.nodes.flatMap((node) =>
     (node.connectsTo ?? []).map((targetId) => {
@@ -187,9 +214,9 @@ export function ArchitectureModal({
                       <g className="arch-node-inner">
                         {/* Node Box */}
                         <rect
-                          x="-52"
+                          x={-NODE_BOX_HALF}
                           y="-22"
-                          width="104"
+                          width={NODE_BOX_W}
                           height="44"
                           rx="8"
                           fill={isHovered ? "#1e293b" : "#0f172a"}
@@ -199,9 +226,9 @@ export function ArchitectureModal({
                         />
                         {/* Node Top Color Accent Bar */}
                         <rect
-                          x="-52"
+                          x={-NODE_BOX_HALF}
                           y="-22"
-                          width="104"
+                          width={NODE_BOX_W}
                           height="3"
                           rx="1"
                           fill="#38bdf8"
@@ -229,11 +256,11 @@ export function ArchitectureModal({
                     before the nodes and got overdrawn by adjacent boxes. */}
                 {edges.map((edge) => {
                   if (!edge.protocol) return null;
-                  // Auto-size the chip to its text (monospace ~4.8px/char at
-                  // fontSize 8) so short labels ("I2C") don't waste width and
-                  // long ones ("Secure Boot") still fit within the gap opened
-                  // up between node boxes by the wider VIEW_W canvas above.
-                  const chipW = Math.max(44, edge.protocol.length * 4.8 + 14);
+                  // Auto-size the chip to its text so short labels ("I2C")
+                  // don't waste width and long ones ("Semantic Vector") still
+                  // fit within the gap the dynamic VIEW_W opened up above —
+                  // same formula used to size that gap in the first place.
+                  const chipW = chipWidth(edge.protocol);
                   return (
                     <g key={`${edge.key}-label`} transform={`translate(${edge.midX}, ${edge.midY - 8})`}>
                       <rect
