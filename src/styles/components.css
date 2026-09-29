@@ -1466,7 +1466,12 @@ main::before {
   position: relative;
   width: 100%;
   min-height: 320vh;
-  background: #0038ff;
+  background: radial-gradient(
+    circle at 50% 15%,
+    rgba(56, 189, 248, 0.05) 0%,
+    var(--color-bg) 65%,
+    #050810 100%
+  );
   scroll-margin-top: 3.5rem;
 }
 .lusion-deck-sticky-stage {
@@ -1478,7 +1483,7 @@ main::before {
   justify-content: center;
   overflow: hidden;
   perspective: 1600px;
-  background: #0038ff;
+  background: transparent;
 }
 .lusion-bg-ribbon {
   position: absolute;
@@ -1487,7 +1492,7 @@ main::before {
   height: 100%;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.9;
+  opacity: 0.85;
 }
 .lusion-deck-inner {
   position: relative;
@@ -1514,53 +1519,68 @@ main::before {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-accent);
   letter-spacing: 0.14em;
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
 .lusion-deck-title {
-  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: #ffffff;
+  color: #f8fafc;
   line-height: 1.05;
+}
+.lusion-deck-subtitle {
+  margin-top: 0.65rem;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  max-width: 58ch;
+  line-height: 1.5;
 }
 .lusion-deck-scrubber {
   display: flex;
-  gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.25);
+  gap: 0.45rem;
+  background: rgba(15, 23, 42, 0.7);
   padding: 4px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  backdrop-filter: blur(8px);
 }
 .lusion-scrub-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.4rem 0.9rem;
+  padding: 0.4rem 0.95rem;
   border-radius: 9999px;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-fg-muted);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.lusion-scrub-btn:hover,
+.lusion-scrub-btn:hover {
+  color: #ffffff;
+}
 .lusion-scrub-btn.active {
-  background: #ffffff;
-  color: #0038ff;
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+.scrub-num {
+  color: var(--color-accent);
   font-weight: 700;
 }
-.scrub-num { font-weight: 700; }
 
 /* 3D Playing Card Stage */
 .lusion-cards-stage {
   position: relative;
   width: 100%;
-  height: 520px;
+  height: 550px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1569,31 +1589,27 @@ main::before {
 }
 .lusion-card-3d-wrapper {
   position: absolute;
-  width: 310px;
-  height: 490px;
+  width: 325px;
+  height: 530px;
   transform-style: preserve-3d;
   cursor: pointer;
   will-change: transform;
-  transition: box-shadow 0.3s ease;
-}
-.lusion-card-3d-wrapper:hover {
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
 }
 .lusion-card-face {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 24px;
+  border-radius: 22px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
-/* Back Face: Ornate Cobalt Blue Geometric Circuit */
+/* Back Face: Dark Luxury Obsidian Geometric Circuit */
 .lusion-card-back {
   transform: rotateY(0deg);
   overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.1);
 }
 .card-back-svg {
   display: block;
@@ -1601,17 +1617,23 @@ main::before {
   height: 100%;
 }
 
-/* Front Face: Clean White Editorial Luxury Playing Card */
+/* Front Face: Dark Luxury Technical System Card */
 .lusion-card-front {
   transform: rotateY(180deg);
-  background: #ffffff;
-  color: #090d16;
-  padding: 2.2rem 1.8rem;
+  background: radial-gradient(
+    circle at 85% 15%,
+    rgba(56, 189, 248, 0.08) 0%,
+    rgba(15, 23, 42, 0.96) 60%,
+    rgba(9, 13, 22, 0.99) 100%
+  );
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #f8fafc;
+  padding: 1.8rem 1.6rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
 }
 .card-front-top {
   display: flex;
@@ -1620,104 +1642,167 @@ main::before {
 }
 .card-front-category {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   letter-spacing: 0.1em;
-  color: #64748b;
+  color: var(--color-accent);
   font-weight: 700;
   text-transform: uppercase;
 }
 .card-front-title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #0f172a;
+  color: #f8fafc;
   margin-top: 0.2rem;
   line-height: 1.15;
 }
-.card-front-glyph {
-  font-size: 1.4rem;
-  color: #0038ff;
-  font-weight: 800;
+.card-front-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.card-front-context {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-top: 0.4rem;
 }
 
-/* Bullets with Dotted Separators */
+/* Mini Diagram Box inside Card */
+.card-front-diagram-wrap {
+  margin-top: 0.6rem;
+}
+.diagram-title-bar {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--color-accent);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+.lusion-mini-diagram-box {
+  position: relative;
+  width: 100%;
+  background: #070a12;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+  padding: 0.35rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lusion-mini-diagram-box:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+}
+.diagram-popout-badge {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.4rem;
+  z-index: 2;
+  padding: 0.12rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: var(--color-accent);
+}
+.lusion-mini-svg {
+  display: block;
+  width: 100%;
+  height: 75px;
+}
+
+/* Subsystem Details */
+.card-front-details {
+  margin-top: 0.6rem;
+}
+.details-heading {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--color-fg-subtle);
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 0.3rem;
+}
 .card-front-bullets {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
   list-style: none;
-  margin: 1.25rem 0;
+  margin: 0;
   padding: 0;
 }
 .card-front-bullets li {
-  font-size: 0.82rem;
-  color: #334155;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px dotted #cbd5e1;
-  line-height: 1.4;
-  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  color: #cbd5e1;
+  line-height: 1.35;
 }
-.card-front-bullets li:last-child {
-  border-bottom: none;
+.bullet-dot {
+  color: var(--color-accent);
+  font-size: 0.65rem;
 }
 
 /* Metrics Strip */
 .card-front-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .card-metric-col {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 .card-metric-label {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  color: #64748b;
-  font-weight: 700;
+  font-size: 0.52rem;
+  color: var(--color-fg-subtle);
   letter-spacing: 0.08em;
+  font-weight: 600;
 }
 .card-metric-val {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #0038ff;
+  color: #38bdf8;
 }
 
-/* Bottom Inverted Symbol */
+/* Card Footer with Pop-Out */
 .card-front-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f1f5f9;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
-.card-front-inverted-title {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+.card-footer-number {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: var(--color-fg-subtle);
   font-weight: 700;
-  transform: rotate(180deg);
-}
-.inverted-glyph {
-  color: #0038ff;
 }
 .card-arch-popout-btn {
   padding: 0.35rem 0.75rem;
   border-radius: 6px;
-  background: #0038ff;
+  background: #38bdf8;
   border: none;
-  color: #ffffff;
+  color: #090d16;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1725,24 +1810,23 @@ main::before {
   transition: background 0.2s ease, transform 0.2s ease;
 }
 .card-arch-popout-btn:hover {
-  background: #1d4ed8;
+  background: #7dd3fc;
   transform: scale(1.05);
 }
 
 @media (max-width: 1200px) {
   .lusion-card-3d-wrapper {
-    width: 270px;
-    height: 460px;
+    width: 275px;
+    height: 500px;
   }
   .lusion-cards-stage {
-    height: 480px;
+    height: 510px;
   }
 }
 
 @media (max-width: 980px) {
   .lusion-deck-scroll-section {
     min-height: auto;
-    background: #0038ff;
   }
   .lusion-deck-sticky-stage {
     position: relative;
@@ -1761,14 +1845,17 @@ main::before {
   .lusion-card-3d-wrapper {
     position: relative;
     width: 100%;
-    height: 460px;
+    height: 520px;
     transform: none !important;
   }
   .lusion-card-face {
     transform: none !important;
   }
   .lusion-card-back {
-    display: none;
+    display: none !important;
+  }
+  .lusion-card-front {
+    visibility: visible !important;
   }
 }
 
