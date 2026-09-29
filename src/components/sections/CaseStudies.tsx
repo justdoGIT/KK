@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useState, type JSX } from "react";
 import {
   getApprovedCaseStudies,
   type DiagramNode,
@@ -127,25 +127,9 @@ export function CaseStudies(): JSX.Element {
   const studies = getApprovedCaseStudies();
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const sectionRef = useRef<HTMLElement>(null);
+  const [activeTab, setActiveTab] = useState<"constraints" | "solution" | "scope">("constraints");
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const section = sectionRef.current;
-      if (!section) return;
-      const rect = section.getBoundingClientRect();
-      const totalScrollDistance = rect.height - window.innerHeight;
-      if (totalScrollDistance <= 0) return;
-      const scrolled = -rect.top;
-      const progress = Math.max(0, Math.min(1, scrolled / totalScrollDistance));
-      const targetIndex = Math.round(progress * (studies.length - 1));
-      setActiveIdx(Math.max(0, Math.min(studies.length - 1, targetIndex)));
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [studies.length]);
+  const activeStudy = studies[activeIdx] ?? studies[0];
 
   const openArchitectureModal = (study: CaseStudyDetail, index: number) => {
     setSelectedArch({
@@ -160,181 +144,182 @@ export function CaseStudies(): JSX.Element {
   };
 
   return (
-    <section
-      ref={sectionRef}
-      aria-label="Case studies"
-      className="case-studies-scroll-track"
-      id="work"
-    >
-      <div className="case-studies-sticky-stage">
-        <div className="case-studies-inner-container">
-          {/* Section Header */}
-          <div className="section-header case-studies-header">
-            <div className="header-left">
-              <p className="section-kicker">Selected Missions</p>
-              <h2>Products with a pulse.</h2>
-              <p className="section-subtitle">
-                Evidence-backed case studies, shown as systems you can
-                understand—not claims you have to take on faith.
-              </p>
-            </div>
+    <section aria-label="Case studies" className="work-section" id="work">
+      <div className="section-header">
+        <p className="section-kicker">Selected Missions</p>
+        <h2>Products with a pulse.</h2>
+        <p className="section-subtitle">
+          Evidence-backed case studies, shown as systems you can
+          understand—not claims you have to take on faith.
+        </p>
+      </div>
 
-            {/* Deck Stepper Navigation Controls */}
-            <div className="deck-stepper-controls">
-              <span className="deck-progress-indicator">
-                MISSION {String(activeIdx + 1).padStart(2, "0")} / 0{studies.length}
-              </span>
-              <div className="deck-arrow-buttons">
-                <button
-                  type="button"
-                  className="deck-arrow-btn"
-                  onClick={() => setActiveIdx((p) => Math.max(0, p - 1))}
-                  disabled={activeIdx === 0}
-                  aria-label="Previous mission card"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  className="deck-arrow-btn"
-                  onClick={() => setActiveIdx((p) => Math.min(studies.length - 1, p + 1))}
-                  disabled={activeIdx === studies.length - 1}
-                  aria-label="Next mission card"
-                >
-                  →
-                </button>
-              </div>
+      {/* Interactive Mission Control Radar Selector */}
+      <div className="mission-control-selector" role="tablist" aria-label="Mission selector">
+        {studies.map((study, idx) => (
+          <button
+            key={study.record.slug}
+            type="button"
+            role="tab"
+            aria-selected={activeIdx === idx}
+            className={`mission-selector-card ${activeIdx === idx ? "mission-active" : ""}`}
+            onClick={() => setActiveIdx(idx)}
+          >
+            <div className="mission-sel-topline">
+              <span className="mission-sel-num">/{String(idx + 1).padStart(2, "0")}</span>
+              <span className={`mission-sel-dot ${activeIdx === idx ? "dot-live" : ""}`} />
             </div>
+            <h3 className="mission-sel-title">{study.record.publicTitle}</h3>
+            <span className="mission-sel-tag">
+              {idx === 0
+                ? "QUALCOMM BSP"
+                : idx === 1
+                  ? "DISTRIBUTED FLEET"
+                  : idx === 2
+                    ? "TERMINAL AGENT"
+                    : "AUTOMATION ENGINE"}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Active Mission Interactive Cockpit / Stage */}
+      <div className="mission-cockpit-stage">
+        {/* Left Console: Architecture Dataflow & Telemetry */}
+        <div className="mission-cockpit-left">
+          <div className="cockpit-header">
+            <div className="cockpit-title-wrap">
+              <span className="cockpit-number">MISSION /{String(activeIdx + 1).padStart(2, "0")}</span>
+              <h3 className="cockpit-title">{activeStudy.record.publicTitle}</h3>
+            </div>
+            <span className="cockpit-status-badge">PRODUCTION VERIFIED</span>
           </div>
 
-          {/* Quick-Select Mission Tabs */}
-          <div className="case-deck-nav-tabs" role="tablist" aria-label="Selected missions">
-            {studies.map((study, idx) => (
+          <p className="cockpit-context">{activeStudy.context}</p>
+
+          {/* Architecture Flow Diagram with Lightbox Modal Pop-out */}
+          <div className="cockpit-diagram-container">
+            <div className="diagram-header-row">
+              <span className="diagram-label">SYSTEM ARCHITECTURE DATAFLOW</span>
               <button
-                key={study.record.slug}
                 type="button"
-                role="tab"
-                aria-selected={activeIdx === idx}
-                className={`case-deck-tab ${activeIdx === idx ? "tab-active" : ""}`}
-                onClick={() => setActiveIdx(idx)}
+                className="diagram-popout-trigger"
+                onClick={() => openArchitectureModal(activeStudy, activeIdx)}
               >
-                <span className="case-tab-num">/{String(idx + 1).padStart(2, "0")}</span>
-                <span className="case-tab-title">{study.record.publicTitle}</span>
+                Expand Flow [↗]
               </button>
-            ))}
+            </div>
+            <ArchitectureDiagram
+              nodes={activeStudy.diagram}
+              onExpand={() => openArchitectureModal(activeStudy, activeIdx)}
+            />
           </div>
 
-          {/* Lusion-Style 3D Fanning Card Deck */}
-          <div className="case-deck-viewport">
-            {studies.map((study, index) => {
-              const diff = index - activeIdx;
-              const cardClass = diff === 0 ? "card-active-open" : diff < 0 ? "card-peeled-away" : "card-stacked";
+          {/* Verified Metrics */}
+          <div className="cockpit-results-block">
+            <span className="results-label">VERIFIED METRICS</span>
+            <dl className="results-grid">
+              {activeStudy.results.map((r) => (
+                <div key={r.label} className="result-item">
+                  <dt>{r.label}</dt>
+                  <dd>{r.value}</dd>
+                  <span className="result-source">{r.source}</span>
+                </div>
+              ))}
+            </dl>
+          </div>
 
-              return (
-                <article
-                  key={study.record.slug}
-                  className={`case-study-deck-card ${cardClass}`}
-                  style={{
-                    "--deck-diff": diff,
-                    zIndex: diff === 0 ? 10 : diff < 0 ? 2 : 10 - diff,
-                  } as React.CSSProperties}
-                  aria-hidden={diff !== 0}
+          {/* External / Evidence Links */}
+          {activeStudy.record.links.length > 0 && (
+            <div className="cockpit-links">
+              {activeStudy.record.links.map((link) => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cockpit-link-btn"
                 >
-                  <div className="study-deck-layout">
-                    {/* Left Column: Mission Overview, Architecture Flow & Results */}
-                    <div className="study-deck-left">
-                      <div className="study-card-topbar">
-                        <div className="study-heading">
-                          <span className="study-number">
-                            /{String(index + 1).padStart(2, "0")}
-                          </span>
-                          <h3>{study.record.publicTitle}</h3>
-                        </div>
-                        <span className="study-status-badge">PRODUCTION VERIFIED</span>
-                      </div>
+                  {link.label} <span aria-hidden="true">↗</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
 
-                      <p className="study-context">{study.context}</p>
+        {/* Right Console: Interactive Visual Illustration & Technical Inspector */}
+        <div className="mission-cockpit-right">
+          {/* Large High-Definition Visual Canvas */}
+          <div className="cockpit-visual-stage">
+            <InteractiveVisual
+              label={`${activeStudy.record.publicTitle} interactive visual`}
+              variant={visualVariant(activeStudy.record.slug)}
+            />
+          </div>
 
-                      <div className="study-diagram-container">
-                        <span className="diagram-header-label">SYSTEM ARCHITECTURE DATAFLOW</span>
-                        <ArchitectureDiagram
-                          nodes={study.diagram}
-                          onExpand={() => openArchitectureModal(study, index)}
-                        />
-                      </div>
+          {/* Technical Inspector Tabs */}
+          <div className="cockpit-inspector-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "constraints"}
+              className={`inspector-tab ${activeTab === "constraints" ? "active" : ""}`}
+              onClick={() => setActiveTab("constraints")}
+            >
+              Constraints &amp; Invariants
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "solution"}
+              className={`inspector-tab ${activeTab === "solution" ? "active" : ""}`}
+              onClick={() => setActiveTab("solution")}
+            >
+              Solution Architecture
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "scope"}
+              className={`inspector-tab ${activeTab === "scope" ? "active" : ""}`}
+              onClick={() => setActiveTab("scope")}
+            >
+              Invariants &amp; Scope
+            </button>
+          </div>
 
-                      <div className="study-results-block">
-                        <span className="results-header-label">VERIFIED METRICS</span>
-                        <dl className="results-grid">
-                          {study.results.map((r) => (
-                            <div key={r.label} className="result-item">
-                              <dt>{r.label}</dt>
-                              <dd>{r.value}</dd>
-                              <span className="result-source">{r.source}</span>
-                            </div>
-                          ))}
-                        </dl>
-                      </div>
+          {/* Inspector Content Panel */}
+          <div className="cockpit-inspector-panel">
+            {activeTab === "constraints" && (
+              <ul className="inspector-list">
+                {activeStudy.constraints.map((c) => (
+                  <li key={c}>
+                    <span className="item-bullet" aria-hidden="true">▹</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-                      {study.record.links.length > 0 && (
-                        <div className="study-links">
-                          {study.record.links.map((link) => (
-                            <a
-                              key={link.url}
-                              href={link.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="study-link"
-                            >
-                              {link.label} <span aria-hidden="true">↗</span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+            {activeTab === "solution" && (
+              <p className="inspector-solution-text">{activeStudy.solution}</p>
+            )}
 
-                    {/* Right Column: Interactive Illustration, Constraints & Solution */}
-                    <div className="study-deck-right">
-                      <div className="study-visual-wrapper">
-                        <InteractiveVisual
-                          label={`${study.record.publicTitle} interactive visual`}
-                          variant={visualVariant(study.record.slug)}
-                        />
-                      </div>
-
-                      <div className="study-details">
-                        <h4>Constraints</h4>
-                        <ul className="study-list">
-                          {study.constraints.map((c) => (
-                            <li key={c}>
-                              <span className="constraint-bullet" aria-hidden="true">▹</span>
-                              <span>{c}</span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h4>Solution Architecture</h4>
-                        <p className="study-solution">{study.solution}</p>
-
-                        <h4>Invariants &amp; Scope</h4>
-                        <ul className="study-list study-limitations">
-                          {study.limitations.map((l) => (
-                            <li key={l}>
-                              <span className="limit-bullet" aria-hidden="true">ℹ</span>
-                              <span>{l}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {activeTab === "scope" && (
+              <ul className="inspector-list scope-list">
+                {activeStudy.limitations.map((l) => (
+                  <li key={l}>
+                    <span className="scope-bullet" aria-hidden="true">ℹ</span>
+                    <span>{l}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Pop-Out Architecture Lightbox Modal with Mermaid view */}
       <ArchitectureModal
         isOpen={selectedArch !== null}
         onClose={() => setSelectedArch(null)}

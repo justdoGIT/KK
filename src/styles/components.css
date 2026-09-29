@@ -1461,140 +1461,108 @@ main::before {
   font-family: var(--font-mono);
 }
 
-/* === Case Studies: Lusion 3D Fanning Card Deck === */
-.case-studies-scroll-track {
-  position: relative;
-  width: 100%;
-  min-height: 280vh;
+/* === Case Studies: Interactive Mission Control Cockpit === */
+.work-section {
   scroll-margin-top: 4.5rem;
-}
-.case-studies-sticky-stage {
-  position: sticky;
-  top: 3.5rem;
-  height: calc(100vh - 3.5rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 1.5rem 0;
-}
-.case-studies-inner-container {
-  width: 100%;
+  padding: 6rem 1.5rem 7rem;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  width: 100%;
+}
+.work-section .section-header {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 2.5rem 0;
+}
+
+/* 4 Mission Control Selector Cards */
+.mission-control-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+.mission-selector-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  max-height: 860px;
-}
-.case-studies-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1.5rem;
-  padding-bottom: 1.25rem;
-}
-.deck-stepper-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.deck-progress-indicator {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--color-accent);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 0.3rem 0.75rem;
-  border-radius: 9999px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-}
-.deck-arrow-buttons {
-  display: flex;
-  gap: 0.4rem;
-}
-.deck-arrow-btn {
-  display: grid;
-  place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.4rem 1.5rem;
+  border-radius: 16px;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(15, 23, 42, 0.6) 70%,
+    rgba(10, 15, 26, 0.95) 100%
+  );
   border: 1px solid var(--color-surface-border);
-  color: #e2e8f0;
-  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  text-align: left;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.deck-arrow-btn:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.2);
+.mission-selector-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-4px);
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(56, 189, 248, 0.1) 0%,
+    rgba(15, 23, 42, 0.8) 70%,
+    rgba(10, 15, 26, 0.98) 100%
+  );
+}
+.mission-selector-card.mission-active {
   border-color: #38bdf8;
-  color: #38bdf8;
-  transform: scale(1.08);
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(56, 189, 248, 0.16) 0%,
+    rgba(15, 23, 42, 0.85) 70%,
+    rgba(9, 13, 22, 0.98) 100%
+  );
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
-.deck-arrow-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* Quick-Select Mission Tabs */
-.case-deck-nav-tabs {
+.mission-sel-topline {
   display: flex;
-  gap: 0.6rem;
-  padding-bottom: 1.25rem;
-  width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.case-deck-nav-tabs::-webkit-scrollbar {
-  display: none;
-}
-.case-deck-tab {
-  display: inline-flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 1rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-surface-border);
-  color: var(--color-fg-muted);
+  width: 100%;
+}
+.mission-sel-num {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.case-deck-tab:hover,
-.case-deck-tab.tab-active {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.5);
-  color: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.18);
-}
-.case-tab-num {
+  font-size: 1.1rem;
+  font-weight: 800;
   color: var(--color-accent);
+}
+.mission-sel-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+.mission-sel-dot.dot-live {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+.mission-sel-title {
+  font-size: 1.05rem;
   font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.25;
+}
+.mission-sel-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-accent);
+  letter-spacing: 0.08em;
 }
 
-/* 3D Fanning Deck Stage */
-.case-deck-viewport {
-  position: relative;
-  width: 100%;
-  height: 560px;
-  perspective: 1200px;
-  transform-style: preserve-3d;
-}
-.case-study-deck-card {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+/* Active Mission Cockpit Stage */
+.mission-cockpit-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  gap: 2.2rem;
+  padding: 2.8rem;
   border-radius: 24px;
-  padding: 2.2rem 2.6rem;
   background: radial-gradient(
     circle at 85% 15%,
     rgba(56, 189, 248, 0.06) 0%,
@@ -1604,114 +1572,216 @@ main::before {
   border: 1px solid var(--color-surface-border);
   backdrop-filter: blur(16px);
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transform-origin: center top;
-  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease, border-color 0.35s ease, box-shadow 0.35s ease;
-  will-change: transform, opacity;
-  overflow-y: auto;
 }
-
-/* Card States */
-.case-study-deck-card.card-active-open {
-  transform: translate3d(0, 0, 0) scale(1) rotateX(0deg);
-  opacity: 1;
-  pointer-events: auto;
-  border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-.case-study-deck-card.card-peeled-away {
-  transform: translate3d(0, -115%, -120px) scale(0.9) rotateX(16deg);
-  opacity: 0;
-  pointer-events: none;
-}
-.case-study-deck-card.card-stacked {
-  transform: translate3d(0, calc(var(--deck-diff) * 16px), calc(var(--deck-diff) * -40px)) scale(calc(1.0 - var(--deck-diff) * 0.04)) rotateX(calc(var(--deck-diff) * -2deg));
-  opacity: calc(1.0 - var(--deck-diff) * 0.22);
-  pointer-events: none;
-}
-
-.study-deck-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 1fr);
-  gap: 2.5rem;
-  align-items: start;
-}
-.study-deck-left {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-.study-deck-right {
+.mission-cockpit-left {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
-.study-status-badge {
-  padding: 0.2rem 0.55rem;
+.cockpit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.cockpit-number {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.cockpit-title {
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f8fafc;
+  line-height: 1.15;
+}
+.cockpit-status-badge {
+  padding: 0.25rem 0.65rem;
   border-radius: 4px;
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.3);
   color: #10b981;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.08em;
+  white-space: nowrap;
 }
-.study-diagram-container,
-.study-results-block {
-  margin-top: 0.35rem;
-}
-.diagram-header-label,
-.results-header-label {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
-}
-.study-visual-wrapper {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  background: #060910;
-}
-.constraint-bullet {
-  color: #f59e0b;
-  margin-right: 0.4rem;
-}
-.limit-bullet {
-  color: var(--color-fg-subtle);
-  margin-right: 0.4rem;
+.cockpit-context {
+  color: #94a3b8;
+  font-size: 0.98rem;
+  line-height: 1.6;
 }
 
-@media (max-width: 980px) {
-  .case-studies-scroll-track {
-    min-height: auto;
+/* Architecture Diagram Box */
+.cockpit-diagram-container {
+  margin-top: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: #080c14;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.diagram-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.diagram-label,
+.results-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.diagram-popout-trigger {
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.diagram-popout-trigger:hover {
+  background: #38bdf8;
+  color: #090d16;
+}
+
+.cockpit-results-block {
+  margin-top: 0.5rem;
+}
+.cockpit-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+.cockpit-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.cockpit-link-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  transform: translateY(-2px);
+}
+
+/* Right Console */
+.mission-cockpit-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.cockpit-visual-stage {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: #060910;
+  min-height: 240px;
+}
+.cockpit-inspector-tabs {
+  display: flex;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inspector-tab {
+  flex: 1;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.inspector-tab:hover {
+  color: #f8fafc;
+}
+.inspector-tab.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  font-weight: 600;
+}
+.cockpit-inspector-panel {
+  padding: 1.25rem 1.4rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 180px;
+}
+.inspector-list {
+  display: grid;
+  gap: 0.6rem;
+  list-style: none;
+}
+.inspector-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+.item-bullet {
+  color: #38bdf8;
+  font-size: 0.75rem;
+}
+.inspector-solution-text {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+.scope-list li {
+  color: var(--color-fg-muted);
+}
+.scope-bullet {
+  color: var(--color-fg-subtle);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 1200px) {
+  .mission-control-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .case-studies-sticky-stage {
-    position: relative;
-    top: auto;
-    height: auto;
-    padding: 4rem 0;
-  }
-  .case-deck-viewport {
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-  .case-study-deck-card {
-    position: relative;
-    inset: auto;
-    transform: none !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    padding: 1.8rem 1.4rem;
-  }
-  .study-deck-layout {
+  .mission-cockpit-stage {
     grid-template-columns: 1fr;
+    padding: 2rem 1.5rem;
+  }
+}
+@media (max-width: 760px) {
+  .mission-control-selector {
+    grid-template-columns: 1fr;
+  }
+  .inspector-tab {
+    font-size: 0.62rem;
+    padding: 0.35rem 0.45rem;
   }
 }
 /* Case Study Architecture Diagram Pop-Out */
