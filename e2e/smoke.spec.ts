@@ -50,6 +50,108 @@ test.describe("Portfolio smoke tests", () => {
     await expect(page.getByRole("heading", { name: "Languages & Core" })).toBeVisible();
   });
 
+  test("tracks revealed skill domains in the filter highlights", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/");
+    const domains = page.locator(".skill-domains-section");
+    await expect(domains).toHaveClass(/skill-domains-pinned/);
+    const counter = page.locator(".skill-domains-counter");
+    const allDomains = page.getByRole("tab", { name: /^All Domains/ });
+    const domainTabs = [
+      page.getByRole("tab", { name: /^Languages & Core/ }),
+      page.getByRole("tab", { name: /^Processors & SoCs/ }),
+      page.getByRole("tab", { name: /^OS & Firmware/ }),
+    ];
+
+    const scrollToOpenedCount = async (opened: number) => {
+      await domains.evaluate((element, count) => {
+        const total = element.querySelectorAll(".skill-card-reveal").length;
+        const scrollable = element.offsetHeight - window.innerHeight;
+        const progress = ((count + 0.05) / total) * 0.86;
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: top + scrollable * progress, behavior: "instant" as ScrollBehavior });
+      }, opened);
+    };
+
+    await scrollToOpenedCount(1);
+    await expect(counter).toHaveText("01 / 07");
+    await expect(domainTabs[0]).toHaveClass(/is-revealed/);
+    await expect(domainTabs[1]).not.toHaveClass(/is-revealed/);
+    await expect(allDomains).not.toHaveClass(/active/);
+
+    await scrollToOpenedCount(3);
+    await expect(counter).toHaveText("03 / 07");
+    for (const tab of domainTabs) {
+      await expect(tab).toHaveClass(/is-revealed/);
+    }
+
+    await scrollToOpenedCount(7);
+    await expect(counter).toHaveText("07 / 07");
+    for (const tab of domainTabs) {
+      await expect(tab).not.toHaveClass(/is-revealed/);
+    }
+    await expect(allDomains).toHaveClass(/active/);
+  });
+
+  test("expands the astronaut card, free-falls, then breaks out waving", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/");
+    const journey = page.locator(".space-journey-scroll-section");
+    const frame = page.locator(".space-screen-frame");
+    const rig = page.locator(".space-astronaut-rig");
+    const shards = page.locator(".space-shard-field");
+
+    const scrollJourneyTo = async (progress: number) => {
+      await journey.evaluate((element, value) => {
+        const scrollable = element.offsetHeight - window.innerHeight;
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: top + scrollable * value, behavior: "instant" as ScrollBehavior });
+      }, progress);
+    };
+
+    await scrollJourneyTo(0.06);
+    await expect(frame).toBeVisible();
+    const openingFrame = await frame.boundingBox();
+    expect(openingFrame).not.toBeNull();
+
+    await scrollJourneyTo(0.36);
+    await expect
+      .poll(async () => (await frame.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(openingFrame!.width * 4);
+
+    await scrollJourneyTo(0.44);
+    const fallStart = await rig.boundingBox();
+    expect(fallStart).not.toBeNull();
+    await scrollJourneyTo(0.7);
+    await expect
+      .poll(async () => (await rig.boundingBox())?.y ?? 0)
+      .toBeGreaterThan(fallStart!.y + 100);
+    await expect
+      .poll(async () => Number(await shards.evaluate((element) => getComputedStyle(element).opacity)))
+      .toBe(0);
+
+    await scrollJourneyTo(0.86);
+    await expect
+      .poll(async () =>
+        Number(
+          await page
+            .locator(".space-screen-cracks")
+            .evaluate((element) => getComputedStyle(element).opacity),
+        ),
+      )
+      .toBeGreaterThan(0.5);
+    await expect
+      .poll(async () => Number(await shards.evaluate((element) => getComputedStyle(element).opacity)))
+      .toBeGreaterThan(0.5);
+
+    await scrollJourneyTo(0.97);
+    await expect(page.locator(".astronaut-waving")).toBeVisible();
+    await expect(page.getByText("BUILD THE NEXT", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /COME JOIN US ON THE NEXT MISSION/ }),
+    ).toBeVisible();
+  });
+
   test("keyboard navigation reaches skip link first", async ({ page }) => {
     await page.goto("/");
     const skipLink = page.getByRole("link", { name: "Skip to main content" });

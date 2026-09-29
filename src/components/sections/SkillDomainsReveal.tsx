@@ -49,6 +49,7 @@ function clearCardReveal(el: HTMLDivElement): void {
 export function SkillDomainsReveal(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
   const [selected, setSelected] = useState<string>(ALL);
+  const [revealedCount, setRevealedCount] = useState(0);
   const pinned = enhanced && selected === ALL;
 
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -57,11 +58,14 @@ export function SkillDomainsReveal(): JSX.Element {
   const counterRef = useRef<HTMLSpanElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const revealedCountRef = useRef(0);
 
   const visible = selected === ALL
     ? skillCategories
     : skillCategories.filter((c) => c.id === selected);
   const total = visible.length;
+  const revealComplete = !pinned || revealedCount >= total;
+  const highlightedCategoryCount = pinned && !revealComplete ? revealedCount : 0;
 
   useScrollFrame(() => {
     const section = sectionRef.current;
@@ -91,6 +95,11 @@ export function SkillDomainsReveal(): JSX.Element {
       applyCardReveal(el, easeOutCubic(local), i);
     });
 
+    if (revealedCountRef.current !== opened) {
+      revealedCountRef.current = opened;
+      setRevealedCount(opened);
+    }
+
     if (counterRef.current) {
       counterRef.current.textContent = `${String(opened).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
     }
@@ -104,6 +113,10 @@ export function SkillDomainsReveal(): JSX.Element {
   useEffect(() => {
     if (pinned) return;
     cardRefs.current.forEach((el) => el && clearCardReveal(el));
+    if (revealedCountRef.current !== total) {
+      revealedCountRef.current = total;
+      setRevealedCount(total);
+    }
     if (counterRef.current) {
       counterRef.current.textContent = `${String(total).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
     }
@@ -133,13 +146,13 @@ export function SkillDomainsReveal(): JSX.Element {
     >
       <div ref={stageRef} className="skill-domains-stage">
         <div className="skills-filter-row" role="tablist" aria-label="Skill categories">
-          {skillCategories.map((cat) => (
+          {skillCategories.map((cat, index) => (
             <button
               key={cat.id}
               type="button"
               role="tab"
               aria-selected={selected === cat.id}
-              className={`skills-filter-pill ${selected === cat.id ? "active" : ""}`}
+              className={`skills-filter-pill ${selected === cat.id ? "active" : ""} ${index < highlightedCategoryCount ? "is-revealed" : ""}`}
               onClick={() => select(cat.id)}
             >
               {cat.label} ({cat.skills.length})
@@ -149,7 +162,7 @@ export function SkillDomainsReveal(): JSX.Element {
             type="button"
             role="tab"
             aria-selected={selected === ALL}
-            className={`skills-filter-pill ${selected === ALL ? "active" : ""}`}
+            className={`skills-filter-pill ${selected === ALL && revealComplete ? "active" : ""}`}
             onClick={() => select(ALL)}
           >
             All Domains ({TOTAL_SKILLS})

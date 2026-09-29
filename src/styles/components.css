@@ -2736,7 +2736,8 @@ main::before {
   transition: all 0.2s ease;
 }
 .skills-filter-pill:hover,
-.skills-filter-pill.active {
+.skills-filter-pill.active,
+.skills-filter-pill.is-revealed {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #ffffff;
@@ -3388,20 +3389,23 @@ main::before {
 }
 .space-journey-sticky-stage {
   position: sticky;
-  top: 6vh;
-  height: 88vh;
+  top: 4vh;
+  height: 92vh;
   width: 100%;
-  max-width: 900px;
   margin: 0 auto 2.5rem;
-  border-radius: 20px;
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.75);
   background: #02040a;
+  isolation: isolate;
 }
 .space-fullbg-layer {
   position: absolute;
   inset: 0;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(37, 99, 235, 0.2), transparent 42%),
+    #02040a;
   will-change: opacity;
 }
 .space-backdrop-svg {
@@ -3409,25 +3413,165 @@ main::before {
   width: 100%;
   height: 100%;
 }
+.space-ambient {
+  position: absolute;
+  width: 34vw;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 68%);
+  opacity: 0.8;
+}
+.space-ambient-one {
+  top: -22%;
+  left: -12%;
+}
+.space-ambient-two {
+  right: -14%;
+  bottom: -28%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18), transparent 68%);
+}
+.space-mission-title {
+  position: absolute;
+  top: 43%;
+  left: 50%;
+  z-index: 3;
+  width: 96%;
+  color: #ffffff;
+  text-align: center;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.space-mission-title span,
+.space-mission-title strong {
+  display: block;
+  font-size: clamp(2.4rem, 6.8vw, 6rem);
+  font-weight: 800;
+  line-height: 0.88;
+  letter-spacing: -0.075em;
+}
+.space-mission-title span {
+  color: rgba(255, 255, 255, 0.72);
+}
+.space-signal-field,
+.space-shard-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+.space-signal-field {
+  z-index: 4;
+}
+.space-signal {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: clamp(52px, 6vw, 78px);
+  aspect-ratio: 1;
+  border: 2px solid rgba(125, 211, 252, 0.8);
+  border-radius: 30% 70% 62% 38% / 42% 38% 62% 58%;
+  background: rgba(2, 6, 23, 0.82);
+  color: #7dd3fc;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.3);
+  font-family: var(--font-mono);
+  font-size: clamp(0.65rem, 1vw, 0.9rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  animation: signal-drift 3.6s ease-in-out infinite alternate;
+}
+.space-signal:nth-child(2n) {
+  border-color: rgba(192, 132, 252, 0.85);
+  color: #d8b4fe;
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.3);
+  animation-delay: -1.4s;
+}
+.space-signal:nth-child(3n) {
+  border-color: rgba(52, 211, 153, 0.85);
+  color: #6ee7b7;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.28);
+  animation-delay: -2.2s;
+}
+@keyframes signal-drift {
+  from { translate: 0 -4px; }
+  to { translate: 0 5px; }
+}
+.space-shard-field {
+  z-index: 6;
+}
+.space-shard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(18px, 3vw, 38px);
+  height: clamp(28px, 5vw, 66px);
+  clip-path: polygon(50% 0, 100% 72%, 60% 100%, 0 58%);
+  background: linear-gradient(145deg, rgba(224, 242, 254, 0.92), rgba(56, 189, 248, 0.08));
+  border: 1px solid rgba(224, 242, 254, 0.72);
+  box-shadow: 0 0 20px rgba(125, 211, 252, 0.38);
+  will-change: transform;
+}
 .space-screen-frame {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 260px;
-  height: 165px;
-  border-radius: 14px;
+  z-index: 2;
+  width: 300px;
+  height: 185px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 3px solid rgba(148, 163, 184, 0.6);
-  box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.9), 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(56, 189, 248, 0.15);
+  border: 3px solid rgba(186, 230, 253, 0.72);
+  box-shadow:
+    0 0 0 7px rgba(15, 23, 42, 0.95),
+    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 0 42px rgba(56, 189, 248, 0.28),
+    inset 0 0 24px rgba(56, 189, 248, 0.2);
   will-change: opacity, transform;
+}
+.space-screen-label {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.7rem;
+  color: rgba(186, 230, 253, 0.8);
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.12em;
+}
+.space-screen-cracks {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: opacity;
+}
+.space-screen-cracks span {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, #ffffff, rgba(125, 211, 252, 0.15));
+  box-shadow: 0 0 3px rgba(224, 242, 254, 0.9);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+.space-screen-cracks span::after {
+  position: absolute;
+  top: 0;
+  left: 46%;
+  width: 48%;
+  height: 1px;
+  background: inherit;
+  content: "";
+  transform: rotate(28deg);
+  transform-origin: 0 50%;
+}
+.space-screen-cracks span:nth-child(even)::after {
+  transform: rotate(-34deg);
 }
 .space-astronaut-rig {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 280px;
-  height: 280px;
-  z-index: 5;
+  z-index: 7;
+  width: 1500px;
+  height: 780px;
   will-change: transform;
 }
 /* Subtle resting bob once landed -- safe from the filter+transform flicker
@@ -3446,14 +3590,21 @@ main::before {
   overflow: visible;
 }
 
+.space-astronaut-figure:not(.astronaut-waving) .astronaut-right-arm {
+  transform: rotate(96deg);
+  transform-origin: 555px 210px;
+}
 .astronaut-waving .astronaut-right-arm {
   transform-origin: 555px 210px;
-  animation: astronaut-hand-wave 1.8s ease-in-out infinite;
+  animation: astronaut-hand-wave 1.8s ease-out both;
 }
 @keyframes astronaut-hand-wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(12deg); }
-  75% { transform: rotate(-8deg); }
+  0% { transform: rotate(96deg); }
+  45% { transform: rotate(0deg); }
+  60% { transform: rotate(13deg); }
+  74% { transform: rotate(-9deg); }
+  88% { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
 }
 
 /* Holographic Astronaut Greeting Speech Dialog Bubble */
@@ -3520,4 +3671,39 @@ main::before {
 .space-action-btn {
   padding: 0.35rem 0.85rem;
   font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .space-journey-sticky-stage {
+    top: 8vh;
+    height: 84vh;
+    border-radius: 16px;
+  }
+  .space-screen-frame {
+    width: 220px;
+    height: 138px;
+  }
+  .space-astronaut-rig {
+    width: 940px;
+    height: 489px;
+  }
+  .space-mission-title span,
+  .space-mission-title strong {
+    font-size: clamp(2rem, 11vw, 3.5rem);
+  }
+  .space-signal {
+    width: 48px;
+  }
+  .space-dialog-bubble {
+    bottom: 3%;
+    width: 95%;
+    padding: 0.8rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-signal,
+  .space-astronaut-rig.is-landed .space-astronaut-figure {
+    animation: none;
+  }
 }

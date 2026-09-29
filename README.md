@@ -22,7 +22,7 @@ Browser regression checks (run after `npm run build`):
 
 ```bash
 npm exec -- playwright install chromium
-npm exec -- playwright test e2e/smoke.spec.ts e2e/runtime.spec.ts
+npm run test:e2e -- e2e/smoke.spec.ts e2e/runtime.spec.ts
 ```
 
 The runtime suite checks development styling, hot reload, mobile navigation,
