@@ -16,7 +16,9 @@ import {
 // targetRotZ/X = 0 → all cards land perfectly upright.
 // targetX is NOT hardcoded — computed from stage width each resize
 // so card 0's LEFT EDGE aligns with the "Products with a pulse" heading.
-const CARD_GAP_MIN = 60; // larger gap so cards span out properly like other cards
+// Gap always fills whatever room is left after 4 cards fit the stage width —
+// .lusion-deck-inner caps at max-width:1440px, so this maxes out around 64px
+// at full width (vs. the old fixed 12px), spanning card 0→3 edge-to-edge.
 const CARD_W   = 300; // must match .lusion-card-isolated-cell width in CSS
 // Left-edge offsets of each card relative to card 0's left edge
 
@@ -91,16 +93,21 @@ export function CaseStudies(): JSX.Element {
     const compute = () => {
       const w = stageRef.current?.offsetWidth ?? 0;
       if (w === 0) return;
-      // Dynamic gap: spread 4 cards evenly across stage width, min 60px gap
-      const gap = Math.max(CARD_GAP_MIN, (w - 4 * CARD_W) / 3);
+      // CSS shrinks .lusion-card-isolated-cell to 275px below 1200px viewport
+      // (see components.css @media max-width: 1200px) — match it here so the
+      // alignment/gap math uses the real rendered card width, not a stale 300px.
+      const cardW = window.matchMedia("(max-width: 1200px)").matches ? 275 : CARD_W;
+      // Fill available room exactly: 4 cards span the full stage width,
+      // never overflowing it, with an even gap between each.
+      const gap = Math.max(0, (w - 4 * cardW) / 3);
       const offsets = [
         0,
-        CARD_W + gap,
-        (CARD_W + gap) * 2,
-        (CARD_W + gap) * 3,
+        cardW + gap,
+        (cardW + gap) * 2,
+        (cardW + gap) * 3,
       ];
       const half = w / 2;
-      setTargetXs(offsets.map((off) => off + CARD_W / 2 - half));
+      setTargetXs(offsets.map((off) => off + cardW / 2 - half));
     };
     compute();
     const ro = new ResizeObserver(compute);
