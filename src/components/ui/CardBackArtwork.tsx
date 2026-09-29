@@ -21,8 +21,8 @@ export function CardBackArtwork(): JSX.Element {
         </linearGradient>
       </defs>
 
-      {/* Dark Luxury Obsidian / Sapphire Base */}
-      <rect width="320" height="480" rx="20" fill="url(#darkCardBackGrad)" stroke="rgba(56, 189, 248, 0.4)" strokeWidth="2" />
+      {/* Dark Luxury Obsidian Base */}
+      <rect width="320" height="480" rx="22" fill="url(#darkCardBackGrad)" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="2" />
 
       {/* Outer Cyan Border Frame */}
       <rect
@@ -30,7 +30,7 @@ export function CardBackArtwork(): JSX.Element {
         y="14"
         width="292"
         height="452"
-        rx="14"
+        rx="16"
         fill="none"
         stroke="#38bdf8"
         strokeWidth="2.5"
@@ -42,14 +42,13 @@ export function CardBackArtwork(): JSX.Element {
         y="24"
         width="272"
         height="432"
-        rx="10"
+        rx="12"
         fill="none"
         stroke="url(#goldTraceGrad)"
         strokeWidth="1.5"
       />
 
-      {/* Corner Filigree / Circuit Bus Symmetry */}
-      {/* Top-Left */}
+      {/* Corner Filigree Circuit Bus Symmetry */}
       <g stroke="#38bdf8" strokeWidth="1.8" fill="none">
         <path d="M 28 65 A 35 35 0 0 1 65 28" />
         <path d="M 28 85 A 55 55 0 0 1 85 28" />
@@ -57,7 +56,6 @@ export function CardBackArtwork(): JSX.Element {
         <circle cx="54" cy="54" r="4.5" fill="#38bdf8" />
       </g>
 
-      {/* Top-Right */}
       <g stroke="#38bdf8" strokeWidth="1.8" fill="none">
         <path d="M 292 65 A 35 35 0 0 0 255 28" />
         <path d="M 292 85 A 55 55 0 0 0 235 28" />
@@ -65,7 +63,6 @@ export function CardBackArtwork(): JSX.Element {
         <circle cx="266" cy="54" r="4.5" fill="#38bdf8" />
       </g>
 
-      {/* Bottom-Left */}
       <g stroke="#38bdf8" strokeWidth="1.8" fill="none">
         <path d="M 28 415 A 35 35 0 0 0 65 452" />
         <path d="M 28 395 A 55 55 0 0 0 85 452" />
@@ -73,7 +70,6 @@ export function CardBackArtwork(): JSX.Element {
         <circle cx="54" cy="426" r="4.5" fill="#38bdf8" />
       </g>
 
-      {/* Bottom-Right */}
       <g stroke="#38bdf8" strokeWidth="1.8" fill="none">
         <path d="M 292 415 A 35 35 0 0 1 255 452" />
         <path d="M 292 395 A 55 55 0 0 1 235 452" />
@@ -81,7 +77,7 @@ export function CardBackArtwork(): JSX.Element {
         <circle cx="266" cy="426" r="4.5" fill="#38bdf8" />
       </g>
 
-      {/* Golden Circuit Ray Sunburst Lines radiating from Center */}
+      {/* Golden Circuit Ray Sunburst Lines */}
       <g stroke="rgba(251, 191, 36, 0.55)" strokeWidth="1.5">
         <line x1="75" y1="155" x2="160" y2="240" />
         <line x1="55" y1="175" x2="160" y2="240" />
