@@ -19,7 +19,7 @@ import {
 // Gap always fills whatever room is left after 4 cards fit the stage width —
 // .lusion-deck-inner caps at max-width:1440px, so this maxes out around 64px
 // at full width (vs. the old fixed 12px), spanning card 0→3 edge-to-edge.
-const CARD_W   = 300; // must match .lusion-card-isolated-cell width in CSS
+const CARD_W   = 320; // must match .lusion-card-isolated-cell width in CSS
 // Left-edge offsets of each card relative to card 0's left edge
 
 const CARD_CONFIGS = [
@@ -30,6 +30,29 @@ const CARD_CONFIGS = [
 ];
 
 function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
+  // Auto-size node boxes from the actual data instead of a fixed 24% width.
+  // Diagrams with 4 top-row nodes (e.g. career-automation) pack tighter than
+  // ones with 3 (e.g. personal-agent-harness), so a fixed box width overlaps
+  // on the tighter layouts. Finding the tightest gap within any shared row
+  // and deriving box width from it keeps every diagram's boxes clear of each
+  // other regardless of node count, while leaving the widest-spaced diagram
+  // (30% steps) at exactly its previous 24% width — unchanged reference look.
+  const rows = new Map<number, number[]>();
+  nodes.forEach((n) => {
+    const xs = rows.get(n.y) ?? [];
+    xs.push(n.x);
+    rows.set(n.y, xs);
+  });
+  let minGap = 100;
+  rows.forEach((xs) => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      minGap = Math.min(minGap, sorted[i] - sorted[i - 1]);
+    }
+  });
+  const boxW = Math.max(12, Math.min(24, minGap * 0.8));
+  const boxH = 22;
+
   return (
     <div
       className="deck-mini-diagram-box"
@@ -40,7 +63,7 @@ function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: 
       aria-label="Click to pop out full architecture flow and Mermaid diagram"
     >
       <div className="diagram-popout-badge"><span>CLICK TO POP OUT [↗]</span></div>
-      <svg viewBox="0 0 280 110" className="deck-mini-svg" role="img" aria-label="Architecture dataflow diagram">
+      <svg viewBox="0 0 280 160" className="deck-mini-svg" role="img" aria-label="Architecture dataflow diagram">
         <defs>
           <linearGradient id="dealWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
@@ -63,9 +86,9 @@ function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: 
         })}
         {nodes.map((node) => (
           <g key={node.id}>
-            <rect x={`${node.x - 12}%`} y={`${node.y - 9}%`} width="24%" height="18%" rx="4" fill="#060910" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="1" />
-            <rect x={`${node.x - 12}%`} y={`${node.y - 9}%`} width="24%" height="2.5" rx="1" fill="#38bdf8" />
-            <text x={`${node.x}%`} y={`${node.y + 2}%`} textAnchor="middle" fontSize="4.4" fontFamily="monospace" fontWeight="700" fill="#ffffff">{node.label}</text>
+            <rect x={`${node.x - boxW / 2}%`} y={`${node.y - boxH / 2}%`} width={`${boxW}%`} height={`${boxH}%`} rx="4" fill="#060910" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="1" />
+            <rect x={`${node.x - boxW / 2}%`} y={`${node.y - boxH / 2}%`} width={`${boxW}%`} height="2.5" rx="1" fill="#38bdf8" />
+            <text x={`${node.x}%`} y={`${node.y + 2}%`} textAnchor="middle" fontSize="5.6" fontFamily="monospace" fontWeight="700" fill="#ffffff">{node.label}</text>
           </g>
         ))}
       </svg>
@@ -93,10 +116,10 @@ export function CaseStudies(): JSX.Element {
     const compute = () => {
       const w = stageRef.current?.offsetWidth ?? 0;
       if (w === 0) return;
-      // CSS shrinks .lusion-card-isolated-cell to 275px below 1200px viewport
+      // CSS shrinks .lusion-card-isolated-cell to 295px below 1200px viewport
       // (see components.css @media max-width: 1200px) — match it here so the
-      // alignment/gap math uses the real rendered card width, not a stale 300px.
-      const cardW = window.matchMedia("(max-width: 1200px)").matches ? 275 : CARD_W;
+      // alignment/gap math uses the real rendered card width, not a stale value.
+      const cardW = window.matchMedia("(max-width: 1200px)").matches ? 295 : CARD_W;
       // Fill available room exactly: 4 cards span the full stage width,
       // never overflowing it, with an even gap between each.
       const gap = Math.max(0, (w - 4 * cardW) / 3);
@@ -237,12 +260,22 @@ export function CaseStudies(): JSX.Element {
               const isFrontVisible = rotY >= 90;
 
               // During travel: organic tilt from start angles back to 0 at landing.
-              const currentX = THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP);
-              const currentY = THREE_lerp(0, cfg.targetY, cardP);
-              const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP);
-              const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP);
-              const currentScale = THREE_lerp(0.93, 1.0, cardP);
-              const liftZ = Math.sin(cardP * Math.PI) * 70;
+              // Rounded to whole px/degrees before hitting the inline style: any
+              // fractional value here (THREE_lerp floats, or the ~1e-16 residue
+              // from Math.sin(Math.PI) not being exactly 0) forces the browser to
+              // keep this element's text in a sub-pixel-offset GPU compositing
+              // layer even once the card has visually landed, which reads as a
+              // permanent slight blur on the card body text. Snapping every
+              // translate/rotate/scale component to whole px / whole degrees /
+              // 3-decimal scale removes that residue without affecting the
+              // animation itself (differences are sub-pixel, invisible in motion).
+              const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
+              const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
+              const currentRotZ = Math.round(THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP));
+              const currentRotX = Math.round(THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP));
+              const currentScale = Math.round(THREE_lerp(0.93, 1.0, cardP) * 1000) / 1000;
+              const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
+              const rotYDisplay = Math.round(rotY * 100) / 100;
 
               return (
                 <div
@@ -256,7 +289,7 @@ export function CaseStudies(): JSX.Element {
                   }}
                   onClick={() => { if (!isFrontVisible) jumpToProgress(1); }}
                 >
-                  <div className="lusion-card-flipper" style={{ transform: `rotateY(${rotY}deg)` }}>
+                  <div className="lusion-card-flipper" style={{ transform: `rotateY(${rotYDisplay}deg)` }}>
                     <div className="lusion-card-face lusion-card-front" style={{ pointerEvents: isFrontVisible ? "auto" : "none", opacity: isFrontVisible ? 1 : 0 }}>
                       <div className="card-front-top">
                         <div className="card-front-title-group">
