@@ -32,6 +32,17 @@ test.describe("Portfolio smoke tests", () => {
     }
   });
 
+  test("reveals tall sections when scrolling past their first viewport", async ({ page }) => {
+    await page.goto("/");
+    const skills = page.locator("#skills");
+    await skills.evaluate((element) => {
+      window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY + 1000);
+    });
+    await expect(
+      page.getByRole("heading", { name: "Interactive System Console & Toolchains" }),
+    ).toBeVisible();
+  });
+
   test("keyboard navigation reaches skip link first", async ({ page }) => {
     await page.goto("/");
     const skipLink = page.getByRole("link", { name: "Skip to main content" });
