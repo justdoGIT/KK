@@ -50,6 +50,84 @@ test.describe("Portfolio smoke tests", () => {
     await expect(page.getByRole("heading", { name: "Languages & Core" })).toBeVisible();
   });
 
+  test("tracks revealed skill domains in the filter highlights", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/");
+    const domains = page.locator(".skill-domains-section");
+    await expect(domains).toHaveClass(/skill-domains-pinned/);
+    const counter = page.locator(".skill-domains-counter");
+    const allDomains = page.getByRole("tab", { name: /^All Domains/ });
+    const domainTabs = [
+      page.getByRole("tab", { name: /^Languages & Core/ }),
+      page.getByRole("tab", { name: /^Processors & SoCs/ }),
+      page.getByRole("tab", { name: /^OS & Firmware/ }),
+    ];
+
+    const scrollToOpenedCount = async (opened: number) => {
+      await domains.evaluate((element, count) => {
+        const total = element.querySelectorAll(".skill-card-reveal").length;
+        const scrollable = element.offsetHeight - window.innerHeight;
+        const progress = ((count + 0.05) / total) * 0.86;
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: top + scrollable * progress, behavior: "instant" as ScrollBehavior });
+      }, opened);
+    };
+
+    await scrollToOpenedCount(1);
+    await expect(counter).toHaveText("01 / 07");
+    await expect(domainTabs[0]).toHaveClass(/is-revealed/);
+    await expect(domainTabs[1]).not.toHaveClass(/is-revealed/);
+    await expect(allDomains).not.toHaveClass(/active/);
+
+    await scrollToOpenedCount(3);
+    await expect(counter).toHaveText("03 / 07");
+    for (const tab of domainTabs) {
+      await expect(tab).toHaveClass(/is-revealed/);
+    }
+
+    await scrollToOpenedCount(7);
+    await expect(counter).toHaveText("07 / 07");
+    for (const tab of domainTabs) {
+      await expect(tab).not.toHaveClass(/is-revealed/);
+    }
+    await expect(allDomains).toHaveClass(/active/);
+  });
+
+  test("stages the 3D astronaut card expansion, tunnel journey, and finale", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/");
+    const journey = page.locator(".aj-section");
+    const stage = page.locator(".aj-stage");
+    const intro = page.locator(".aj-intro");
+    const end = page.locator(".aj-end");
+
+    const scrollJourneyTo = async (progress: number) => {
+      await journey.evaluate((element, value) => {
+        const scrollable = element.offsetHeight - window.innerHeight;
+        const secTop = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: secTop + scrollable * value, behavior: "instant" as ScrollBehavior });
+      }, progress);
+      await page.waitForTimeout(150);
+    };
+
+    await scrollJourneyTo(0.02);
+    await expect(stage).toHaveAttribute("data-phase", "cardShow");
+    await expect(intro).toBeVisible();
+
+    await scrollJourneyTo(0.18);
+    await expect(stage).toHaveAttribute("data-phase", "title");
+    await expect(page.getByText("Step into a new orbit")).toBeVisible();
+
+    await scrollJourneyTo(0.30);
+    await expect(stage).toHaveAttribute("data-phase", "blackTunnel");
+
+    await scrollJourneyTo(0.80);
+    await expect(stage).toHaveAttribute("data-phase", "wait");
+    await expect(end).toBeVisible();
+    await expect(page.getByText(/Let.*build it/i)).toBeVisible();
+    await expect(end.getByRole("link", { name: /Start a conversation/i })).toBeVisible();
+  });
+
   test("keyboard navigation reaches skip link first", async ({ page }) => {
     await page.goto("/");
     const skipLink = page.getByRole("link", { name: "Skip to main content" });

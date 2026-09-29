@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate:publication": "node scripts/validate-publication.mjs"
+    "validate:publication": "node scripts/validate-publication.mjs",
+    "test:e2e": "env -u NO_COLOR playwright test"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",

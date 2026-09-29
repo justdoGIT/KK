@@ -1,0 +1,334 @@
+/* Contact astronaut journey (Lusion goal-section replication).
+   Layer order: backdrop < world (masked) < card edge / bezel < intro
+   < hero (unmasked after the glass breaks) < title < stickers < finale. */
+
+.aj-section {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-bottom: 5rem;
+}
+
+.aj-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  color: #ffffff;
+}
+
+.aj-backdrop,
+.aj-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.aj-backdrop {
+  z-index: 0;
+  background: #000000;
+  opacity: 0;
+}
+
+.aj-world {
+  z-index: 1;
+  will-change: clip-path, transform;
+}
+
+.aj-hero {
+  z-index: 4;
+  will-change: clip-path;
+}
+
+.aj-canvas {
+  position: absolute !important;
+  inset: 0;
+}
+
+.aj-card-edge,
+.aj-bezel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform, width, height;
+}
+
+.aj-card-edge {
+  border: 1px solid rgba(148, 170, 255, 0.35);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.55),
+    0 0 70px rgba(56, 120, 255, 0.18);
+}
+
+.aj-bezel {
+  opacity: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 14px #07080d,
+    0 0 0 15px rgba(255, 255, 255, 0.06),
+    0 40px 120px rgba(0, 0, 0, 0.7);
+}
+
+.aj-intro {
+  position: absolute;
+  top: 11%;
+  left: 50%;
+  z-index: 3;
+  width: min(92vw, 900px);
+  margin-left: calc(min(92vw, 900px) / -2);
+  text-align: center;
+  pointer-events: none;
+}
+
+.aj-kicker,
+.aj-end-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #93a4ff;
+}
+
+.aj-intro-title {
+  margin-top: 0.8rem;
+  font-size: clamp(1.8rem, 3.6vw, 3.4rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.aj-title {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 5;
+  width: 100%;
+  transform: translateY(-58%);
+  text-align: center;
+  text-transform: uppercase;
+  font-size: clamp(2.6rem, 6.4vw, 7.2rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.45);
+}
+
+.aj-title span {
+  display: block;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.aj-stickers {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.aj-sticker {
+  position: absolute;
+  opacity: 0;
+  will-change: transform;
+}
+
+.aj-sticker-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.5));
+  animation: aj-float 5.5s ease-in-out infinite alternate;
+}
+
+.aj-sticker:nth-child(2n) .aj-sticker-art {
+  animation-delay: -2.1s;
+}
+
+.aj-sticker:nth-child(3n) .aj-sticker-art {
+  animation-duration: 6.8s;
+}
+
+@keyframes aj-float {
+  from { transform: translate3d(0, -6px, 0) rotate(-3deg); }
+  to { transform: translate3d(0, 8px, 0) rotate(4deg); }
+}
+
+.aj-end {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.aj-end-kicker {
+  position: absolute;
+  top: 17%;
+  left: 0;
+  width: 100%;
+  color: #ffffff;
+}
+
+.aj-end-title {
+  font-size: clamp(3.2rem, 9.4vw, 10rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-shadow: 0 10px 50px rgba(0, 0, 0, 0.4);
+}
+
+.aj-end-title span {
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  background: linear-gradient(currentColor, currentColor) left 92% / 0 4px no-repeat;
+  transition: background-size 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aj-end:hover .aj-end-title span {
+  background-size: 100% 4px;
+}
+
+.aj-end-actions {
+  position: absolute;
+  bottom: 7%;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.aj-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.6rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #07080d;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+}
+
+.aj-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.aj-pill:focus-visible {
+  outline: 2px solid #93a4ff;
+  outline-offset: 3px;
+}
+
+.aj-pill-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.aj-cross {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+}
+
+.aj-cross::before,
+.aj-cross::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.aj-cross::before {
+  top: 7px;
+  left: 0;
+  width: 16px;
+  height: 2px;
+}
+
+.aj-cross::after {
+  top: 0;
+  left: 7px;
+  width: 2px;
+  height: 16px;
+}
+
+/* Static finale: reduced motion or no WebGL. */
+.aj-fallback {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  max-height: 80vh;
+  margin: 0 auto 4rem;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #000000;
+  color: #ffffff;
+}
+
+.aj-fallback-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.aj-end-static {
+  opacity: 1;
+  visibility: visible;
+}
+
+.aj-fallback .astronaut-waving .astronaut-right-arm {
+  transform-origin: 555px 210px;
+  animation: aj-wave 1.6s ease-in-out infinite;
+}
+
+@keyframes aj-wave {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(14deg); }
+  70% { transform: rotate(-10deg); }
+}
+
+@media (max-width: 768px) {
+  .aj-title {
+    font-size: clamp(2rem, 10vw, 3.4rem);
+  }
+  .aj-end-title {
+    font-size: clamp(2.6rem, 13vw, 4.4rem);
+  }
+  .aj-sticker:nth-child(n + 8) {
+    display: none;
+  }
+  .aj-end-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aj-sticker-art,
+  .aj-fallback .astronaut-waving .astronaut-right-arm {
+    animation: none;
+  }
+}

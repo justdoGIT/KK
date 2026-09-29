@@ -1,10 +1,8 @@
 import { type JSX } from "react";
 
-// Reusable deep-space backdrop (stars + Earth horizon). Rendered twice by
-// AstronautSpaceJourney (once inside the small "screen" bezel, once as the
-// full-stage backdrop during the journey) -- `idPrefix` keeps each
-// instance's gradient/filter ids unique so two copies can coexist in the
-// same document without id collisions.
+// Deep-space backdrop (stars + Earth horizon) for the static astronaut
+// finale shown when motion is reduced or WebGL is unavailable. `idPrefix`
+// keeps gradient ids unique if more than one copy is ever mounted.
 export function SpaceBackdrop({ idPrefix }: { idPrefix: string }): JSX.Element {
   return (
     <svg
@@ -60,13 +58,9 @@ export function SpaceBackdrop({ idPrefix }: { idPrefix: string }): JSX.Element {
   );
 }
 
-// Astronaut figure only -- no SVG <filter> anywhere on this tree. The
-// glove/visor "flare" sparkle is a plain layered-circle glow (bright core +
-// soft translucent halo, no feGaussianBlur) instead of an SVG filter,
-// because this whole group's parent gets a continuously scroll-driven
-// `transform`: an SVG filter region recomputes every time an ancestor's
-// transform changes, and Chromium/Firefox visibly flicker/strobe when that
-// happens every animation frame. Removing the filter removes the flicker.
+// Flat SVG astronaut for the static finale. No SVG <filter> anywhere on this
+// tree: the glove/visor sparkle is layered circles, so the figure stays crisp
+// and flicker-free if an ancestor is ever transformed.
 export function AstronautFigure({ isWaving }: { isWaving: boolean }): JSX.Element {
   return (
     <g className={`space-astronaut-figure ${isWaving ? "astronaut-waving" : ""}`}>

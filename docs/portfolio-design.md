@@ -132,6 +132,8 @@ Planned study candidates:
 
 Contact uses user-triggered static links: email from the resume, GitHub `https://github.com/justdoGIT`, and the LinkedIn profile URL derived from the resume identifier, subject to final URL verification. No phone number is displayed by default. External links use consistent `target="_blank" rel="noreferrer"` only when new-tab behavior is intentionally chosen, with accessible labels that state the destination; same-tab links omit both attributes.
 
+The enhanced skill-domain grid mirrors scroll progress in its filter pills: each category highlights when its card is fully revealed, then the individual progress highlights clear and `All Domains` becomes active once the complete grid is open. The contact transition uses a pinned four-beat astronaut journey inspired by Lusion’s public sequence: a compact orbital card expands to fill the stage, the astronaut tumbles through a free fall, and the screen fractures before the astronaut exits waving into the final invitation. The same semantic contact links and a static reduced-motion presentation remain available.
+
 ## Runtime, Motion, and Performance
 
 ### Chunk graph and persistent canvas
