@@ -2,6 +2,7 @@ import { type JSX } from "react";
 import { NavBar } from "./components/layout/NavBar.tsx";
 import { Footer } from "./components/layout/Footer.tsx";
 import { ScrollNavigator } from "./components/layout/ScrollNavigator.tsx";
+import { GlobalRibbonBackground } from "./components/layout/GlobalRibbonBackground.tsx";
 import { Hero } from "./components/sections/Hero.tsx";
 import { ClientMetricsStrip } from "./components/ui/ClientMetricsStrip.tsx";
 import { Services } from "./components/sections/Services.tsx";
@@ -28,6 +29,7 @@ function AppContent(): JSX.Element {
         Skip to main content
       </a>
       <MagneticCursor />
+      <GlobalRibbonBackground />
       <SceneEntry />
       <ScrollNavigator />
       <NavBar />
