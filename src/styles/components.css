@@ -2331,7 +2331,21 @@ main::before {
 .interactive-terminal-wrapper {
   position: relative;
   width: 100%;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom left;
+  transform: perspective(1200px) scale(0.68) translate3d(-90px, 75px, -30px) rotate(-3deg);
+  opacity: 0;
+  filter: blur(5px);
+  will-change: transform, opacity, filter;
+  transition: transform 1.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.95s ease-out, filter 0.8s ease;
+}
+.interactive-terminal-wrapper.terminal-entered {
+  transform: perspective(1200px) scale(1) translate3d(0, 0, 0) rotate(0deg);
+  opacity: 1;
+  filter: blur(0px);
+}
+.interactive-terminal-wrapper.terminal-entered .terminal-window {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .interactive-terminal-wrapper.terminal-expanded-mode {
   position: fixed;
@@ -2339,6 +2353,9 @@ main::before {
   z-index: 1000;
   max-width: 1400px;
   margin: auto;
+  transform: none !important;
+  opacity: 1 !important;
+  filter: none !important;
   box-shadow: 0 0 0 100vmax rgba(5, 8, 15, 0.85);
 }
 .terminal-window {
@@ -2347,6 +2364,7 @@ main::before {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: border-color 0.8s ease, box-shadow 0.8s ease;
 }
 .terminal-titlebar {
   display: flex;
