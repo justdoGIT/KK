@@ -1,5 +1,6 @@
 import { type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { AstronautSpaceJourney } from "../ui/AstronautSpaceJourney.tsx";
 
 export function ContactCTA(): JSX.Element {
   return (
@@ -10,6 +11,8 @@ export function ContactCTA(): JSX.Element {
         <span className="contact-crosshair contact-ch-tr" aria-hidden="true">+</span>
         <span className="contact-crosshair contact-ch-bl" aria-hidden="true">+</span>
         <span className="contact-crosshair contact-ch-br" aria-hidden="true">+</span>
+
+        <AstronautSpaceJourney />
 
         <div className="contact-inner">
           <div className="contact-status-pill">
