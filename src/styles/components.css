@@ -1590,7 +1590,7 @@ main::before {
 .lusion-card-back {
   transform: rotateY(0deg);
   overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
 }
 .card-back-svg {
   display: block;
@@ -1614,8 +1614,7 @@ main::before {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -2083,9 +2082,18 @@ main::before {
 }
 .arch-node-group {
   cursor: pointer;
+}
+/* Hover scale applies to the INNER group only. The outer .arch-node-group
+   carries the SVG transform="translate(cx,cy)" positioning attribute — a
+   CSS transform on that same element would replace (not compose with) the
+   attribute transform, yanking the node away from the cursor and causing
+   an enter/leave flicker loop. Scaling the inner child avoids that. */
+.arch-node-inner {
+  transform-box: fill-box;
+  transform-origin: center;
   transition: transform 0.2s ease;
 }
-.arch-node-group:hover {
+.arch-node-group:hover .arch-node-inner {
   transform: scale(1.04);
 }
 .arch-inspector-pill {
