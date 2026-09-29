@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(cleanup);
 
 // jsdom does not implement matchMedia; mock it for motion-mode and cursor tests
 if (typeof window !== "undefined" && !window.matchMedia) {
@@ -44,10 +48,8 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     MockResizeObserver as unknown as typeof ResizeObserver;
 }
 
-// jsdom does not implement canvas getContext; return null so WebGL check fails gracefully
-if (
-  typeof HTMLCanvasElement !== "undefined" &&
-  !HTMLCanvasElement.prototype.getContext
-) {
-  HTMLCanvasElement.prototype.getContext = () => null;
+// jsdom's getContext implementation only logs "not implemented". WebGL
+// capability detection must receive null, matching an unsupported browser.
+if (typeof HTMLCanvasElement !== "undefined") {
+  HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 }

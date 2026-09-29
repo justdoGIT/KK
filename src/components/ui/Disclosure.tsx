@@ -4,10 +4,14 @@ type DisclosureProps = {
   id: string;
   summary: ReactNode;
   children: ReactNode;
+  /** Controlled open state; omit for an uncontrolled disclosure. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function Disclosure({ id, summary, children }: DisclosureProps) {
-  const [open, setOpen] = useState(false);
+export function Disclosure({ id, summary, children, open: controlledOpen, onOpenChange }: DisclosureProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
   const panelId = `disclosure-panel-${id}`;
 
   return (
@@ -17,7 +21,10 @@ export function Disclosure({ id, summary, children }: DisclosureProps) {
         className="disclosure-trigger"
         aria-controls={panelId}
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          if (controlledOpen === undefined) setUncontrolledOpen(!open);
+          onOpenChange?.(!open);
+        }}
       >
         <span className="disclosure-summary">{summary}</span>
         <span className="disclosure-icon" aria-hidden="true">

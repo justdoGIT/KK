@@ -1,144 +1,158 @@
-import { smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import { IMPACT_AT, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import { BONES, type BoneName } from "./astronaut-rig.ts";
 
-// Joint rotations (radians, XYZ euler) for the procedural astronaut rig.
-// "L" joints sit on the viewer's left (x < 0) while the astronaut faces the
-// camera. Limbs hang along local -Y, so: -X raises a limb forward, +X bends a
-// knee back, and Z swings a limb out sideways (negative on L, positive on R).
+/**
+ * Bone rotations (radians, XYZ Euler) relative to the NASA mesh's T-pose.
+ * Conventions for the left side (+X); `mirror` derives the right side:
+ * arm z < 0 lowers the arm, arm y < 0 swings it forward; thigh x < 0 lifts
+ * the leg forward, shin x > 0 bends the knee; forearm y < 0 bends inward.
+ */
 
-export const JOINTS = [
-  "torso",
-  "head",
-  "shoulderL",
-  "elbowL",
-  "shoulderR",
-  "elbowR",
-  "hipL",
-  "kneeL",
-  "hipR",
-  "kneeR",
-] as const;
+type Euler3 = readonly [number, number, number];
+type Side = { arm: Euler3; forearm: Euler3; thigh: Euler3; shin: Euler3 };
+export type Pose = Record<BoneName, Euler3>;
+export type PoseBuffer = Record<BoneName, [number, number, number]>;
 
-export type JointName = (typeof JOINTS)[number];
-export type Euler3 = readonly [number, number, number];
-export type Pose = Record<JointName, Euler3>;
+const ZERO: Euler3 = [0, 0, 0];
 
-const STAND: Pose = {
-  torso: [0, 0, 0],
-  head: [0.05, 0, 0],
-  shoulderL: [0.02, 0, -0.14],
-  elbowL: [-0.2, 0, 0],
-  shoulderR: [0.02, 0, 0.14],
-  elbowR: [-0.2, 0, 0],
-  hipL: [0, 0, -0.05],
-  kneeL: [0.06, 0, 0],
-  hipR: [0, 0, 0.05],
-  kneeR: [0.06, 0, 0],
-};
+function pose(body: { spine?: Euler3; chest?: Euler3; head?: Euler3 }, left: Side, right: Side = left): Pose {
+  const m = (e: Euler3): Euler3 => [e[0], -e[1], -e[2]];
+  return {
+    hips: ZERO,
+    spine: body.spine ?? ZERO,
+    chest: body.chest ?? ZERO,
+    neck: ZERO,
+    head: body.head ?? ZERO,
+    armL: left.arm,
+    forearmL: left.forearm,
+    handL: ZERO,
+    armR: m(right.arm),
+    forearmR: m(right.forearm),
+    handR: ZERO,
+    thighL: left.thigh,
+    shinL: left.shin,
+    footL: ZERO,
+    thighR: m(right.thigh),
+    shinR: right.shin,
+    footR: ZERO,
+  };
+}
 
-// Title beat: floating toward camera, arms spread with forearms raised.
-const SPREAD: Pose = {
-  torso: [0.08, 0, 0],
-  head: [0.12, 0, 0],
-  shoulderL: [0, 0, -1.3],
-  elbowL: [0, 0, -0.85],
-  shoulderR: [0, 0, 1.3],
-  elbowR: [0, 0, 0.85],
-  hipL: [-0.28, 0, -0.12],
-  kneeL: [0.5, 0, 0],
-  hipR: [0.08, 0, 0.1],
-  kneeR: [0.22, 0, 0],
-};
+const STAND = pose({ chest: [0.04, 0, 0] }, { arm: [0, -0.1, -1.25], forearm: [0, -0.25, 0], thigh: [0, 0, 0.03], shin: [0.05, 0, 0] });
+const FLOAT = pose(
+  { spine: [0.1, 0, 0], head: [0.1, 0, 0] },
+  { arm: [0, 0.1, -0.55], forearm: [0, -0.35, 0.2], thigh: [-0.25, 0, 0.12], shin: [0.45, 0, 0] },
+  { arm: [0, 0.1, -0.7], forearm: [0, -0.2, 0.1], thigh: [0.05, 0, 0.08], shin: [0.2, 0, 0] },
+);
+const FREEFALL = pose(
+  { spine: [0.3, 0, 0], head: [-0.2, 0, 0] },
+  { arm: [0, 0.35, 0.25], forearm: [0, 0, 0.55], thigh: [0.25, 0, 0.35], shin: [0.95, 0, 0] },
+);
+const CROUCH = pose(
+  { spine: [0.35, 0, 0], chest: [0.15, 0, 0], head: [-0.2, 0, 0] },
+  { arm: [0, 0.75, -1.05], forearm: [0, -0.3, 0], thigh: [-1.15, 0, 0.08], shin: [1.95, 0, 0] },
+);
+const KICK = pose(
+  { spine: [-0.3, 0, 0], chest: [-0.1, 0, 0], head: [0.15, 0, 0] },
+  { arm: [0, 0.45, -0.35], forearm: [0, -0.4, 0.3], thigh: [-1.6, 0, 0.05], shin: [0.05, 0, 0] },
+  { arm: [0, 0.2, -0.5], forearm: [0, -0.5, 0.4], thigh: [-0.55, 0, 0.1], shin: [1.85, 0, 0] },
+);
+const SHIELD = pose(
+  { spine: [0.28, 0, 0], chest: [0.12, 0, 0], head: [0.22, 0, 0] },
+  { arm: [0, -1.25, -0.3], forearm: [0, -0.95, 1.05], thigh: [-1.0, 0, 0.1], shin: [1.45, 0, 0] },
+  { arm: [0, -1.15, -0.2], forearm: [0, -0.85, 1.15], thigh: [-0.75, 0, 0.1], shin: [1.7, 0, 0] },
+);
+const LAND = pose(
+  { spine: [0.3, 0, 0], head: [-0.1, 0, 0] },
+  { arm: [0, -0.2, -0.55], forearm: [0, -0.4, 0], thigh: [-0.85, 0, 0.12], shin: [1.4, 0, 0] },
+);
+const WAVE = pose(
+  { chest: [0.02, 0, 0], head: [0.04, -0.12, 0] },
+  { arm: [0, -0.15, 1.05], forearm: [0, 0, 0.75], thigh: [0, 0, 0.03], shin: [0.05, 0, 0] },
+  { arm: [0, -0.1, -1.25], forearm: [0, -0.25, 0], thigh: [0, 0, 0.03], shin: [0.05, 0, 0] },
+);
 
-// Tunnel beat: skydiver arch, limbs splayed.
-const FREEFALL: Pose = {
-  torso: [0.28, 0, 0],
-  head: [-0.18, 0, 0],
-  shoulderL: [-0.3, 0, -1.95],
-  elbowL: [0, 0, 0.55],
-  shoulderR: [-0.3, 0, 1.95],
-  elbowR: [0, 0, -0.55],
-  hipL: [0.22, 0, -0.42],
-  kneeL: [0.95, 0, 0],
-  hipR: [0.22, 0, 0.42],
-  kneeR: [0.95, 0, 0],
-};
-
-// Screen beat: palms pressed on the glass at head height.
-const PUSH: Pose = {
-  torso: [-0.05, 0, 0],
-  head: [0.02, 0, 0],
-  shoulderL: [-0.4, 0, -0.95],
-  elbowL: [-0.1, 0, -1.45],
-  shoulderR: [-0.4, 0, 0.95],
-  elbowR: [-0.1, 0, 1.45],
-  hipL: [-0.38, 0, -0.05],
-  kneeL: [0.62, 0, 0],
-  hipR: [0.06, 0, 0.06],
-  kneeR: [0.24, 0, 0],
-};
-
-// Break-through beat: balancing drop, arms out, one knee raised.
-const DROP: Pose = {
-  torso: [0.1, 0, 0],
-  head: [0.1, 0, 0],
-  shoulderL: [0, 0, -1.5],
-  elbowL: [0, 0, 0.15],
-  shoulderR: [0, 0, 1.45],
-  elbowR: [0, 0, -0.1],
-  hipL: [-0.72, 0, -0.1],
-  kneeL: [1.1, 0, 0],
-  hipR: [0.05, 0, 0.05],
-  kneeR: [0.16, 0, 0],
-};
-
-// Finale: standing, viewer-left arm raised for the wave.
-export const WAVE: Pose = {
-  ...STAND,
-  head: [0.04, -0.08, 0],
-  shoulderL: [0, 0, -2.55],
-  elbowL: [0, 0, -0.5],
-  shoulderR: [0.04, 0, 0.2],
-};
-
-const POSE_KEYS: ReadonlyArray<{ t: number; pose: Pose }> = [
-  { t: 0, pose: STAND },
-  { t: 0.12, pose: STAND },
-  { t: 0.22, pose: SPREAD },
-  { t: 0.3, pose: SPREAD },
-  { t: 0.36, pose: FREEFALL },
-  { t: 0.57, pose: FREEFALL },
-  { t: 0.65, pose: PUSH },
-  { t: 0.74, pose: PUSH },
-  { t: 0.8, pose: DROP },
-  { t: 0.87, pose: DROP },
-  { t: 0.93, pose: WAVE },
-  { t: 1, pose: WAVE },
+/** Keyframes on the frameBreak ratio: crouch → jump → kick (contact at IMPACT_AT) → shield. */
+const BREAK_KEYS: readonly { f: number; pose: Pose }[] = [
+  { f: 0, pose: STAND },
+  { f: 0.2, pose: CROUCH },
+  { f: 0.3, pose: CROUCH },
+  { f: IMPACT_AT, pose: KICK },
+  { f: IMPACT_AT + 0.08, pose: KICK },
+  { f: 0.68, pose: SHIELD },
+  { f: 1, pose: SHIELD },
 ];
 
-/** Blend the keyed poses at timeline progress `t` into `out`. */
-export function samplePose(t: number, out: Record<JointName, [number, number, number]>): void {
-  let a = POSE_KEYS[0];
-  let b = POSE_KEYS[POSE_KEYS.length - 1];
-  for (let i = 0; i < POSE_KEYS.length - 1; i++) {
-    if (t >= POSE_KEYS[i].t && t <= POSE_KEYS[i + 1].t) {
-      a = POSE_KEYS[i];
-      b = POSE_KEYS[i + 1];
-      break;
-    }
-  }
-  const k = a === b ? 0 : smoothstep(a.t, b.t, t);
-  for (const joint of JOINTS) {
-    const p = a.pose[joint];
-    const q = b.pose[joint];
-    const o = out[joint];
-    o[0] = p[0] + (q[0] - p[0]) * k;
-    o[1] = p[1] + (q[1] - p[1]) * k;
-    o[2] = p[2] + (q[2] - p[2]) * k;
+export function createPoseBuffer(): PoseBuffer {
+  const buffer = {} as PoseBuffer;
+  for (const name of BONES) buffer[name] = [0, 0, 0];
+  return buffer;
+}
+
+function blend(out: PoseBuffer, a: Pose, b: Pose, k: number): void {
+  for (const name of BONES) {
+    const p = a[name];
+    const q = b[name];
+    out[name][0] = p[0] + (q[0] - p[0]) * k;
+    out[name][1] = p[1] + (q[1] - p[1]) * k;
+    out[name][2] = p[2] + (q[2] - p[2]) * k;
   }
 }
 
-export function createPoseBuffer(): Record<JointName, [number, number, number]> {
-  const buffer = {} as Record<JointName, [number, number, number]>;
-  for (const joint of JOINTS) buffer[joint] = [0, 0, 0];
-  return buffer;
+function keyed(out: PoseBuffer, keys: readonly { f: number; pose: Pose }[], f: number): void {
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    if (f <= keys[i + 1].f) {
+      blend(out, keys[i].pose, keys[i + 1].pose, smoothstep(keys[i].f, keys[i + 1].f, f));
+      return;
+    }
+  }
+  blend(out, keys[keys.length - 1].pose, keys[keys.length - 1].pose, 0);
+}
+
+/** Running cycle layered on STAND during the run-up inside the screen. */
+function run(out: PoseBuffer, phase: number, weight: number): void {
+  const s = Math.sin(phase);
+  const c = Math.cos(phase);
+  out.thighL[0] += -0.85 * s * weight;
+  out.thighR[0] += 0.85 * s * weight;
+  out.shinL[0] += (0.9 + 0.7 * c) * weight;
+  out.shinR[0] += (0.9 - 0.7 * c) * weight;
+  out.armL[1] += 0.6 * s * weight;
+  out.armR[1] += 0.6 * s * weight;
+  out.forearmL[1] += -1.1 * weight;
+  out.forearmR[1] += 1.1 * weight;
+  out.spine[0] += 0.18 * weight;
+}
+
+/**
+ * Full-body pose at journey progress `t`. `time` only drives ambient motion
+ * (tumble breathing, wave); the choreography itself is a function of scroll.
+ */
+export function samplePose(t: number, time: number, out: PoseBuffer): void {
+  const tunnel = phaseRatio(t, "blackTunnel");
+  const white = phaseRatio(t, "whiteTunnel");
+  const runUp = phaseRatio(t, "frameOut");
+  const smash = phaseRatio(t, "frameBreak");
+  const drop = phaseRatio(t, "drop");
+  const wait = phaseRatio(t, "wait");
+  if (smash > 0 && drop === 0) {
+    keyed(out, BREAK_KEYS, smash);
+  } else if (drop > 0 && wait === 0) {
+    blend(out, SHIELD, LAND, smoothstep(0.35, 1, drop));
+  } else if (wait > 0) {
+    blend(out, LAND, WAVE, smoothstep(0, 0.18, wait));
+    const waving = smoothstep(0.1, 0.2, wait);
+    out.forearmL[2] += Math.sin(time * 6.5) * 0.4 * waving;
+    out.armL[2] += Math.sin(time * 6.5 + 0.6) * 0.08 * waving;
+  } else if (runUp > 0 || white > 0.6) {
+    blend(out, FREEFALL, STAND, smoothstep(0.6, 1, white));
+    run(out, runUp * Math.PI * 7, smoothstep(0, 0.15, runUp) * (1 - smoothstep(0.85, 1, runUp)));
+  } else if (tunnel > 0) {
+    blend(out, FLOAT, FREEFALL, smoothstep(0, 0.2, tunnel));
+    out.armL[2] += Math.sin(time * 1.3) * 0.12;
+    out.armR[2] -= Math.sin(time * 1.1 + 1) * 0.12;
+  } else {
+    blend(out, STAND, FLOAT, smoothstep(0.3, 1, phaseRatio(t, "title")));
+    out.armL[2] += Math.sin(time * 0.9) * 0.05;
+  }
 }

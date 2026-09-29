@@ -48,17 +48,23 @@ test.describe("Development runtime", () => {
   });
 });
 
-test("production blocks connections and injected styles", async ({ page }) => {
+test("production limits connections to same-origin models and blocks injected styles", async ({ page }) => {
   await page.goto("/");
-  const connectionAllowed = await page.evaluate(async () => {
-    try {
-      await fetch("/favicon.svg");
-      return true;
-    } catch {
-      return false;
-    }
+  const [sameOriginModel, crossOrigin] = await page.evaluate(async () => {
+    const attempt = async (url: string) => {
+      try {
+        return (await fetch(url)).ok;
+      } catch {
+        return false;
+      }
+    };
+    return [
+      await attempt("./models/vehicles/sports-car.glb"),
+      await attempt("https://example.com/"),
+    ];
   });
-  expect(connectionAllowed).toBe(false);
+  expect(sameOriginModel).toBe(true);
+  expect(crossOrigin).toBe(false);
 
   await page.evaluate(() => {
     const style = document.createElement("style");

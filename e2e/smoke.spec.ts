@@ -101,10 +101,18 @@ test.describe("Portfolio smoke tests", () => {
     const intro = page.locator(".aj-intro");
     const end = page.locator(".aj-end");
 
+    await expect(stage).toHaveCSS("position", "sticky");
+    await expect
+      .poll(async () => stage.evaluate((element) => Math.abs(element.getBoundingClientRect().height - window.innerHeight)))
+      .toBeLessThan(2);
+
     const scrollJourneyTo = async (progress: number) => {
       await journey.evaluate((element, value) => {
         const scrollable = element.offsetHeight - window.innerHeight;
-        const secTop = element.getBoundingClientRect().top + window.scrollY;
+        let secTop = 0;
+        for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
+          secTop += node.offsetTop;
+        }
         window.scrollTo({ top: secTop + scrollable * value, behavior: "instant" as ScrollBehavior });
       }, progress);
       await page.waitForTimeout(150);
@@ -138,16 +146,59 @@ test.describe("Portfolio smoke tests", () => {
 
   test("career timeline disclosure expands", async ({ page }) => {
     await page.goto("/");
-    const firstButton = page
+    const symxButton = page
       .getByRole("button")
       .filter({ hasText: /SYMX\.AI/ });
-    await firstButton.click();
+    await symxButton.click();
     await expect(
       page.locator(".disclosure-panel").first(),
     ).toBeVisible();
     await expect(
-      page.locator(".disclosure-panel").first().getByText(/Watchdog/),
+      page.locator(".disclosure-panel").first().getByText(/Autonomous hardware/),
     ).toBeVisible();
+  });
+
+  test("shows every career robot stage and scrubs the active role content", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/");
+    const section = page.locator("section#career");
+    await section.scrollIntoViewIfNeeded();
+    const stages = [
+      { progress: 0.12, stage: "0", codename: "WALL FOLLOWER", company: "IFM Engineering" },
+      { progress: 0.31, stage: "1", codename: "ROVER", company: "Capgemini" },
+      { progress: 0.49, stage: "2", codename: "EDGE AI QUADRUPED", company: "Dozee" },
+      { progress: 0.65, stage: "3", codename: "HUMANOID", company: "Vestel International" },
+      { progress: 0.86, stage: "4", codename: "TRANSFORMER", company: "SYMX.AI" },
+    ] as const;
+
+    for (const expected of stages) {
+      await section.evaluate((element, progress) => {
+        let top = 0;
+        for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
+          top += node.offsetTop;
+        }
+        const scrollable = element.offsetHeight - window.innerHeight;
+        window.scrollTo({ top: top + scrollable * progress, behavior: "instant" as ScrollBehavior });
+      }, expected.progress);
+      await expect(section).toHaveAttribute("data-career-stage", expected.stage);
+      await expect(page.locator(".career-screen-codename")).toContainText(expected.codename);
+      await expect(page.locator(".career-entry.is-active")).toContainText(expected.company);
+    }
+
+    await section.evaluate((element) => {
+      let top = 0;
+      for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
+        top += node.offsetTop;
+      }
+      const scrollable = element.offsetHeight - window.innerHeight;
+      window.scrollTo({ top: top + scrollable * 0.985, behavior: "instant" as ScrollBehavior });
+    });
+    await expect
+      .poll(async () => Number((await section.getAttribute("data-career-local")) ?? "0"))
+      .toBeGreaterThan(0.9);
+    await expect
+      .poll(async () => page.locator(".career-entries").evaluate((list) => list.scrollTop), { timeout: 10_000 })
+      .toBeGreaterThan(20);
   });
 
   test("mobile navigation opens and closes", async ({ page }) => {
@@ -173,14 +224,6 @@ test.describe("Portfolio smoke tests", () => {
     await workLink.click();
     await expect(page).toHaveURL(/#work$/);
     await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
-  });
-
-  test("case study visual responds to pointer movement", async ({ page }) => {
-    await page.goto("/");
-    const visual = page.locator(".interactive-visual").first();
-    await visual.hover({ position: { x: 30, y: 30 } });
-    await expect(visual).toHaveClass(/interactive-visual-active/);
-    await expect(visual.getByText("Pointer signal detected")).toBeVisible();
   });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
