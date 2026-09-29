@@ -226,14 +226,6 @@ test.describe("Portfolio smoke tests", () => {
     await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
   });
 
-  test("case study visual responds to pointer movement", async ({ page }) => {
-    await page.goto("/");
-    const visual = page.locator(".interactive-visual").first();
-    await visual.hover({ position: { x: 30, y: 30 } });
-    await expect(visual).toHaveClass(/interactive-visual-active/);
-    await expect(visual.getByText("Pointer signal detected")).toBeVisible();
-  });
-
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute(

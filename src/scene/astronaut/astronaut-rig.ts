@@ -125,6 +125,29 @@ function suitMaterial(source: Material): MeshPhysicalMaterial {
 
 export type AstronautRigData = { parts: { geometry: BufferGeometry; material: MeshPhysicalMaterial }[] };
 
+/**
+ * Widens integer-quantized attributes to plain float before a matrix bake. The
+ * NASA GLB stores positions, normals, and UVs as normalized `Int16`s inside
+ * interleaved buffer views, and `InterleavedBufferAttribute.applyMatrix4`
+ * writes the transformed values straight back into the shared integer buffer,
+ * where they wrap at ±32767 and collapse the mesh into noise.
+ */
+function widenQuantized(geometry: BufferGeometry): BufferGeometry {
+  for (const [name, attribute] of Object.entries(geometry.attributes)) {
+    const source = "data" in attribute ? attribute.data.array : attribute.array;
+    if (source instanceof Float32Array) continue;
+    const { count, itemSize } = attribute;
+    const widened = new Float32Array(count * itemSize);
+    for (let i = 0; i < count; i += 1) {
+      for (let c = 0; c < itemSize; c += 1) {
+        widened[i * itemSize + c] = attribute.getComponent(i, c);
+      }
+    }
+    geometry.setAttribute(name, new BufferAttribute(widened, itemSize));
+  }
+  return geometry;
+}
+
 /** Bakes and skins the loaded NASA scene once; instances share geometry. */
 export function buildAstronautRig(scene: Object3D): AstronautRigData {
   scene.updateWorldMatrix(true, true);
@@ -135,7 +158,7 @@ export function buildAstronautRig(scene: Object3D): AstronautRigData {
   scene.traverse((child) => {
     const mesh = child as Mesh;
     if (!mesh.isMesh) return;
-    const geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    const geometry = widenQuantized(mesh.geometry.clone()).applyMatrix4(mesh.matrixWorld);
     geometry.translate(-center.x, -center.y, -center.z);
     skin(geometry, scale);
     geometry.scale(ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale), ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale), ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale));

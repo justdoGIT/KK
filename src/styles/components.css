@@ -334,31 +334,6 @@
   .journey-progress-track { top: 0.8rem; right: 1rem; }
 }
 
-/* Interactive case-study surfaces */
-.interactive-visual {
-  position: relative;
-  min-height: 12rem;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  background: #07090c;
-  cursor: crosshair;
-}
-.visual-surface { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(125, 211, 252, 0.22), transparent 26%), linear-gradient(135deg, rgba(255,255,255,0.04), transparent 50%); transition: background 0.25s ease; }
-.visual-surface-grid { position: absolute; inset: -30%; opacity: 0.5; background-image: linear-gradient(rgba(125,211,252,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(125,211,252,0.08) 1px, transparent 1px); background-size: 1.5rem 1.5rem; transform: rotate(-12deg); }
-.visual-surface-core { position: absolute; left: 50%; top: 50%; width: 4rem; height: 4rem; border: 1px solid var(--color-accent); border-radius: 0.8rem; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 40px var(--color-accent-glow); transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.interactive-visual-active .visual-surface-core { transform: translate(-50%, -50%) rotate(135deg) scale(1.35); }
-.visual-surface-line { position: absolute; height: 1px; background: linear-gradient(90deg, transparent, var(--color-accent), transparent); transform-origin: left center; transition: transform 0.6s ease; }
-.visual-surface-line-one { left: 8%; top: 50%; width: 84%; transform: rotate(12deg); }
-.visual-surface-line-two { left: 18%; top: 35%; width: 68%; transform: rotate(-24deg); }
-.visual-surface-line-three { left: 24%; top: 70%; width: 60%; transform: rotate(30deg); }
-.interactive-visual-active .visual-surface-line-one { transform: rotate(-18deg) scaleX(1.1); }
-.interactive-visual-active .visual-surface-line-two { transform: rotate(34deg) scaleX(0.85); }
-.visual-surface-particle { position: absolute; left: calc(10% + (var(--particle-index) * 11%)); top: calc(20% + ((var(--particle-index) * 17%) % 60%)); width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--color-accent); opacity: 0.5; transition: transform 0.55s ease; }
-.interactive-visual-active .visual-surface-particle { transform: translate(calc((var(--pointer-x) - 50%) * -0.35), calc((var(--pointer-y) - 50%) * -0.35)); }
-.visual-splash { position: absolute; left: var(--pointer-x); top: var(--pointer-y); width: 4rem; height: 4rem; border: 1px solid rgba(125,211,252,0.7); border-radius: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.4); transition: opacity 0.2s ease, transform 0.45s ease; }
-.interactive-visual-active .visual-splash { opacity: 1; transform: translate(-50%, -50%) scale(1.8); }
-.interactive-visual-label { position: absolute; left: 1rem; bottom: 0.8rem; color: var(--color-fg-muted); font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
-
 /* Proven Industrial Systems Gallery (Lusion Style) */
 .gallery-section {
   scroll-margin-top: 4.5rem;

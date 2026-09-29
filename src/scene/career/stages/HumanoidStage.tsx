@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState, type JSX } from "react";
+import { useCallback, useRef, useState, type JSX, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Grid } from "@react-three/drei";
-import { Vector3, type Group } from "three";
+import { Mesh, Vector3, type Group } from "three";
 import go2Joints from "../../robots/joints/go2.json";
 import { jointRigFor } from "../../robots/model-assets.ts";
 import { actProgress, morphProgress, smoothstep } from "../career-timeline.ts";
@@ -17,8 +17,11 @@ const WALK_START = 0.35;
 const WALK_DISTANCE = 6;
 const STRIDE = 1.35;
 const ARCHES = [2, 4, 6, 8];
+/** Arch posts closer than this to the camera are culled; they would otherwise
+ *  sweep through the frame as opaque slabs and eclipse the robot. */
+const POST_CULL = 3.2;
 
-function Runway(): JSX.Element {
+function Runway({ postRefs }: { postRefs: RefObject<(Mesh | null)[]> }): JSX.Element {
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} receiveShadow>
@@ -40,10 +43,17 @@ function Runway(): JSX.Element {
           <meshBasicMaterial color="#38bdf8" toneMapped={false} />
         </mesh>
       ))}
-      {ARCHES.map((x) => (
+      {ARCHES.map((x, i) => (
         <group key={x} position={[x, 0, 0]}>
-          {[-2.1, 2.1].map((z) => (
-            <mesh key={z} position={[0, 1.3, z]} castShadow>
+          {[-2.1, 2.1].map((z, j) => (
+            <mesh
+              key={z}
+              ref={(node) => {
+                postRefs.current[i * 2 + j] = node;
+              }}
+              position={[0, 1.3, z]}
+              castShadow
+            >
               <boxGeometry args={[0.12, 2.6, 0.12]} />
               <meshStandardMaterial color="#111a2e" metalness={0.6} roughness={0.35} />
             </mesh>
@@ -65,7 +75,8 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
   const [rig] = useState(() => humanoidRigFor(humanoid));
   const root = useRef<Group>(null);
   const body = useRef<Group>(null);
-  const scratch = useRef({ cam: new Vector3(), look: new Vector3(), tmp: new Vector3() });
+  const postRefs = useRef<(Mesh | null)[]>([]);
+  const scratch = useRef({ cam: new Vector3(), look: new Vector3(), tmp: new Vector3(), post: new Vector3() });
 
   const source = useCallback(() => {
     const stand = quadPoseAt(0, 0, createQuadPose());
@@ -86,7 +97,7 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
   useFrame(({ camera }) => {
     const c = activeClock(root.current, clock.current, index);
     if (!c) return;
-    const { cam, look, tmp } = scratch.current;
+    const { cam, look, tmp, post } = scratch.current;
     const morph = morphProgress(c.local);
     const u = actProgress(c.local);
     const walk = smoothstep(WALK_START - 0.08, WALK_START + 0.04, u);
@@ -109,11 +120,16 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
     camera.position.copy(cam);
     camera.lookAt(look);
     cinematicLens(camera, 42 - track * 7);
+    for (const mesh of postRefs.current) {
+      if (!mesh) continue;
+      mesh.getWorldPosition(post);
+      mesh.visible = post.distanceTo(camera.position) > POST_CULL;
+    }
   });
 
   return (
     <group ref={root} visible={false}>
-      <Runway />
+      <Runway postRefs={postRefs} />
       <MorphPad radius={1} position={[0, 0, 0]} />
       <PartMorph source={source} target={target} clock={clock} seed={37} />
       <group ref={body}>
