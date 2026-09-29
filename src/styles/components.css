@@ -1580,7 +1580,7 @@ main::before {
 .lusion-cards-stage {
   position: relative;
   width: 100%;
-  height: 550px;
+  height: 580px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1590,7 +1590,7 @@ main::before {
 .lusion-card-isolated-cell {
   position: absolute;
   width: 325px;
-  height: 530px;
+  height: 560px;
   perspective: 1400px;
   cursor: pointer;
   will-change: transform;
@@ -1624,7 +1624,7 @@ main::before {
   height: 100%;
 }
 
-/* Front Face: Dark Luxury Technical System Card */
+/* Front Face: Dark Luxury Technical System Card with Scrollable Body */
 .lusion-card-front {
   transform: rotateY(180deg) translateZ(1px);
   background: radial-gradient(
@@ -1635,10 +1635,11 @@ main::before {
   );
   border: 1px solid rgba(56, 189, 248, 0.35);
   color: #f8fafc;
-  padding: 1.8rem 1.6rem;
+  padding: 1.5rem 1.4rem 1.1rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden;
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
   -webkit-font-smoothing: antialiased;
@@ -1659,11 +1660,11 @@ main::before {
   text-transform: uppercase;
 }
 .card-front-title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #ffffff;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   line-height: 1.15;
 }
 .card-front-badge {
@@ -1677,25 +1678,53 @@ main::before {
   font-weight: 700;
   letter-spacing: 0.08em;
 }
+
+/* Scrollable Card Body */
+.card-front-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-right: 0.35rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.3rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.35) transparent;
+}
+.card-front-scroll-body::-webkit-scrollbar {
+  width: 4px;
+}
+.card-front-scroll-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.card-front-scroll-body::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 4px;
+}
+.card-front-scroll-body::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
 .card-front-context {
   color: #cbd5e1;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
   font-weight: 400;
 }
 
 /* Mini Diagram Box with 3D Pop-Up Hover Effect */
 .card-front-diagram-wrap {
-  margin-top: 0.6rem;
+  margin-top: 0.25rem;
 }
 .diagram-title-bar {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   color: var(--color-accent);
   letter-spacing: 0.08em;
   font-weight: 700;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 .deck-mini-diagram-box {
   position: relative;
@@ -1703,29 +1732,29 @@ main::before {
   background: #060910;
   border: 1px solid rgba(56, 189, 248, 0.3);
   border-radius: 10px;
-  padding: 0.5rem;
+  padding: 0.45rem;
   cursor: pointer;
   transform-origin: center center;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease;
 }
 .deck-mini-diagram-box:hover,
 .deck-mini-diagram-box:focus-visible {
-  transform: translateY(-5px) scale(1.04);
+  transform: translateY(-4px) scale(1.03);
   border-color: #38bdf8;
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7), 0 0 25px rgba(56, 189, 248, 0.4);
   outline: none;
 }
 .diagram-popout-badge {
   position: absolute;
-  top: 0.4rem;
-  right: 0.45rem;
+  top: 0.35rem;
+  right: 0.4rem;
   z-index: 2;
-  padding: 0.15rem 0.45rem;
+  padding: 0.12rem 0.4rem;
   border-radius: 4px;
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(56, 189, 248, 0.4);
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.52rem;
   font-weight: 700;
   color: #38bdf8;
   pointer-events: none;
@@ -1739,26 +1768,26 @@ main::before {
 .deck-mini-svg {
   display: block;
   width: 100%;
-  height: 75px;
+  height: 70px;
 }
 
 /* Subsystem Details */
 .card-front-details {
-  margin-top: 0.6rem;
+  margin-top: 0.25rem;
 }
 .details-heading {
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   color: var(--color-accent);
   letter-spacing: 0.08em;
   font-weight: 700;
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 .card-front-bullets {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1767,23 +1796,28 @@ main::before {
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: #f1f5f9;
-  line-height: 1.4;
+  line-height: 1.35;
   font-weight: 500;
 }
 .bullet-dot {
   color: var(--color-accent);
   font-size: 0.65rem;
 }
+.card-solution-text {
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
 
 /* Metrics Strip */
 .card-front-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-  padding: 0.55rem 0.8rem;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.65rem;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1791,20 +1825,39 @@ main::before {
 .card-metric-col {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.05rem;
 }
 .card-metric-label {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   color: #94a3b8;
   letter-spacing: 0.08em;
   font-weight: 700;
 }
 .card-metric-val {
   font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 800;
   color: #38bdf8;
+}
+
+/* Links */
+.card-front-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.card-study-link {
+  font-size: 0.72rem;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.card-study-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 /* Card Footer */
@@ -1812,19 +1865,19 @@ main::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.6rem;
-  padding-top: 0.55rem;
+  margin-top: auto;
+  padding-top: 0.45rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 .card-footer-number {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--color-fg-subtle);
   font-weight: 700;
 }
 .card-footer-hint {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   color: #38bdf8;
   letter-spacing: 0.08em;
   font-weight: 600;
