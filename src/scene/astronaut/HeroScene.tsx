@@ -116,6 +116,16 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       rim.color.set(inWhite ? "#4d6bff" : t < 0.58 ? "#a78bfa" : "#cfe0ff");
       rim.intensity = inWhite ? 4 : 2.6;
     }
+
+    // Camera impact shake during glass shatter (frameBreak phase)
+    const shatter = phaseRatio(t, "frameBreak");
+    if (shatter > 0 && shatter < 1) {
+      const shakeX = Math.sin(shatter * Math.PI * 14) * (1 - shatter) * 0.14;
+      const shakeY = Math.cos(shatter * Math.PI * 12) * (1 - shatter) * 0.1;
+      state.camera.position.set(shakeX, shakeY, 6);
+    } else {
+      state.camera.position.set(0, 0, 6);
+    }
   });
 
   return (

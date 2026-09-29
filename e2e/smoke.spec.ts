@@ -118,7 +118,7 @@ test.describe("Portfolio smoke tests", () => {
     await expect(stage).toHaveAttribute("data-phase", "title");
     await expect(page.getByText("Step into a new orbit")).toBeVisible();
 
-    await scrollJourneyTo(0.32);
+    await scrollJourneyTo(0.30);
     await expect(stage).toHaveAttribute("data-phase", "blackTunnel");
 
     await scrollJourneyTo(0.80);

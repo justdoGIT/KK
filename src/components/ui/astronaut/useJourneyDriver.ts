@@ -161,6 +161,17 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
   useEffect(() => {
     if (!near) return;
     let rafId = 0;
+    let autoScrolling = false;
+    let lastWheelTime = 0;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) {
+        lastWheelTime = performance.now();
+      }
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: true });
+
     const tick = () => {
       rafId = requestAnimationFrame(tick);
       const section = els.section.current;
@@ -169,6 +180,20 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       const scrollable = section.offsetHeight - window.innerHeight;
       const target = scrollable > 0 ? clamp01(-section.getBoundingClientRect().top / scrollable) : 0;
       clock.t = target;
+
+      // Autoscroll momentum assistance: when user scrolls into the small card (t >= 0.05),
+      // gently drive scroll forward through the tunnel until the glass breaks (t < 0.65).
+      const now = performance.now();
+      if (target >= 0.05 && target < 0.65 && now - lastWheelTime < 800) {
+        if (!autoScrolling) {
+          autoScrolling = true;
+          window.scrollBy({ top: 18, behavior: "smooth" });
+          setTimeout(() => {
+            autoScrolling = false;
+          }, 60);
+        }
+      }
+
       const stage = els.stage.current;
       if (stage) {
         clock.width = stage.clientWidth;
@@ -177,7 +202,10 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       paint(els, clock.t);
     };
     rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      cancelAnimationFrame(rafId);
+    };
   }, [near, els]);
 
   return { near, active };

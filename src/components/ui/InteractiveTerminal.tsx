@@ -95,14 +95,9 @@ const TERMINAL_COMMANDS: TerminalCommand[] = [
   },
 ];
 
-// Total scroll distance (in viewport-heights) the terminal stays pinned for
-// while its true OS-window expansion reveal and 5-script sequence play out.
-// Kept generous (5.5vh) so the user can clearly observe the window opening,
-// typing, output streaming, and reverse collapse when scrolling up.
 const TOTAL_SCROLL = 5.5;
-// Portion of TOTAL_SCROLL (20%) spent on the window pop-out / expansion reveal
-// before the script typing sequence begins.
 const REVEAL_FRACTION = 0.20;
+
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
@@ -114,6 +109,7 @@ export function InteractiveTerminal(): JSX.Element {
   const [showOutput, setShowOutput] = useState(false);
   const [visibleLineCount, setVisibleLineCount] = useState<number>(TERMINAL_COMMANDS[0].output.length);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revealProgress, setRevealProgress] = useState(0);
 
@@ -123,69 +119,72 @@ export function InteractiveTerminal(): JSX.Element {
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 
-  // Single scroll-driven source of truth for BOTH the minimize->maximize
-  // reveal and the 5-script typing/output sequence. The terminal is pinned
-  // (position: sticky) inside a TOTAL_SCROLL-viewport-height spacer, so
-  // `raw` below maps 1:1 onto the actual scrollbar position for the whole
-  // pinned duration -- the previous version measured the outer `<section>`
-  // (which also included the filter pills and skills grid below), so the
-  // terminal had already scrolled off-screen long before `progress` reached
-  // values high enough to reveal the later scripts. A separate one-shot
-  // IntersectionObserver also drove a CSS-transition "reveal" independently
-  // of this progress, so the two were never actually in sync.
   useEffect(() => {
     let rafId = 0;
 
     const computeAndApply = () => {
       const el = sectionRef.current;
       if (!el) return;
+
       const scrollable = el.offsetHeight - window.innerHeight;
       if (scrollable <= 0) return;
+
       const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
 
-      setRevealProgress(clamp01(raw / REVEAL_FRACTION));
+      const popProgress = Math.min(1, raw / REVEAL_FRACTION);
+      if (Math.abs(popProgress - revealProgress) > 0.005) {
+        setRevealProgress(popProgress);
+      }
 
       if (manualOverrideRef.current) return;
 
-      // Map the remaining scroll onto the 5 script tabs (0..4)
-      const scriptRaw = clamp01((raw - REVEAL_FRACTION) / (1 - REVEAL_FRACTION));
-      const numScripts = TERMINAL_COMMANDS.length;
-      const scriptF = scriptRaw * numScripts;
-      const scriptIdx = Math.min(numScripts - 1, Math.floor(scriptF));
-      const subProgress = scriptF - scriptIdx; // 0.0 to 1.0 within this script
-
-      if (scriptIdx !== activeCmdIdx) {
-        setActiveCmdIdx(scriptIdx);
+      if (raw < REVEAL_FRACTION * 0.9) {
+        if (typedText !== "") setTypedText("");
+        if (showOutput) setShowOutput(false);
+        return;
       }
 
-      const fullCmd = TERMINAL_COMMANDS[scriptIdx].command;
-      const totalOutputLines = TERMINAL_COMMANDS[scriptIdx].output.length;
+      const scriptSpan = 1 - REVEAL_FRACTION;
+      const scriptProgress = clamp01((raw - REVEAL_FRACTION) / scriptSpan);
 
-      // Phase 1 (subProgress 0..0.4): Type command string character by character
-      if (subProgress < 0.4) {
-        const charPct = subProgress / 0.4;
-        const charCount = Math.floor(charPct * fullCmd.length);
-        setTypedText(fullCmd.slice(0, charCount));
-        setIsTyping(charCount < fullCmd.length);
+      const stepSize = 1 / TERMINAL_COMMANDS.length;
+      const cmdIndex = Math.min(
+        TERMINAL_COMMANDS.length - 1,
+        Math.floor(scriptProgress / stepSize),
+      );
+
+      const stepLocal = (scriptProgress - cmdIndex * stepSize) / stepSize;
+      const cmd = TERMINAL_COMMANDS[cmdIndex];
+
+      if (cmdIndex !== activeCmdIdx) {
+        setActiveCmdIdx(cmdIndex);
+      }
+
+      const typeFraction = 0.35;
+      if (stepLocal < typeFraction) {
+        const charProgress = stepLocal / typeFraction;
+        const charCount = Math.max(
+          1,
+          Math.floor(charProgress * cmd.command.length),
+        );
+        setTypedText(cmd.command.slice(0, charCount));
+        setIsTyping(true);
         setShowOutput(false);
         setVisibleLineCount(0);
       } else {
-        // Phase 2 (subProgress 0.4..1.0): Command typed, stream output lines progressively
-        setTypedText(fullCmd);
+        setTypedText(cmd.command);
         setIsTyping(false);
         setShowOutput(true);
-        const linePct = (subProgress - 0.4) / 0.6;
-        const count = Math.max(1, Math.floor(linePct * totalOutputLines));
-        setVisibleLineCount(count);
+
+        const outFraction = (stepLocal - typeFraction) / (1 - typeFraction);
+        const lineCount = Math.min(
+          cmd.output.length,
+          Math.max(1, Math.ceil(outFraction * cmd.output.length)),
+        );
+        setVisibleLineCount(lineCount);
       }
     };
 
-    // RAF-throttle: native "scroll" can fire many times per animation frame
-    // (especially during momentum/trackpad scroll), and each call recomputes
-    // an inline filter+transform string. Without throttling this caused
-    // multiple conflicting style writes per frame -- the terminal's
-    // minimize/maximize reveal visibly flickered/strobed instead of tracking
-    // the scrollbar smoothly. Coalescing to one computation per frame fixes it.
     const handleScroll = () => {
       if (rafId) return;
       rafId = requestAnimationFrame(() => {
@@ -196,13 +195,13 @@ export function InteractiveTerminal(): JSX.Element {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     computeAndApply();
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame(rafId);
     };
-  }, [activeCmdIdx]);
+  }, [activeCmdIdx, revealProgress, showOutput, typedText]);
 
-  // Tab click manual selection handler
   const handleTabClick = (idx: number) => {
     manualOverrideRef.current = true;
     clearTimeout(manualTimerRef.current ?? undefined);
@@ -213,7 +212,6 @@ export function InteractiveTerminal(): JSX.Element {
     setShowOutput(true);
     setVisibleLineCount(TERMINAL_COMMANDS[idx].output.length);
 
-    // Release manual override after 4s idle
     manualTimerRef.current = window.setTimeout(() => {
       manualOverrideRef.current = false;
     }, 4000);
@@ -229,10 +227,6 @@ export function InteractiveTerminal(): JSX.Element {
 
   const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
 
-  // Smooth 3D OS-Window Expansion / Maximization animation tracking scroll progress
-  // 1:1 in both directions (down to maximize, up to collapse back to dock origin).
-  // Once fully maximized (revealProgress >= 0.999), drop clip-path, transform, and
-  // filter to "none" outright so CPU subpixel text rendering stays 100% crisp.
   const invReveal = 1 - revealProgress;
   const revealStyle: CSSProperties =
     revealProgress >= 0.999
@@ -243,6 +237,7 @@ export function InteractiveTerminal(): JSX.Element {
           transform: `perspective(1200px) translate3d(${(invReveal * -120).toFixed(1)}px, ${(invReveal * 90).toFixed(1)}px, ${(invReveal * -40).toFixed(1)}px) scale(${(0.42 + revealProgress * 0.58).toFixed(3)}) rotateX(${(invReveal * 14).toFixed(2)}deg) rotateY(${(invReveal * -9).toFixed(2)}deg)`,
           clipPath: `inset(0% ${(invReveal * 20).toFixed(1)}% ${(invReveal * 25).toFixed(1)}% 0% round ${(16 * revealProgress).toFixed(1)}px)`,
         };
+
   return (
     <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
       <div className="terminal-sticky-stage">
@@ -257,109 +252,126 @@ export function InteractiveTerminal(): JSX.Element {
         <div
           className={`interactive-terminal-wrapper ${revealProgress > 0.85 ? "terminal-glow" : ""} ${
             isExpanded ? "terminal-expanded-mode" : ""
-          }`}
-          style={revealStyle}
+          } ${isMinimized ? "terminal-minimized-mode" : ""}`}
+          style={isMinimized ? undefined : revealStyle}
         >
           <div className="terminal-window">
-        {/* Terminal Title Bar */}
-        <div className="terminal-titlebar">
-          <div className="terminal-window-buttons" aria-hidden="true">
-            <span className="window-btn btn-close" onClick={() => setIsExpanded(false)} />
-            <span className="window-btn btn-min" onClick={() => setIsExpanded(!isExpanded)} />
-            <span className="window-btn btn-max" onClick={() => setIsExpanded(!isExpanded)} />
-          </div>
-
-          {/* Terminal Tabs */}
-          <div className="terminal-tabs-list" role="tablist">
-            {TERMINAL_COMMANDS.map((cmd, idx) => (
-              <button
-                key={cmd.id}
-                type="button"
-                role="tab"
-                aria-selected={activeCmdIdx === idx}
-                className={`terminal-tab ${activeCmdIdx === idx ? "tab-active" : ""}`}
-                onClick={() => handleTabClick(idx)}
-              >
-                <span className="tab-icon">❯_</span>
-                <span className="tab-label">{cmd.tabTitle}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Window Action Controls */}
-          <div className="terminal-actions-right">
-            <button
-              type="button"
-              className="terminal-tool-btn"
-              onClick={copyOutput}
-              title="Copy terminal output"
-            >
-              {copied ? "✓ Copied" : "Copy"}
-            </button>
-            <button
-              type="button"
-              className="terminal-tool-btn"
-              onClick={() => setIsExpanded(!isExpanded)}
-              title={isExpanded ? "Collapse terminal" : "Pop up & expand terminal"}
-            >
-              {isExpanded ? "◱ Restore" : "⛶ Pop Out"}
-            </button>
-          </div>
-        </div>
-
-        {/* Terminal Screen Body */}
-        <div className="terminal-body" tabIndex={0} aria-label="Interactive developer console">
-          <div className="terminal-system-banner">
-            <span>Kamal Pandey -- Staff Embedded Architect Environment [Void Linux x86_64 / AArch64]</span>
-            <span className="banner-uptime">UPTIME: 99.9% // KERNEL: 6.18.54_1</span>
-          </div>
-
-          {/* Command Prompt Line */}
-          <div className="terminal-prompt-line">
-            <span className="prompt-user">kamal@void-x64</span>
-            <span className="prompt-sep">:</span>
-            <span className="prompt-dir">~/portfolio</span>
-            <span className="prompt-symbol">$</span>
-            <span className="prompt-typed-text">{typedText}</span>
-            <span className={`prompt-cursor ${isTyping || !showOutput ? "cursor-typing" : "cursor-blink"}`}>█</span>
-          </div>
-
-          {/* Command Output Container -- always rendered with constant height so the window size never fluctuates or jitters */}
-          <div className={`terminal-output-container ${showOutput ? "output-active" : "output-hidden"}`}>
-            {visibleOutput.map((line, idx) => (
-              <div key={idx} className="terminal-output-line">
-                {line}
+            {/* Terminal Title Bar */}
+            <div className="terminal-titlebar">
+              <div className="terminal-window-buttons" aria-hidden="true">
+                <span className="window-btn btn-close" onClick={() => setIsMinimized(true)} title="Minimize terminal" />
+                <span className="window-btn btn-min" onClick={() => setIsMinimized((prev) => !prev)} title="Minimize/Restore" />
+                <span className="window-btn btn-max" onClick={() => setIsExpanded((prev) => !prev)} title="Expand" />
               </div>
-            ))}
-            {visibleLineCount >= activeCommand.output.length && (
-              <div className="terminal-exit-code">
-                <span className="exit-badge">exit 0</span>
-                <span className="exit-time">executed in 2.4ms</span>
+
+              {/* Terminal Tabs */}
+              <div className="terminal-tabs-list" role="tablist">
+                {TERMINAL_COMMANDS.map((cmd, idx) => (
+                  <button
+                    key={cmd.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeCmdIdx === idx}
+                    className={`terminal-tab ${activeCmdIdx === idx ? "tab-active" : ""}`}
+                    onClick={() => handleTabClick(idx)}
+                  >
+                    <span className="tab-icon">❯_</span>
+                    <span className="tab-label">{cmd.tabTitle}</span>
+                  </button>
+                ))}
               </div>
+
+              {/* Window Action Controls */}
+              <div className="terminal-actions-right">
+                <button
+                  type="button"
+                  className="terminal-tool-btn"
+                  onClick={copyOutput}
+                  title="Copy terminal output"
+                >
+                  {copied ? "✓ Copied" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  className="terminal-tool-btn"
+                  onClick={() => setIsMinimized((prev) => !prev)}
+                  title={isMinimized ? "Restore terminal console" : "Minimize terminal console"}
+                >
+                  {isMinimized ? "🗖 Restore" : "🗕 Minimize"}
+                </button>
+              </div>
+            </div>
+
+            {isMinimized ? (
+              <div className="terminal-minimized-bar">
+                <div className="minimized-info">
+                  <span className="minimized-dot" aria-hidden="true" />
+                  <span>CONSOLE MINIMIZED // kamal@void-x64 ~/portfolio</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setIsMinimized(false)}
+                >
+                  Restore Console 🗖
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="terminal-body" tabIndex={0} aria-label="Interactive developer console">
+                  <div className="terminal-system-banner">
+                    <span>Kamal Pandey -- Staff Embedded Architect Environment [Void Linux x86_64 / AArch64]</span>
+                    <span className="banner-uptime">UPTIME: 99.9% // KERNEL: 6.18.54_1</span>
+                  </div>
+
+                  {/* Command Prompt Line */}
+                  <div className="terminal-prompt-line">
+                    <span className="prompt-user">kamal@void-x64</span>
+                    <span className="prompt-sep">:</span>
+                    <span className="prompt-dir">~/portfolio</span>
+                    <span className="prompt-symbol">$</span>
+                    <span className="prompt-typed-text">{typedText}</span>
+                    <span className={`prompt-cursor ${isTyping || !showOutput ? "cursor-typing" : "cursor-blink"}`}>█</span>
+                  </div>
+
+                  {/* Command Output Container */}
+                  <div className={`terminal-output-container ${showOutput ? "output-active" : "output-hidden"}`}>
+                    {visibleOutput.map((line, idx) => (
+                      <div key={idx} className="terminal-output-line">
+                        {line}
+                      </div>
+                    ))}
+                    {visibleLineCount >= activeCommand.output.length && (
+                      <div className="terminal-exit-code">
+                        <span className="exit-badge">exit 0</span>
+                        <span className="exit-time">executed in 2.4ms</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Terminal Footer Navigation Bar */}
+                <div className="terminal-footer-bar">
+                  <span className="footer-tip">
+                    TIP: Scroll or click tabs to inspect verified languages, silicon targets, wireless RF, and custom DB engines
+                  </span>
+                  <div className="terminal-step-pills">
+                    {TERMINAL_COMMANDS.map((cmd, idx) => (
+                      <button
+                        key={cmd.id}
+                        type="button"
+                        className={`step-dot ${activeCmdIdx === idx ? "active" : ""}`}
+                        onClick={() => handleTabClick(idx)}
+                        aria-label={`Switch to ${cmd.tabTitle}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
-
-        {/* Terminal Footer Navigation Bar */}
-        <div className="terminal-footer-bar">
-          <span className="footer-tip">
-            TIP: Scroll or click tabs to inspect verified languages, silicon targets, wireless RF, and custom DB engines
-          </span>
-          <div className="terminal-step-pills">
-            {TERMINAL_COMMANDS.map((cmd, idx) => (
-              <button
-                key={cmd.id}
-                type="button"
-                className={`step-dot ${activeCmdIdx === idx ? "active" : ""}`}
-                onClick={() => handleTabClick(idx)}
-                aria-label={`Switch to ${cmd.tabTitle}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
       </div>
     </div>
-  </div>
   );
 }
