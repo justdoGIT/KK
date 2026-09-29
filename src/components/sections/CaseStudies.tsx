@@ -24,24 +24,31 @@ function MiniArchDiagram({
         e.stopPropagation();
         onExpand();
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onExpand();
+        }
+      }}
       role="button"
       tabIndex={0}
-      aria-label="Click to expand architecture flow and Mermaid diagram"
+      aria-label="Click to pop out full architecture flow and Mermaid diagram"
     >
       <div className="diagram-popout-badge">
-        <span>FLOW POP-OUT [↗]</span>
+        <span>CLICK TO POP OUT [↗]</span>
       </div>
       <svg
         viewBox="0 0 280 110"
         className="deck-mini-svg"
         role="img"
-        aria-label="Architecture dataflow summary"
+        aria-label="Architecture dataflow diagram"
       >
         <defs>
           <linearGradient id="dealWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
             <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.5" />
           </linearGradient>
         </defs>
 
@@ -57,7 +64,7 @@ function MiniArchDiagram({
                   y1={`${node.y}%`}
                   x2={`${target.x}%`}
                   y2={`${target.y}%`}
-                  stroke="rgba(56, 189, 248, 0.3)"
+                  stroke="rgba(56, 189, 248, 0.35)"
                   strokeWidth="1.2"
                 />
                 <line
@@ -66,7 +73,7 @@ function MiniArchDiagram({
                   x2={`${target.x}%`}
                   y2={`${target.y}%`}
                   stroke="url(#dealWireGrad)"
-                  strokeWidth="1.5"
+                  strokeWidth="1.6"
                   strokeDasharray="4 4"
                   className="arch-animated-wire"
                 />
@@ -83,15 +90,15 @@ function MiniArchDiagram({
               width="24%"
               height="18%"
               rx="4"
-              fill="#090d16"
-              stroke="rgba(56, 189, 248, 0.5)"
-              strokeWidth="0.8"
+              fill="#060910"
+              stroke="rgba(56, 189, 248, 0.6)"
+              strokeWidth="1"
             />
             <rect
               x={`${node.x - 12}%`}
               y={`${node.y - 9}%`}
               width="24%"
-              height="2"
+              height="2.5"
               rx="1"
               fill="#38bdf8"
             />
@@ -99,10 +106,10 @@ function MiniArchDiagram({
               x={`${node.x}%`}
               y={`${node.y + 2}%`}
               textAnchor="middle"
-              fontSize="4.2"
+              fontSize="4.4"
               fontFamily="monospace"
-              fontWeight="600"
-              fill="#f8fafc"
+              fontWeight="700"
+              fill="#ffffff"
             >
               {node.label}
             </text>
@@ -128,7 +135,8 @@ export function CaseStudies(): JSX.Element {
       const totalScroll = rect.height - window.innerHeight;
       if (totalScroll <= 0) return;
 
-      const progress = Math.max(0, Math.min(1, -rect.top / totalScroll));
+      // Calculate progress: 0 (stacked) to 1 (fully flipped and spanned out together)
+      const progress = Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75)));
       setScrollProgress(progress);
     };
 
@@ -153,7 +161,7 @@ export function CaseStudies(): JSX.Element {
   const jumpToProgress = (targetProgress: number) => {
     const section = sectionRef.current;
     if (!section) return;
-    const totalScroll = section.offsetHeight - window.innerHeight;
+    const totalScroll = (section.offsetHeight - window.innerHeight) * 0.75;
     const targetY = section.offsetTop + targetProgress * totalScroll;
     window.scrollTo({ top: targetY, behavior: "smooth" });
   };
@@ -173,7 +181,7 @@ export function CaseStudies(): JSX.Element {
       id="work"
     >
       <div className="lusion-deck-sticky-stage">
-        {/* Curved Background Ribbon matching Dark Theme */}
+        {/* Subtle Glassmorphic Curved Background Ribbon */}
         <svg className="lusion-bg-ribbon" viewBox="0 0 1440 600" aria-hidden="true">
           <path
             d="M -100,140 Q 720,500 1540,100"
@@ -190,54 +198,50 @@ export function CaseStudies(): JSX.Element {
               <span className="lusion-section-pill">SELECTED MISSIONS // EVIDENCE-BACKED PLATFORMS</span>
               <h2 className="lusion-deck-title">Products with a pulse.</h2>
               <p className="lusion-deck-subtitle">
-                Scroll to deal and flip the mission deck — revealing verified hardware bring-up,
+                Scroll to flip and span out all mission cards together — revealing verified hardware bring-up,
                 distributed fleet runtimes, and autonomous agent architectures.
               </p>
             </div>
 
             {/* Step Scrubber */}
             <div className="lusion-deck-scrubber">
-              {studies.map((study, idx) => (
-                <button
-                  key={study.record.slug}
-                  type="button"
-                  className={`lusion-scrub-btn ${
-                    scrollProgress >= idx / 4 ? "active" : ""
-                  }`}
-                  onClick={() => jumpToProgress((idx + 0.8) / 4)}
-                >
-                  <span className="scrub-num">0{idx + 1}</span>
-                  <span className="scrub-name">{study.record.publicTitle.split(" ")[0]}</span>
-                </button>
-              ))}
+              <button
+                type="button"
+                className={`lusion-scrub-btn ${scrollProgress < 0.3 ? "active" : ""}`}
+                onClick={() => jumpToProgress(0)}
+              >
+                <span>Stack Deck</span>
+              </button>
+              <button
+                type="button"
+                className={`lusion-scrub-btn ${scrollProgress >= 0.3 ? "active" : ""}`}
+                onClick={() => jumpToProgress(1)}
+              >
+                <span>Flip &amp; Span All Cards</span>
+              </button>
             </div>
           </div>
 
-          {/* 3D Playing Card Stage with Zero-Glitch 3D Flip & Deal Animation */}
+          {/* 3D Playing Card Stage: All Cards Flip & Span Out Together */}
           <div className="lusion-cards-stage">
             {studies.map((study, idx) => {
-              // Staggered progressive deal & flip
-              const startP = idx * 0.22;
-              const endP = startP + 0.28;
-              const cardP = Math.max(0, Math.min(1, (scrollProgress - startP) / (endP - startP)));
-
-              // 0deg = face-down back, 180deg = face-up front
-              const rotY = cardP * 180;
+              // ALL 4 CARDS FLIP TOGETHER (0deg -> 180deg) and SPAN OUT TOGETHER
+              const rotY = scrollProgress * 180;
               const isFrontVisible = rotY >= 90;
 
               // Initial stacked deck positions in center
-              const fanRotZ = (idx - 1.5) * 4.0;
+              const fanRotZ = (idx - 1.5) * 4.5;
               const fanOffsetX = (idx - 1.5) * 28;
 
               // Final horizontal spread position across the screen
               const targetSlotX = (idx - 1.5) * 345;
 
-              // Dynamic elevation arc during flip to guarantee zero 3D intersection clipping
-              const liftZ = Math.sin(cardP * Math.PI) * 140;
+              // Parabolic elevation arc during flip to guarantee zero 3D clipping
+              const liftZ = Math.sin(scrollProgress * Math.PI) * 70;
 
-              const currentX = THREE_lerp(fanOffsetX, targetSlotX, cardP);
-              const currentRotZ = THREE_lerp(fanRotZ, 0, cardP);
-              const currentScale = THREE_lerp(0.94, 1.0, cardP);
+              const currentX = THREE_lerp(fanOffsetX, targetSlotX, scrollProgress);
+              const currentRotZ = THREE_lerp(fanRotZ, 0, scrollProgress);
+              const currentScale = THREE_lerp(0.94, 1.0, scrollProgress);
 
               return (
                 <div
@@ -245,10 +249,10 @@ export function CaseStudies(): JSX.Element {
                   className="lusion-card-isolated-cell"
                   style={{
                     transform: `translate3d(${currentX}px, 0px, ${liftZ}px) rotateZ(${currentRotZ}deg) scale(${currentScale})`,
-                    zIndex: Math.round(10 + liftZ * 0.5 + (isFrontVisible ? idx : 4 - idx)),
+                    zIndex: Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx)),
                   }}
                   onClick={() => {
-                    if (!isFrontVisible) jumpToProgress((idx + 0.8) / 4);
+                    if (!isFrontVisible) jumpToProgress(1);
                   }}
                 >
                   <div
@@ -274,7 +278,7 @@ export function CaseStudies(): JSX.Element {
 
                       <p className="card-front-context">{study.context}</p>
 
-                      {/* Mini Architecture Flow Diagram */}
+                      {/* Mini Architecture Flow Diagram (Single interactive 3D trigger) */}
                       <div className="card-front-diagram-wrap">
                         <div className="diagram-title-bar">
                           <span>DATAFLOW ARCHITECTURE</span>
@@ -308,19 +312,10 @@ export function CaseStudies(): JSX.Element {
                         ))}
                       </div>
 
-                      {/* Card Footer with Pop-Out Trigger */}
+                      {/* Card Footer with Mission Indicator */}
                       <div className="card-front-bottom">
                         <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
-                        <button
-                          type="button"
-                          className="card-arch-popout-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openArchitectureModal(study, idx);
-                          }}
-                        >
-                          Flow Diagram [↗]
-                        </button>
+                        <span className="card-footer-hint">CLICK DIAGRAM TO EXPAND</span>
                       </div>
                     </div>
 
