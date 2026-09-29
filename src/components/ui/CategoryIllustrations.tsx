@@ -55,17 +55,19 @@ export function CategoryIllustration({ categoryId }: { categoryId: string }): JS
     case "embedded-os":
       return (
         <svg className="cat-illustration-svg" viewBox="0 0 240 120" fill="none" aria-hidden="true">
-          {/* Layered OS Stack Cards */}
-          <g transform="translate(45, 15)">
-            <rect x="0" y="60" width="150" height="28" rx="6" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
-            <text x="75" y="78" fill="#94a3b8" fontSize="9" fontFamily="monospace" textAnchor="middle">U-Boot &amp; Secure Bootloader</text>
+          {/* Layered OS Stack Cards -- widths sized so every label fits
+              inside its box; the top layer wraps onto two lines. */}
+          <rect x="10" y="80" width="220" height="34" rx="6" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
+          <text x="120" y="100" fill="#94a3b8" fontSize="9" fontFamily="monospace" textAnchor="middle">U-Boot &amp; Secure Bootloader</text>
 
-            <rect x="10" y="32" width="130" height="28" rx="6" fill="#090d16" stroke="#38bdf8" strokeWidth="1.5" />
-            <text x="75" y="50" fill="#38bdf8" fontSize="9" fontFamily="monospace" textAnchor="middle" fontWeight="bold">Linux 6.18 LTS / FreeRTOS</text>
+          <rect x="25" y="43" width="190" height="34" rx="6" fill="#090d16" stroke="#38bdf8" strokeWidth="1.5" />
+          <text x="120" y="63" fill="#38bdf8" fontSize="9" fontFamily="monospace" textAnchor="middle" fontWeight="bold">Linux 6.18 LTS / FreeRTOS</text>
 
-            <rect x="20" y="4" width="110" height="28" rx="6" fill="#0f172a" stroke="#10b981" strokeWidth="1.2" />
-            <text x="75" y="22" fill="#10b981" fontSize="9" fontFamily="monospace" textAnchor="middle">Atomic OSTree &amp; Userland</text>
-          </g>
+          <rect x="50" y="4" width="140" height="36" rx="6" fill="#0f172a" stroke="#10b981" strokeWidth="1.2" />
+          <text fill="#10b981" fontSize="9" fontFamily="monospace" textAnchor="middle">
+            <tspan x="120" y="19">Atomic OSTree</tspan>
+            <tspan x="120" y="31">&amp; Userland</tspan>
+          </text>
         </svg>
       );
 

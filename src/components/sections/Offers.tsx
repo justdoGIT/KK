@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useRef, type JSX, type Ref } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { useGridScrollReveal } from "../../motion/grid-scroll-reveal.ts";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 
 type Offer = {
@@ -81,37 +83,20 @@ const offers: Offer[] = [
     cta: "Retain Staff Architect",
   },
 ];
-function OfferCard({ offer, index }: { offer: Offer; index: number }) {
-  const cardRef = useRef<HTMLElement>(null);
-  const startsRevealed = index < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const [isRevealed, setIsRevealed] = useState(startsRevealed);
+// Cards rise out of the depth of the page, tilted back, and stand upright.
+function offerTransform(inv: number, index: number): string {
+  const swing = index % 2 === 0 ? -1 : 1;
+  return (
+    `perspective(1400px) translate3d(0, ${(inv * 120).toFixed(1)}px, ${(-inv * 220).toFixed(1)}px) ` +
+    `rotateX(${(inv * 28).toFixed(2)}deg) rotateZ(${(swing * inv * 3).toFixed(2)}deg)`
+  );
+}
 
-  useEffect(() => {
-    if (isRevealed) return;
-    const el = cardRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setIsRevealed(true);
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+function OfferCard({ offer, cardRef }: { offer: Offer; cardRef: Ref<HTMLElement> }) {
   return (
     <article
       ref={cardRef}
-      className={`offer-card ${offer.featured ? "offer-card-featured" : ""} ${
-        isRevealed ? "offer-revealed" : "offer-pending"
-      }`}
+      className={`offer-card ${offer.featured ? "offer-card-featured" : ""}`}
     >
       {/* Topline Badge & Index */}
       <div className="offer-topline">
@@ -163,6 +148,11 @@ function OfferCard({ offer, index }: { offer: Offer; index: number }) {
 }
 
 export function Offers(): JSX.Element {
+  const enhanced = useMotionMode() === "enhanced";
+  const gridRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  useGridScrollReveal(gridRef, cardRefs, offerTransform, enhanced);
+
   return (
     <section className="offers-section" id="offers" aria-label="Services and offers">
       <div className="section-header offers-header">
@@ -173,9 +163,15 @@ export function Offers(): JSX.Element {
         />
       </div>
 
-      <div className="offers-grid">
+      <div ref={gridRef} className={`offers-grid ${enhanced ? "is-scroll-reveal" : ""}`}>
         {offers.map((offer, idx) => (
-          <OfferCard offer={offer} index={idx} key={offer.title} />
+          <OfferCard
+            offer={offer}
+            key={offer.title}
+            cardRef={(el) => {
+              cardRefs.current[idx] = el;
+            }}
+          />
         ))}
       </div>
     </section>
