@@ -9,7 +9,7 @@ export function GlobalRibbonBackground(): JSX.Element {
     if (isReduced) return;
 
     let rafId = 0;
-    let startTime = performance.now();
+    const startTime = performance.now();
     let lastScrollY = window.scrollY;
     let scrollVel = 0;
     let targetScrollVel = 0;

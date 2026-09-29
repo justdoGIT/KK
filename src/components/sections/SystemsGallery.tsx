@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+
+function getTimestamp(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
 type GallerySystem = {
   id: string;
   tag: string;
@@ -134,14 +138,15 @@ function LusionShowcaseCard({
     isHovered: false,
   });
 
-  const updatePhysics = () => {
+  const updatePhysics = (now?: number) => {
     const p = physicsRef.current;
     // Damped lerp factor for smooth organic inertia
     const ease = 0.1;
 
     // Entry micro-vibration pulse calculation (~220ms damped high-frequency oscillation)
     if (p.isHovered && p.entryTime > 0) {
-      const elapsed = performance.now() - p.entryTime;
+      const currentNow = now ?? getTimestamp();
+      const elapsed = currentNow - p.entryTime;
       if (elapsed < 240) {
         const decay = Math.exp(-elapsed * 0.015);
         const osc = Math.sin(elapsed * 0.12);
@@ -155,7 +160,6 @@ function LusionShowcaseCard({
       p.currVibeX = 0;
       p.currVibeY = 0;
     }
-
     p.currRotX += (p.targetRotX - p.currRotX) * ease;
     p.currRotY += (p.targetRotY - p.currRotY) * ease;
     p.currTransX += (p.targetTransX - p.currTransX) * ease;
@@ -198,7 +202,7 @@ function LusionShowcaseCard({
     onSelect();
     const p = physicsRef.current;
     p.isHovered = true;
-    p.entryTime = performance.now();
+    p.entryTime = getTimestamp();
     p.targetScale = 1.02;
     p.targetTransZ = 12;
     p.targetOpacity = 1;
@@ -245,9 +249,10 @@ function LusionShowcaseCard({
   };
 
   useEffect(() => {
+    const physics = physicsRef.current;
     return () => {
-      if (physicsRef.current.rafId) {
-        cancelAnimationFrame(physicsRef.current.rafId);
+      if (physics.rafId) {
+        cancelAnimationFrame(physics.rafId);
       }
     };
   }, []);
