@@ -10,16 +10,21 @@ import {
   type ArchitectureDetail,
 } from "../ui/ArchitectureModal.tsx";
 
-// flipSpeed < 1 = completes flip before full scroll travel (faster)
-// flipSpeed = 1 = completes exactly at end (slowest)
-// Outer/edge cards flip fast, inner cards flip slow.
-// startRotZ/X = asymmetric stacking orientation in the deck.
-// targetRotZ/X = 0 → all cards land perfectly straight.
+// flipSpeed < 1 = flip completes before full scroll travel (faster).
+// Outer/edge cards flip fast; inner cards flip slower.
+// startRotZ/X = organic stacking angle in the deck.
+// targetRotZ/X = 0 → all cards land perfectly upright.
+// targetX is NOT hardcoded — computed from stage width each resize
+// so card 0's LEFT EDGE aligns with the "Products with a pulse" heading.
+const CARD_GAP_MIN = 60; // larger gap so cards span out properly like other cards
+const CARD_W   = 300; // must match .lusion-card-isolated-cell width in CSS
+// Left-edge offsets of each card relative to card 0's left edge
+
 const CARD_CONFIGS = [
-  { startRotZ: -9.0, startRotX:  2.2, startX: -30, targetX: -468, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.00, flipSpeed: 0.62, wobbleY: -6.0 },
-  { startRotZ: -3.2, startRotX: -1.4, startX: -10, targetX: -156, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.07, flipSpeed: 0.82, wobbleY:  3.5 },
-  { startRotZ:  3.5, startRotX:  1.6, startX:  10, targetX:  156, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
-  { startRotZ:  9.5, startRotX: -2.4, startX:  30, targetX:  468, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
+  { startRotZ: -9.0, startRotX:  2.2, startX: -30, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.00, flipSpeed: 0.62, wobbleY: -6.0 },
+  { startRotZ: -3.2, startRotX: -1.4, startX: -10, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.07, flipSpeed: 0.82, wobbleY:  3.5 },
+  { startRotZ:  3.5, startRotX:  1.6, startX:  10, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.13, flipSpeed: 0.82, wobbleY: -3.5 },
+  { startRotZ:  9.5, startRotX: -2.4, startX:  30, targetY: 0, targetRotZ: 0, targetRotX: 0, delay: 0.20, flipSpeed: 0.62, wobbleY:  6.0 },
 ];
 
 function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
@@ -71,8 +76,37 @@ export function CaseStudies(): JSX.Element {
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
+  const stageRef   = useRef<HTMLDivElement>(null);
+  // Computed targetX per card: card 0 left edge = heading left edge.
+  // Recalculated whenever the stage resizes (viewport change, font zoom, etc.).
+  const [targetXs, setTargetXs] = useState<number[]>([-468, -156, 156, 468]);
   // One ref per card cell — used for non-passive wheel interception
   const cellRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Align card 0's left edge with the heading's left edge.
+  // Cards are positioned via translate3d(X,…) where X is offset from stage center.
+  // card_i center from stage left  = CARD_OFFSETS[i] + CARD_W/2
+  // targetX[i] = (card_i center from stage left) - stageWidth/2
+  useEffect(() => {
+    const compute = () => {
+      const w = stageRef.current?.offsetWidth ?? 0;
+      if (w === 0) return;
+      // Dynamic gap: spread 4 cards evenly across stage width, min 60px gap
+      const gap = Math.max(CARD_GAP_MIN, (w - 4 * CARD_W) / 3);
+      const offsets = [
+        0,
+        CARD_W + gap,
+        (CARD_W + gap) * 2,
+        (CARD_W + gap) * 3,
+      ];
+      const half = w / 2;
+      setTargetXs(offsets.map((off) => off + CARD_W / 2 - half));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    if (stageRef.current) ro.observe(stageRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Page-scroll tracker (passive — only reads position)
   useEffect(() => {
@@ -185,7 +219,7 @@ export function CaseStudies(): JSX.Element {
             </div>
           </div>
 
-          <div className="lusion-cards-stage">
+          <div className="lusion-cards-stage" ref={stageRef}>
             {studies.map((study, idx) => {
               const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
               const cardP = Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay)));
@@ -196,7 +230,7 @@ export function CaseStudies(): JSX.Element {
               const isFrontVisible = rotY >= 90;
 
               // During travel: organic tilt from start angles back to 0 at landing.
-              const currentX = THREE_lerp(cfg.startX, cfg.targetX, cardP);
+              const currentX = THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP);
               const currentY = THREE_lerp(0, cfg.targetY, cardP);
               const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP);
               const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP);
