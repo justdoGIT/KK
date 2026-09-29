@@ -30,6 +30,19 @@ if (typeof globalThis.IntersectionObserver === "undefined") {
   globalThis.IntersectionObserver =
     MockIntersectionObserver as unknown as typeof IntersectionObserver;
 }
+// jsdom does not implement ResizeObserver; mock it for resize-driven components
+if (typeof globalThis.ResizeObserver === "undefined") {
+  class MockResizeObserver implements ResizeObserver {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+    takeRecords(): ResizeObserverEntry[] {
+      return [];
+    }
+  }
+  globalThis.ResizeObserver =
+    MockResizeObserver as unknown as typeof ResizeObserver;
+}
 
 // jsdom does not implement canvas getContext; return null so WebGL check fails gracefully
 if (
