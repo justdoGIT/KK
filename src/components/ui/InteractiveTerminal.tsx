@@ -100,43 +100,104 @@ export function InteractiveTerminal(): JSX.Element {
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
+  const [visibleLineCount, setVisibleLineCount] = useState<number>(TERMINAL_COMMANDS[0].output.length);
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isEntered, setIsEntered] = useState(false);
 
   const terminalRef = useRef<HTMLDivElement>(null);
+  const manualOverrideRef = useRef(false);
+  const manualTimerRef = useRef<number | null>(null);
+
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 
-  // Typing animation effect on active command change
+  // 1. Slow Creative Bottom-Left Maximize Reveal on Scroll Entry
   useEffect(() => {
-    let timer: number | undefined;
-    let currentIdx = 0;
-    const fullCommand = activeCommand.command;
+    const el = terminalRef.current;
+    if (!el) return;
 
-    const typeNextChar = () => {
-      if (currentIdx < fullCommand.length) {
-        currentIdx++;
-        setTypedText(fullCommand.slice(0, currentIdx));
-        const delay = Math.floor(Math.random() * 20) + 15;
-        timer = window.setTimeout(typeNextChar, delay);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsEntered(true);
+            observer.disconnect();
+          }
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // 2. Scroll-Driven 5 Script Commands & Output Line-by-Line Stream
+  useEffect(() => {
+    const handleScroll = () => {
+      if (manualOverrideRef.current || !terminalRef.current) return;
+
+      const sectionEl = terminalRef.current.closest("section") || terminalRef.current;
+      const rect = sectionEl.getBoundingClientRect();
+      const viewH = window.innerHeight;
+
+      const totalDist = rect.height + viewH;
+      if (totalDist <= 0) return;
+
+      const progress = Math.max(0, Math.min(1, (viewH - rect.top) / totalDist));
+
+      // Map progress 0..1 across the 5 script tabs (0..4)
+      const numScripts = TERMINAL_COMMANDS.length;
+      const scriptIdx = Math.min(numScripts - 1, Math.floor(progress * numScripts));
+      const subProgress = (progress * numScripts) - scriptIdx; // 0.0 to 1.0
+
+      if (scriptIdx !== activeCmdIdx) {
+        setActiveCmdIdx(scriptIdx);
+      }
+
+      const fullCmd = TERMINAL_COMMANDS[scriptIdx].command;
+      const totalOutputLines = TERMINAL_COMMANDS[scriptIdx].output.length;
+
+      // Phase 1 (subProgress 0..0.4): Type command string character by character
+      if (subProgress < 0.4) {
+        const charPct = subProgress / 0.4;
+        const charCount = Math.floor(charPct * fullCmd.length);
+        setTypedText(fullCmd.slice(0, charCount));
+        setIsTyping(charCount < fullCmd.length);
+        setShowOutput(false);
+        setVisibleLineCount(0);
       } else {
+        // Phase 2 (subProgress 0.4..1.0): Command typed, stream output lines progressively
+        setTypedText(fullCmd);
         setIsTyping(false);
-        timer = window.setTimeout(() => {
-          setShowOutput(true);
-        }, 120);
+        setShowOutput(true);
+        const linePct = (subProgress - 0.4) / 0.6;
+        const count = Math.max(1, Math.floor(linePct * totalOutputLines));
+        setVisibleLineCount(count);
       }
     };
 
-    timer = window.setTimeout(() => {
-      setTypedText("");
-      setIsTyping(true);
-      setShowOutput(false);
-      typeNextChar();
-    }, 60);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [activeCmdIdx]);
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [activeCmdIdx, activeCommand.command]);
+  // Tab click manual selection handler
+  const handleTabClick = (idx: number) => {
+    manualOverrideRef.current = true;
+    if (manualTimerRef.current) clearTimeout(manualTimerRef.current);
+
+    setActiveCmdIdx(idx);
+    setTypedText(TERMINAL_COMMANDS[idx].command);
+    setIsTyping(false);
+    setShowOutput(true);
+    setVisibleLineCount(TERMINAL_COMMANDS[idx].output.length);
+
+    // Release manual override after 4s idle
+    manualTimerRef.current = window.setTimeout(() => {
+      manualOverrideRef.current = false;
+    }, 4000);
+  };
 
   const copyOutput = () => {
     const text = `$ ${activeCommand.command}\n${activeCommand.output.join("\n")}`;
@@ -146,10 +207,14 @@ export function InteractiveTerminal(): JSX.Element {
     });
   };
 
+  const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
+
   return (
     <div
       ref={terminalRef}
-      className={`interactive-terminal-wrapper ${isExpanded ? "terminal-expanded-mode" : ""}`}
+      className={`interactive-terminal-wrapper ${isEntered ? "terminal-entered" : ""} ${
+        isExpanded ? "terminal-expanded-mode" : ""
+      }`}
     >
       <div className="terminal-window">
         {/* Terminal Title Bar */}
@@ -169,7 +234,7 @@ export function InteractiveTerminal(): JSX.Element {
                 role="tab"
                 aria-selected={activeCmdIdx === idx}
                 className={`terminal-tab ${activeCmdIdx === idx ? "tab-active" : ""}`}
-                onClick={() => setActiveCmdIdx(idx)}
+                onClick={() => handleTabClick(idx)}
               >
                 <span className="tab-icon">❯_</span>
                 <span className="tab-label">{cmd.tabTitle}</span>
@@ -212,21 +277,23 @@ export function InteractiveTerminal(): JSX.Element {
             <span className="prompt-dir">~/portfolio</span>
             <span className="prompt-symbol">$</span>
             <span className="prompt-typed-text">{typedText}</span>
-            <span className={`prompt-cursor ${isTyping ? "cursor-typing" : "cursor-blink"}`}>█</span>
+            <span className={`prompt-cursor ${isTyping || !showOutput ? "cursor-typing" : "cursor-blink"}`}>█</span>
           </div>
 
           {/* Command Output */}
           {showOutput && (
             <div className="terminal-output-container">
-              {activeCommand.output.map((line, idx) => (
+              {visibleOutput.map((line, idx) => (
                 <div key={idx} className="terminal-output-line">
                   {line}
                 </div>
               ))}
-              <div className="terminal-exit-code">
-                <span className="exit-badge">exit 0</span>
-                <span className="exit-time">executed in 2.4ms</span>
-              </div>
+              {visibleLineCount >= activeCommand.output.length && (
+                <div className="terminal-exit-code">
+                  <span className="exit-badge">exit 0</span>
+                  <span className="exit-time">executed in 2.4ms</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -234,7 +301,7 @@ export function InteractiveTerminal(): JSX.Element {
         {/* Terminal Footer Navigation Bar */}
         <div className="terminal-footer-bar">
           <span className="footer-tip">
-            TIP: Click tabs to inspect verified languages, silicon targets, wireless RF, and custom DB engines
+            TIP: Scroll or click tabs to inspect verified languages, silicon targets, wireless RF, and custom DB engines
           </span>
           <div className="terminal-step-pills">
             {TERMINAL_COMMANDS.map((cmd, idx) => (
@@ -242,7 +309,7 @@ export function InteractiveTerminal(): JSX.Element {
                 key={cmd.id}
                 type="button"
                 className={`step-dot ${activeCmdIdx === idx ? "active" : ""}`}
-                onClick={() => setActiveCmdIdx(idx)}
+                onClick={() => handleTabClick(idx)}
                 aria-label={`Switch to ${cmd.tabTitle}`}
               />
             ))}
