@@ -71,7 +71,10 @@ export function CaseStudies(): JSX.Element {
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
+  // One ref per card cell — used for non-passive wheel interception
+  const cellRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Page-scroll tracker (passive — only reads position)
   useEffect(() => {
     const handleScroll = () => {
       const section = sectionRef.current;
@@ -82,11 +85,49 @@ export function CaseStudies(): JSX.Element {
       const progress = Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75)));
       setScrollProgress(progress);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Non-passive wheel listeners: when a card is front-visible, redirect
+  // wheel delta into the card's scroll body and block page scroll.
+  // Only blocks page scroll while the card body has remaining content
+  // in the scroll direction; at the limits the page scrolls normally.
+  useEffect(() => {
+    const cleanups: (() => void)[] = [];
+
+    cellRefs.current.forEach((cell) => {
+      if (!cell) return;
+
+      const handler = (e: WheelEvent) => {
+        // Check the data attribute set during render
+        if (cell.dataset.frontVisible !== "true") return;
+
+        const body = cell.querySelector<HTMLElement>(".card-front-scroll-body");
+        if (!body) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = body;
+        const scrollable = scrollHeight - clientHeight;
+        if (scrollable <= 0) return; // card content fits — let page scroll
+
+        const goingDown = e.deltaY > 0;
+        const atTop    = scrollTop <= 0 && !goingDown;
+        const atBottom = scrollTop >= scrollable - 1 && goingDown;
+
+        if (!atTop && !atBottom) {
+          e.preventDefault(); // block page scroll
+          e.stopPropagation();
+          body.scrollTop += e.deltaY;
+        }
+      };
+
+      cell.addEventListener("wheel", handler, { passive: false });
+      cleanups.push(() => cell.removeEventListener("wheel", handler));
+    });
+
+    return () => cleanups.forEach((fn) => fn());
+  }); // re-runs every render so new refs are always wired up
 
   const openArchitectureModal = (study: CaseStudyDetail, index: number) => {
     if (!study) return;
@@ -165,7 +206,9 @@ export function CaseStudies(): JSX.Element {
               return (
                 <div
                   key={study.record.slug}
+                  ref={(el) => { cellRefs.current[idx] = el; }}
                   className="lusion-card-isolated-cell"
+                  data-front-visible={isFrontVisible ? "true" : "false"}
                   style={{
                     transform: `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`,
                     zIndex: Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx)),
