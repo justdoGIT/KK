@@ -50,6 +50,26 @@ export function ArchitectureModal({
 
   const selectedNodeInfo = architecture.nodes.find((n) => n.id === activeNode);
 
+  // Precomputed once per render, reused by the wires pass and the labels pass
+  // (labels render AFTER nodes so protocol chips paint on top, not under, node boxes).
+  const edges = architecture.nodes.flatMap((node) =>
+    (node.connectsTo ?? []).map((targetId) => {
+      const target = architecture.nodes.find((n) => n.id === targetId);
+      if (!target) return null;
+      const x1 = (node.x / 100) * 440;
+      const y1 = (node.y / 100) * 220;
+      const x2 = (target.x / 100) * 440;
+      const y2 = (target.y / 100) * 220;
+      return {
+        key: `${node.id}-${targetId}`,
+        x1, y1, x2, y2,
+        midX: (x1 + x2) / 2,
+        midY: (y1 + y2) / 2,
+        protocol: node.protocol,
+      };
+    }),
+  ).filter((e): e is NonNullable<typeof e> => e !== null);
+
   return (
     <div
       className="arch-modal-backdrop"
@@ -113,72 +133,36 @@ export function ArchitectureModal({
                   </filter>
                 </defs>
 
-                {/* Connection Wires & Protocol Buses */}
-                {architecture.nodes.flatMap((node) => {
-                  const targets = node.connectsTo ?? [];
-                  return targets.map((targetId) => {
-                    const target = architecture.nodes.find((n) => n.id === targetId);
-                    if (!target) return null;
-                    const x1 = (node.x / 100) * 440;
-                    const y1 = (node.y / 100) * 220;
-                    const x2 = (target.x / 100) * 440;
-                    const y2 = (target.y / 100) * 220;
-                    const midX = (x1 + x2) / 2;
-                    const midY = (y1 + y2) / 2;
+                {/* Connection Wires (static guide + animated data stream) */}
+                {edges.map((edge) => (
+                  <g key={edge.key}>
+                    <line
+                      x1={edge.x1}
+                      y1={edge.y1}
+                      x2={edge.x2}
+                      y2={edge.y2}
+                      stroke="rgba(56, 189, 248, 0.25)"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1={edge.x1}
+                      y1={edge.y1}
+                      x2={edge.x2}
+                      y2={edge.y2}
+                      stroke="url(#busGrad)"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 8"
+                      className="arch-animated-wire"
+                    />
+                  </g>
+                ))}
 
-                    return (
-                      <g key={`${node.id}-${targetId}`}>
-                        {/* Static Guide Line */}
-                        <line
-                          x1={x1}
-                          y1={y1}
-                          x2={x2}
-                          y2={y2}
-                          stroke="rgba(56, 189, 248, 0.25)"
-                          strokeWidth="2"
-                        />
-                        {/* Animated Data Stream Line */}
-                        <line
-                          x1={x1}
-                          y1={y1}
-                          x2={x2}
-                          y2={y2}
-                          stroke="url(#busGrad)"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 8"
-                          className="arch-animated-wire"
-                        />
-                        {/* Protocol Label Chip */}
-                        {node.protocol && (
-                          <g transform={`translate(${midX}, ${midY - 8})`}>
-                            <rect
-                              x="-30"
-                              y="-8"
-                              width="60"
-                              height="16"
-                              rx="4"
-                              fill="#090d16"
-                              stroke="rgba(56, 189, 248, 0.4)"
-                              strokeWidth="1"
-                            />
-                            <text
-                              x="0"
-                              y="3"
-                              textAnchor="middle"
-                              fontSize="8"
-                              fontFamily="monospace"
-                              fill="#38bdf8"
-                            >
-                              {node.protocol}
-                            </text>
-                          </g>
-                        )}
-                      </g>
-                    );
-                  });
-                })}
-
-                {/* Interactive Component Nodes */}
+                {/* Interactive Component Nodes — outer <g> only carries the
+                    positioning transform + hover handlers (never a CSS
+                    transform, which would replace the attribute transform
+                    and yank the hitbox out from under the cursor, causing
+                    flicker). The hover "grow" scale is applied to the inner
+                    <g> instead, via .arch-node-inner in CSS. */}
                 {architecture.nodes.map((node) => {
                   const cx = (node.x / 100) * 440;
                   const cy = (node.y / 100) * 220;
@@ -193,42 +177,75 @@ export function ArchitectureModal({
                       onMouseLeave={() => setActiveNode(null)}
                       tabIndex={0}
                     >
-                      {/* Node Box */}
-                      <rect
-                        x="-52"
-                        y="-22"
-                        width="104"
-                        height="44"
-                        rx="8"
-                        fill={isHovered ? "#1e293b" : "#0f172a"}
-                        stroke={isHovered ? "#38bdf8" : "rgba(255, 255, 255, 0.15)"}
-                        strokeWidth={isHovered ? "2" : "1"}
-                        filter={isHovered ? "url(#glow)" : undefined}
-                      />
-                      {/* Node Top Color Accent Bar */}
-                      <rect
-                        x="-52"
-                        y="-22"
-                        width="104"
-                        height="3"
-                        rx="1"
-                        fill="#38bdf8"
-                      />
-                      {/* Node Text */}
-                      <text
-                        x="0"
-                        y="2"
-                        textAnchor="middle"
-                        fontSize="9.5"
-                        fontWeight="600"
-                        fontFamily="monospace"
-                        fill="#f8fafc"
-                      >
-                        {node.label}
-                      </text>
+                      <g className="arch-node-inner">
+                        {/* Node Box */}
+                        <rect
+                          x="-52"
+                          y="-22"
+                          width="104"
+                          height="44"
+                          rx="8"
+                          fill={isHovered ? "#1e293b" : "#0f172a"}
+                          stroke={isHovered ? "#38bdf8" : "rgba(255, 255, 255, 0.15)"}
+                          strokeWidth={isHovered ? "2" : "1"}
+                          filter={isHovered ? "url(#glow)" : undefined}
+                        />
+                        {/* Node Top Color Accent Bar */}
+                        <rect
+                          x="-52"
+                          y="-22"
+                          width="104"
+                          height="3"
+                          rx="1"
+                          fill="#38bdf8"
+                        />
+                        {/* Node Text */}
+                        <text
+                          x="0"
+                          y="2"
+                          textAnchor="middle"
+                          fontSize="9.5"
+                          fontWeight="600"
+                          fontFamily="monospace"
+                          fill="#f8fafc"
+                        >
+                          {node.label}
+                        </text>
+                      </g>
                     </g>
                   );
                 })}
+
+                {/* Protocol Label Chips — rendered LAST so they paint on top
+                    of the node boxes (SVG has no z-index; paint order is
+                    strictly document order). Previously these rendered
+                    before the nodes and got overdrawn by adjacent boxes. */}
+                {edges.map((edge) =>
+                  edge.protocol ? (
+                    <g key={`${edge.key}-label`} transform={`translate(${edge.midX}, ${edge.midY - 8})`}>
+                      <rect
+                        x="-30"
+                        y="-8"
+                        width="60"
+                        height="16"
+                        rx="4"
+                        fill="#090d16"
+                        stroke="rgba(56, 189, 248, 0.4)"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x="0"
+                        y="3"
+                        textAnchor="middle"
+                        fontSize="8"
+                        fontFamily="monospace"
+                        fill="#38bdf8"
+                      >
+                        {edge.protocol}
+                      </text>
+                    </g>
+                  ) : null,
+                )}
               </svg>
 
               {/* Node Inspector Floating Pill */}
