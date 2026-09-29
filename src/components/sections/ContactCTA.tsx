@@ -5,14 +5,14 @@ import { AstronautSpaceJourney } from "../ui/AstronautSpaceJourney.tsx";
 export function ContactCTA(): JSX.Element {
   return (
     <section aria-label="Contact" className="contact-section" id="contact">
+      <AstronautSpaceJourney />
+
       <div className="contact-frame-wrapper">
         {/* Corner Crosshairs */}
         <span className="contact-crosshair contact-ch-tl" aria-hidden="true">+</span>
         <span className="contact-crosshair contact-ch-tr" aria-hidden="true">+</span>
         <span className="contact-crosshair contact-ch-bl" aria-hidden="true">+</span>
         <span className="contact-crosshair contact-ch-br" aria-hidden="true">+</span>
-
-        <AstronautSpaceJourney />
 
         <div className="contact-inner">
           <div className="contact-status-pill">

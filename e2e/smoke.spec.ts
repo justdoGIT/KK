@@ -93,63 +93,39 @@ test.describe("Portfolio smoke tests", () => {
     await expect(allDomains).toHaveClass(/active/);
   });
 
-  test("expands the astronaut card, free-falls, then breaks out waving", async ({ page }) => {
+  test("stages the 3D astronaut card expansion, tunnel journey, and finale", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/");
-    const journey = page.locator(".space-journey-scroll-section");
-    const frame = page.locator(".space-screen-frame");
-    const rig = page.locator(".space-astronaut-rig");
-    const shards = page.locator(".space-shard-field");
+    const journey = page.locator(".aj-section");
+    const stage = page.locator(".aj-stage");
+    const intro = page.locator(".aj-intro");
+    const end = page.locator(".aj-end");
 
     const scrollJourneyTo = async (progress: number) => {
       await journey.evaluate((element, value) => {
         const scrollable = element.offsetHeight - window.innerHeight;
-        const top = element.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: top + scrollable * value, behavior: "instant" as ScrollBehavior });
+        const secTop = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: secTop + scrollable * value, behavior: "instant" as ScrollBehavior });
       }, progress);
+      await page.waitForTimeout(150);
     };
 
-    await scrollJourneyTo(0.06);
-    await expect(frame).toBeVisible();
-    const openingFrame = await frame.boundingBox();
-    expect(openingFrame).not.toBeNull();
+    await scrollJourneyTo(0.02);
+    await expect(stage).toHaveAttribute("data-phase", "cardShow");
+    await expect(intro).toBeVisible();
 
-    await scrollJourneyTo(0.36);
-    await expect
-      .poll(async () => (await frame.boundingBox())?.width ?? 0)
-      .toBeGreaterThan(openingFrame!.width * 4);
+    await scrollJourneyTo(0.18);
+    await expect(stage).toHaveAttribute("data-phase", "title");
+    await expect(page.getByText("Step into a new orbit")).toBeVisible();
 
-    await scrollJourneyTo(0.44);
-    const fallStart = await rig.boundingBox();
-    expect(fallStart).not.toBeNull();
-    await scrollJourneyTo(0.7);
-    await expect
-      .poll(async () => (await rig.boundingBox())?.y ?? 0)
-      .toBeGreaterThan(fallStart!.y + 100);
-    await expect
-      .poll(async () => Number(await shards.evaluate((element) => getComputedStyle(element).opacity)))
-      .toBe(0);
+    await scrollJourneyTo(0.32);
+    await expect(stage).toHaveAttribute("data-phase", "blackTunnel");
 
-    await scrollJourneyTo(0.86);
-    await expect
-      .poll(async () =>
-        Number(
-          await page
-            .locator(".space-screen-cracks")
-            .evaluate((element) => getComputedStyle(element).opacity),
-        ),
-      )
-      .toBeGreaterThan(0.5);
-    await expect
-      .poll(async () => Number(await shards.evaluate((element) => getComputedStyle(element).opacity)))
-      .toBeGreaterThan(0.5);
-
-    await scrollJourneyTo(0.97);
-    await expect(page.locator(".astronaut-waving")).toBeVisible();
-    await expect(page.getByText("BUILD THE NEXT", { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /COME JOIN US ON THE NEXT MISSION/ }),
-    ).toBeVisible();
+    await scrollJourneyTo(0.80);
+    await expect(stage).toHaveAttribute("data-phase", "wait");
+    await expect(end).toBeVisible();
+    await expect(page.getByText(/Let.*build it/i)).toBeVisible();
+    await expect(end.getByRole("link", { name: /Start a conversation/i })).toBeVisible();
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {
