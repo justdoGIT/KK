@@ -93,23 +93,26 @@ export function localSoleY(hero: AstronautInstance, scratch: Vector3): number {
 
 function faceTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 32;
+  canvas.width = 512;
+  canvas.height = 64;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    // Same palette as the contact card: navy band, cyan wash, bright lip.
-    const band = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    band.addColorStop(0, "#173052");
-    band.addColorStop(0.48, "#245078");
-    band.addColorStop(1, "#142440");
-    ctx.fillStyle = band;
+    // Matches the card's exact dark slate-blue gradient: #0b111e -> #0f172a
+    const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bg.addColorStop(0, "#0e182a");
+    bg.addColorStop(0.5, "#0b1220");
+    bg.addColorStop(1, "#070c16");
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const wash = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    wash.addColorStop(0, "rgba(147, 164, 255, 0.5)");
-    wash.addColorStop(1, "rgba(56, 189, 248, 0.16)");
-    ctx.fillStyle = wash;
+    // Soft radial cyan glow from top center
+    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 4, canvas.width / 2, 0, canvas.width * 0.45);
+    glow.addColorStop(0, "rgba(56, 189, 248, 0.28)");
+    glow.addColorStop(0.6, "rgba(56, 189, 248, 0.06)");
+    glow.addColorStop(1, "rgba(56, 189, 248, 0)");
+    ctx.fillStyle = glow;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
+    // Thin top edge highlight matching the card's inset border
+    ctx.fillStyle = "rgba(125, 211, 252, 0.55)";
     ctx.fillRect(0, 0, canvas.width, 2);
   }
   const texture = new CanvasTexture(canvas);
@@ -124,15 +127,15 @@ export type LandingPanel = {
 
 /** Unit box scaled per frame; unlit so it matches the flat CSS card below it. */
 export function createLandingPanel(): LandingPanel {
-  const side = new MeshBasicMaterial({ color: "#142440", transparent: true });
-  const top = new MeshBasicMaterial({ color: "#3a6aa6", transparent: true });
-  const bottom = new MeshBasicMaterial({ color: "#0b1426", transparent: true });
+  const side = new MeshBasicMaterial({ color: "#090f1c", transparent: true });
+  const top = new MeshBasicMaterial({ color: "#111c30", transparent: true });
+  const bottom = new MeshBasicMaterial({ color: "#060a12", transparent: true });
   const front = new MeshBasicMaterial({ map: faceTexture(), transparent: true });
   // BoxGeometry face order: +X, -X, +Y, -Y, +Z, -Z.
   const mesh = new Mesh(new BoxGeometry(1, 1, 1), [side, side, top, bottom, front, side]);
   const edges = new LineSegments(
     new EdgesGeometry(mesh.geometry),
-    new LineBasicMaterial({ color: "#7dd3fc", transparent: true }),
+    new LineBasicMaterial({ color: "#38bdf8", transparent: true }),
   );
   mesh.add(edges);
   mesh.visible = false;
