@@ -1,7 +1,7 @@
 /* Contact astronaut journey (Lusion goal-section replication).
-   Layer order: backdrop < world (masked) < card edge / bezel < finale card
-   < hero (unmasked after the glass breaks, so it lands on the card edge)
-   < title. */
+   Layer order: backdrop < theme (site background after the break) < world
+   (masked) < card edge / bezel < intro < hero (unmasked after the glass
+   breaks) < title / finale heading. */
 
 .aj-section {
   position: relative;
@@ -18,6 +18,7 @@
   overflow: hidden;
   isolation: isolate;
   color: #ffffff;
+  will-change: opacity;
 }
 
 .aj-backdrop,
@@ -31,6 +32,22 @@
   z-index: 0;
   background: #000000;
   opacity: 0;
+}
+
+/* The site's own background, faded in as the astronaut drops out of the
+   screen: the page colour shows through (the backdrop fades out beneath it)
+   and only the accent glows are painted, fading out toward the stage bottom
+   so the unpinning stage meets the next section without a seam. */
+.aj-theme {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 70% 40%, rgba(56, 189, 248, 0.12) 0%, transparent 52%),
+    radial-gradient(circle at 22% 62%, rgba(147, 164, 255, 0.07) 0%, transparent 42%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
 }
 
 .aj-world {
@@ -95,12 +112,20 @@
   color: #93a4ff;
 }
 
+/* Headings share the site's display type: system sans, heavy, tight tracking. */
+.aj-intro-title,
+.aj-end-title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
 .aj-intro-title {
   margin-top: 0.8rem;
   font-size: clamp(1.8rem, 3.6vw, 3.4rem);
-  font-weight: 500;
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  color: #f8fafc;
 }
 
 .aj-title {
@@ -126,140 +151,30 @@
   will-change: opacity, transform;
 }
 
+/* Finale heading beside the close-up astronaut (right half on wide stages). */
 .aj-end {
   position: absolute;
-  left: 50%;
-  top: var(--aj-seat, 44%);
-  z-index: 3;
-  width: min(1040px, 90vw);
-  margin-left: calc(min(1040px, 90vw) / -2);
+  top: 50%;
+  left: 52%;
+  z-index: 5;
+  width: min(42vw, 640px);
+  margin-top: -0.6em;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  transform-origin: 0% 50%;
   will-change: transform, opacity;
-}
-
-.aj-end-card {
-  perspective: 1400px;
-}
-
-/* The card reads as a solid slab: glowing top edge, tilted surface, deep shadow. */
-.aj-end-card-inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: clamp(4rem, 15vh, 7.5rem) clamp(1.4rem, 5vw, 4.5rem) clamp(1.8rem, 5vh, 3rem);
-  text-align: center;
-  border: 1px solid rgba(147, 164, 255, 0.22);
-  border-radius: 22px;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(56, 189, 248, 0.13), transparent 62%),
-    linear-gradient(180deg, rgba(9, 13, 22, 0.96), rgba(2, 4, 10, 0.99));
-  box-shadow:
-    0 42px 120px rgba(0, 0, 0, 0.66),
-    0 0 90px rgba(56, 120, 255, 0.14);
-  transform: rotateX(6deg);
-  transform-style: preserve-3d;
-}
-
-.aj-end-card-inner::before {
-  content: "";
-  position: absolute;
-  inset: -1px -1px auto;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #38bdf8, #93a4ff, transparent);
-  opacity: 0.9;
-}
-
-.aj-end-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.9rem;
-  border: 1px solid rgba(147, 164, 255, 0.28);
-  border-radius: 999px;
-  background: rgba(147, 164, 255, 0.08);
-  color: #c7d2fe;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.aj-end-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 10px #38bdf8;
 }
 
 .aj-end-title {
   margin: 0;
-  max-width: 20ch;
-  font-size: clamp(2rem, 5vw, 4.2rem);
-  font-weight: 500;
-  line-height: 1.02;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-  background: linear-gradient(92deg, #ffffff 10%, #93a4ff 58%, #38bdf8 96%);
+  font-size: clamp(2.4rem, 5.6vw, 5.4rem);
+  background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 45%, #38bdf8 70%, #93a4ff 100%);
+  -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.aj-end-tagline {
-  max-width: 52ch;
-  margin: 0;
-  color: var(--color-fg-muted);
-  font-size: clamp(0.85rem, 1.05vw, 1rem);
-  line-height: 1.6;
-}
-
-.aj-end-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.aj-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1.6rem;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #07080d;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  pointer-events: auto;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
-}
-
-.aj-pill:hover {
-  transform: translateY(-2px) scale(1.03);
-}
-
-.aj-pill:focus-visible {
-  outline: 2px solid #93a4ff;
-  outline-offset: 3px;
-}
-
-.aj-pill-ghost {
-  background: rgba(147, 164, 255, 0.08);
-  color: #e2e8ff;
-  box-shadow: inset 0 0 0 1px rgba(147, 164, 255, 0.4);
-  backdrop-filter: blur(10px);
+  filter: drop-shadow(0 8px 32px rgba(56, 189, 248, 0.25));
 }
 
 /* Static finale: reduced motion or no WebGL. */
@@ -272,7 +187,9 @@
   margin: 0 auto 4rem;
   border-radius: 24px;
   overflow: hidden;
-  background: #000000;
+  background:
+    radial-gradient(circle at 70% 40%, rgba(56, 189, 248, 0.12) 0%, transparent 52%),
+    var(--color-bg);
   color: #ffffff;
 }
 
@@ -299,36 +216,25 @@
   70% { transform: rotate(-10deg); }
 }
 
-@media (max-width: 768px) {
-  .aj-title {
-    font-size: clamp(2rem, 10vw, 3.4rem);
+/* Tall stages: astronaut centred high, heading across the bottom. */
+@media (max-aspect-ratio: 1/1) {
+  .aj-end {
+    top: auto;
+    bottom: 12%;
+    left: 5vw;
+    width: 90vw;
+    margin-top: 0;
+    text-align: center;
+    transform-origin: 50% 100%;
   }
   .aj-end-title {
-    font-size: clamp(1.7rem, 7.4vw, 2.6rem);
-  }
-  .aj-end-card-inner {
-    padding-top: clamp(2.8rem, 10vh, 4.5rem);
-  }
-  .aj-end-actions {
-    flex-direction: column;
-    align-items: center;
+    font-size: clamp(2.2rem, 10vw, 3.6rem);
   }
 }
 
-@media (max-height: 880px) {
-  .aj-end-card-inner {
-    gap: 0.55rem;
-    padding: clamp(3.2rem, 10vh, 4.4rem) clamp(1.2rem, 4vw, 3rem) clamp(1.2rem, 3vh, 2rem);
-  }
-  .aj-end-title {
-    font-size: clamp(1.6rem, 3.6vw, 2.9rem);
-  }
-  .aj-end-tagline {
-    display: none;
-  }
-  .aj-pill {
-    padding: 0.75rem 1.3rem;
-    font-size: 0.72rem;
+@media (max-width: 768px) {
+  .aj-title {
+    font-size: clamp(2rem, 10vw, 3.4rem);
   }
 }
 

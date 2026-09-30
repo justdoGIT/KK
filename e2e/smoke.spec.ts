@@ -101,7 +101,6 @@ test.describe("Portfolio smoke tests", () => {
     const stage = page.locator(".aj-stage");
     const intro = page.locator(".aj-intro");
     const end = page.locator(".aj-end");
-    const card = page.locator(".aj-end-card-inner");
 
     await expect(stage).toHaveCSS("position", "sticky");
     await expect
@@ -141,25 +140,59 @@ test.describe("Portfolio smoke tests", () => {
     await expectPhase("wait");
     await expect(end).toBeVisible();
 
+    // Close-up wave: the heading pops in the site's display type.
     const heading = page.locator(".aj-end-title");
     await expect(heading).toHaveText(/Let.s innovate together/i);
-    await expect(heading).toHaveCSS("opacity", "1");
-
-    // The card's top edge is the seat the astronaut lands on.
-    const seat = await stage.evaluate((element) => element.style.getPropertyValue("--aj-seat"));
-    expect(seat).toBe("46.00%");
+    await expect.poll(async () => end.evaluate((el) => getComputedStyle(el).opacity), { timeout: 20_000 }).toBe("1");
+    await expect(heading).toHaveCSS("font-weight", "800");
+    const fonts = await heading.evaluate((el) => [getComputedStyle(el).fontFamily, getComputedStyle(document.body).fontFamily]);
+    expect(fonts[0]).toBe(fonts[1]);
+    await expect(page.locator(".aj-intro-title")).toHaveCSS("font-weight", "800");
+    // After the break the stage shows the site's background, not a black void.
     await expect
-      .poll(
-        async () =>
-          card.evaluate((element) => {
-            const rect = element.getBoundingClientRect();
-            return Math.abs(rect.top - window.innerHeight * 0.46);
-          }),
-        { timeout: 20_000 },
-      )
-      .toBeLessThan(15);
+      .poll(async () => page.locator(".aj-theme").evaluate((el) => Number(el.style.opacity)), { timeout: 20_000 })
+      .toBe(1);
+  });
 
-    await expect(end.getByRole("link", { name: /Start a conversation/i })).toBeVisible();
+  test("pops the contact banner up and sags it under the landing astronaut", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const banner = page.locator(".contact-banner");
+    const mover = page.locator(".contact-banner-mover");
+
+    // Exactly one banner: the contact card itself is the cuboid's front face.
+    await expect(page.locator(".contact-cuboid")).toHaveCount(1);
+    await expect(page.locator(".contact-cuboid > .contact-frame-wrapper")).toHaveCount(1);
+
+    const offset = () =>
+      mover.evaluate((el) => {
+        const match = /translate3d\(0px, (-?[\d.]+)px/.exec(el.style.transform);
+        return match ? Number(match[1]) : Number.NaN;
+      });
+
+    // Pops up from below before the astronaut has landed.
+    await expect.poll(offset, { timeout: 5_000 }).toBeGreaterThan(60);
+    await banner.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + r.top - window.innerHeight * 0.4, behavior: "instant" as ScrollBehavior });
+    });
+    // Sags well past the old 14px bump on landing, then eases back to rest.
+    await expect.poll(offset, { timeout: 30_000 }).toBeGreaterThan(24);
+    await expect.poll(offset, { timeout: 30_000 }).toBeLessThan(1);
+    await expect(mover).toHaveCSS("opacity", "1");
+    // The previous close-up is gone before the lounge astronaut arrives.
+    await expect(page.locator(".aj-stage")).toHaveCSS("opacity", "0");
+    await expect(page.locator(".contact-lounge canvas")).toHaveCount(1);
+
+    // The top face is visible above the front face: the banner reads as a slab.
+    const faces = await page.evaluate(() => {
+      const top = document.querySelector(".contact-cuboid-top")?.getBoundingClientRect();
+      const front = document.querySelector(".contact-frame-wrapper")?.getBoundingClientRect();
+      return top && front ? { depth: front.top - top.top } : null;
+    });
+    expect(faces?.depth ?? 0).toBeGreaterThan(20);
+    await expect(page.getByRole("link", { name: /Start a Conversation/ }).last()).toBeVisible();
   });
 
   test("cruises the journey automatically after a downward gesture", async ({ page }) => {
@@ -204,7 +237,10 @@ test.describe("Portfolio smoke tests", () => {
     const symxButton = page
       .getByRole("button")
       .filter({ hasText: /SYMX\.AI/ });
-    await symxButton.click();
+    // Activate through the button's keyboard contract: the continuously
+    // scrubbing robot timeline can move overlapping cards between frames.
+    await symxButton.focus();
+    await symxButton.press("Enter");
     await expect(
       page.locator(".disclosure-panel").first(),
     ).toBeVisible();

@@ -1,32 +1,25 @@
 import { useEffect, useMemo, useRef, type JSX } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Environment, Lightformer, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
+import { SuitLighting } from "./SuitLighting.tsx";
 import {
   AdditiveBlending,
   Color,
   MeshPhysicalMaterial,
-  PerspectiveCamera,
   Vector3,
   type DirectionalLight,
   type Group,
 } from "three";
-import { SEAT_FRACTION, phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
+import { phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import { modelUrl } from "../robots/model-assets.ts";
-import {
-  BONES,
-  buildAstronautRig,
-  instantiateAstronaut,
-  type AstronautInstance,
-  type BoneName,
-} from "./astronaut-rig.ts";
-import { createPoseBuffer, samplePose, type PoseBuffer } from "./astronaut-poses.ts";
+import { buildAstronautRig, instantiateAstronaut } from "./astronaut-rig.ts";
+import { applyPose, createPoseBuffer, samplePose, type PoseBuffer } from "./astronaut-poses.ts";
 import {
   cloneWeight,
   createRootPose,
   heroRoot,
   impactEnvelope,
   type RootPose,
-  type SeatFrame,
 } from "./hero-motion.ts";
 import { GlassShards } from "./GlassShards.tsx";
 import type { JourneyClockRef } from "./journey-clock.ts";
@@ -46,13 +39,6 @@ function applyRoot(group: Group, pose: RootPose, scaleMul = 1): void {
   group.position.set(pose.x, pose.y, pose.z);
   group.rotation.set(pose.rx, pose.ry, pose.rz);
   group.scale.setScalar(pose.scale * scaleMul);
-}
-
-function applyPose(instance: AstronautInstance, pose: PoseBuffer): void {
-  for (const name of BONES) {
-    const rotation = pose[name as BoneName];
-    instance.bones[name].rotation.set(rotation[0], rotation[1], rotation[2]);
-  }
 }
 
 /** Unmasked foreground: licensed NASA EMU astronaut, tunnel echoes, glass, and impact debris. */
@@ -106,16 +92,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     const time = state.clock.elapsedTime;
 
     buf.cursor = (buf.cursor + 1) % HISTORY;
-    const view = state.camera;
-    // Shorter stages get a smaller suit so the seated pose still clears the card.
-    const seatScale = Math.max(0.6, Math.min(1, clock.current.height / 1000));
-    const seat: SeatFrame = {
-      fraction: SEAT_FRACTION,
-      fov: view instanceof PerspectiveCamera ? view.fov : 35,
-      cameraZ: view.position.z,
-      scale: seatScale,
-    };
-    const root = heroRoot(t, time, seat, buf.history[buf.cursor]);
+    const aspect = clock.current.width / Math.max(1, clock.current.height);
+    const root = heroRoot(t, time, aspect, buf.history[buf.cursor]);
     samplePose(t, time, buf.pose);
     applyRoot(hero.root, root);
     applyPose(hero, buf.pose);
@@ -159,16 +137,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       {ghosts.map((ghost, index) => (
         <primitive key={index} object={ghost.root} />
       ))}
-      <Environment resolution={128}>
-        <Lightformer intensity={0.7} position={[0, 0, -5]} scale={[10, 10, 1]} />
-        <Lightformer intensity={0.5} position={[0, 5, 0]} scale={[10, 1, 10]} />
-        <Lightformer intensity={0.35} position={[5, 0, 0]} scale={[1, 10, 10]} />
-      </Environment>
-      <ambientLight intensity={0.38} />
-      <hemisphereLight args={["#e3eaff", "#090d16", 0.85]} />
-      <directionalLight position={[3, 4, 6]} intensity={2.5} />
+      <SuitLighting />
       <directionalLight ref={rimRef} position={[-4, 2.5, -3]} intensity={2.8} color="#38bdf8" />
-      <directionalLight position={[-2, 1, -5]} intensity={0.75} color="#93a4ff" />
       <GlassShards clock={clock} impact={impactRef} />
     </>
   );

@@ -10,7 +10,7 @@ import { useJourneyDriver, type JourneyElements } from "./astronaut/useJourneyDr
 // Contact finale modelled on Lusion's "Where creative ideas become immersive
 // experiences" sequence: a small card opens into a fullscreen window onto
 // space, the astronaut free-falls through a tunnel, the view shrinks into a
-// 16:9 screen, the astronaut shatters the glass, drops out, and waves.
+// 16:9 screen, the astronaut shatters the glass, flies up close and waves.
 
 const WorldCanvas = lazy(() =>
   import("../../scene/astronaut/JourneyCanvases.tsx").then((m) => ({ default: m.WorldCanvas })),
@@ -25,6 +25,7 @@ function ImmersiveJourney(): JSX.Element {
   const section = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
+  const theme = useRef<HTMLDivElement>(null);
   const world = useRef<HTMLDivElement>(null);
   const hero = useRef<HTMLDivElement>(null);
   const cardEdge = useRef<HTMLDivElement>(null);
@@ -35,7 +36,7 @@ function ImmersiveJourney(): JSX.Element {
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1 });
 
   const els = useMemo<JourneyElements>(
-    () => ({ section, stage, backdrop, world, hero, cardEdge, bezel, intro, titleLines, end, clock }),
+    () => ({ section, stage, backdrop, theme, world, hero, cardEdge, bezel, intro, titleLines, end, clock }),
     [],
   );
   const { near, active } = useJourneyDriver(els);
@@ -50,6 +51,7 @@ function ImmersiveJourney(): JSX.Element {
     >
       <div ref={stage} className="aj-stage" data-phase="cardShow">
         <div ref={backdrop} className="aj-backdrop" aria-hidden="true" />
+        <div ref={theme} className="aj-theme" aria-hidden="true" />
         <div ref={world} className="aj-layer aj-world" aria-hidden="true">
           {near ? (
             <Suspense fallback={null}>

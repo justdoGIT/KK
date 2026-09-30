@@ -60,9 +60,6 @@ const JOINTS: Record<BoneName, JointSpec> = {
   footR: { parent: "shinR", at: [-6.5, -33, 0], tip: [-6.5, -36, 9] },
 };
 
-/** Model origin (bounding-box centre) down to the hips bone, in rig units. */
-export const HIP_OFFSET = (Math.abs(JOINTS.hips.at[1]) / MESH_HEIGHT) * ASTRONAUT_HEIGHT;
-
 const ARM_L: BoneName[] = ["chest", "armL", "forearmL", "handL"];
 const ARM_R: BoneName[] = ["chest", "armR", "forearmR", "handR"];
 const LEG_L: BoneName[] = ["hips", "thighL", "shinL", "footL"];
