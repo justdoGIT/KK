@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties, type JSX } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 
 type LusionKineticHeadingProps = {
-  text: string;
+  text?: string;
+  children?: ReactNode;
   as?: "h1" | "h2" | "h3" | "span" | "div";
   className?: string;
   kicker?: string;
@@ -29,6 +30,7 @@ function letterStyle(variant: "scatter" | "cascade", order: number): CSSProperti
 
 export function LusionKineticHeading({
   text,
+  children,
   as: Component = "h2",
   className = "",
   kicker,
@@ -59,7 +61,26 @@ export function LusionKineticHeading({
     return () => observer.disconnect();
   }, [enhanced]);
 
-  const words = text.split(" ");
+  const words = (text ?? "").split(" ");
+
+  // Helper to process text with kinetic effects
+  const processTextNode = (word: string, wIdx: number) => {
+    const first = words.slice(0, wIdx).join("").length;
+    return (
+      <span key={wIdx} className="kinetic-word-mask" aria-hidden="true">
+        <span
+          className="kinetic-word-inner"
+          style={{ transitionDelay: `${wIdx * 0.045}s` }}
+        >
+          {variant === "rise" ? word : [...word].map((char, index) => (
+            <span key={index} className="kinetic-letter" style={letterStyle(variant, first + index)}>{char}</span>
+          ))}&nbsp;
+        </span>
+      </span>
+    );
+  };
+
+  const titleContent = children ? children : words.map((word, wIdx) => processTextNode(word, wIdx));
 
   return (
     <div
@@ -73,22 +94,8 @@ export function LusionKineticHeading({
         </div>
       )}
 
-      <Component className="lusion-kinetic-title" aria-label={text}>
-        {words.map((word, wIdx) => {
-          const first = words.slice(0, wIdx).join("").length;
-          return (
-            <span key={wIdx} className="kinetic-word-mask" aria-hidden="true">
-              <span
-                className="kinetic-word-inner"
-                style={{ transitionDelay: `${wIdx * 0.045}s` }}
-              >
-                {variant === "rise" ? word : [...word].map((char, index) => (
-                  <span key={index} className="kinetic-letter" style={letterStyle(variant, first + index)}>{char}</span>
-                ))}&nbsp;
-              </span>
-            </span>
-          );
-        })}
+      <Component className="lusion-kinetic-title" aria-label={text || ""}>
+        {titleContent}
       </Component>
 
       {subtitle && (
