@@ -14,19 +14,19 @@ import type { ContactPoseMode } from "../../components/ui/contact/banner-timelin
 import { ASTRONAUT_HEIGHT, type AstronautInstance } from "./astronaut-rig.ts";
 import { stageUnitAt, type FinaleClock } from "./journey-clock.ts";
 
-// A flat landing panel under the astronaut's boots. It appears beneath him as
-// he lands, zooms out with him, and ends on the contact card's top edge so the
-// card reads as attached beneath it. Proportions are in astronaut heights.
+// 3D Billboard / Hoarding Landing Deck under the astronaut's boots.
+// Appears under him as he lands, zooms out in lockstep, and connects flush
+// onto the contact card's top edge to form a continuous 3D billboard structure.
 
-const THICKNESS = 0.1;
-const DEPTH = 0.45;
-/** Share of the panel depth in front of his boots, so the pad reads ahead of him. */
-const AHEAD = 0.7;
+const THICKNESS = 0.16;
+const DEPTH = 0.55;
+/** Share of the panel depth in front of his boots, so the deck reads ahead of him. */
+const AHEAD = 0.72;
 /** Rig units from the ankle joint down to the boot sole. */
 const SOLE_BELOW_ANKLE = 0.1;
 /** Seated poses: hips above the panel top, and how far behind the front edge (rig units). */
 const SEAT_HEIGHT = 0.2;
-const SEAT_BACK = 0.2;
+const SEAT_BACK = 0.22;
 
 export type LandingAnchor = {
   /** Astronaut x, panel top y, and scale once landed (world units). */
@@ -91,29 +91,72 @@ export function localSoleY(hero: AstronautInstance, scratch: Vector3): number {
   return Math.min(left, right) - SOLE_BELOW_ANKLE;
 }
 
-function faceTexture(): CanvasTexture {
+/** Billboard front face texture: exact dark card gradient + cyan glow + metallic edge rim. */
+function billboardFrontTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    // Matches the card's exact dark slate-blue gradient: #0b111e -> #0f172a
+    // Card's exact radial/linear background: deep void slate #090d16 -> #0f172a
     const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
     bg.addColorStop(0, "#0e182a");
-    bg.addColorStop(0.5, "#0b1220");
+    bg.addColorStop(0.6, "#0b1220");
     bg.addColorStop(1, "#070c16");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Soft radial cyan glow from top center
-    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 4, canvas.width / 2, 0, canvas.width * 0.45);
-    glow.addColorStop(0, "rgba(56, 189, 248, 0.28)");
-    glow.addColorStop(0.6, "rgba(56, 189, 248, 0.06)");
+
+    // Top-center cyan spotlight / radial aura (billboard top illumination)
+    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 2, canvas.width / 2, 0, canvas.width * 0.48);
+    glow.addColorStop(0, "rgba(56, 189, 248, 0.35)");
+    glow.addColorStop(0.5, "rgba(56, 189, 248, 0.08)");
     glow.addColorStop(1, "rgba(56, 189, 248, 0)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Thin top edge highlight matching the card's inset border
-    ctx.fillStyle = "rgba(125, 211, 252, 0.55)";
-    ctx.fillRect(0, 0, canvas.width, 2);
+
+    // Top edge metallic bevel highlight
+    ctx.fillStyle = "rgba(125, 211, 252, 0.75)";
+    ctx.fillRect(0, 0, canvas.width, 2.5);
+
+    // Bottom rim border connecting flush to the lower card
+    ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
+    ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
+/** Billboard top platform texture: industrial anti-slip deck grid. */
+function billboardTopTexture(): CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.fillStyle = "#0c1527";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle industrial grid pattern on the platform surface
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+    ctx.lineWidth = 1.5;
+    const step = 32;
+    for (let x = 0; x <= canvas.width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Front lip glowing landing strip
+    ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
+    ctx.fillRect(0, canvas.height - 6, canvas.width, 6);
   }
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -125,12 +168,12 @@ export type LandingPanel = {
   edges: LineSegments<EdgesGeometry, LineBasicMaterial>;
 };
 
-/** Unit box scaled per frame; unlit so it matches the flat CSS card below it. */
+/** 3D billboard hoarding deck with industrial frame outline and card-matched shaders. */
 export function createLandingPanel(): LandingPanel {
-  const side = new MeshBasicMaterial({ color: "#090f1c", transparent: true });
-  const top = new MeshBasicMaterial({ color: "#111c30", transparent: true });
-  const bottom = new MeshBasicMaterial({ color: "#060a12", transparent: true });
-  const front = new MeshBasicMaterial({ map: faceTexture(), transparent: true });
+  const side = new MeshBasicMaterial({ color: "#080e1a", transparent: true });
+  const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
+  const bottom = new MeshBasicMaterial({ color: "#04070d", transparent: true });
+  const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
   // BoxGeometry face order: +X, -X, +Y, -Y, +Z, -Z.
   const mesh = new Mesh(new BoxGeometry(1, 1, 1), [side, side, top, bottom, front, side]);
   const edges = new LineSegments(
@@ -179,5 +222,5 @@ export function placeLandingPanel(
   mesh.scale.set(anchor.width * size, thickness, depth);
   mesh.position.set(x, top - thickness / 2, front - depth / 2);
   for (const material of mesh.material) material.opacity = shown;
-  panel.edges.material.opacity = shown * 0.65;
+  panel.edges.material.opacity = shown * 0.75;
 }
