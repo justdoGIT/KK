@@ -30,11 +30,6 @@ export const PHASE_SPANS: Record<PhaseId, Span> = (() => {
 /** Scroll length of the pinned section, in viewport heights. */
 export const JOURNEY_VIEWPORTS = 4.5;
 
-/**
- * Wait-phase ratio by which the astronaut has flown up close to the camera:
- * the wave, the root framing, and the finale heading all key off it.
- */
-export const ARRIVE_AT = 0.2;
 
 export function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));

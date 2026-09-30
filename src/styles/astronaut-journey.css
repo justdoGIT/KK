@@ -102,8 +102,7 @@
   pointer-events: none;
 }
 
-.aj-kicker,
-.aj-end-kicker {
+.aj-kicker {
   display: block;
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -112,9 +111,8 @@
   color: #93a4ff;
 }
 
-/* Headings share the site's display type: system sans, heavy, tight tracking. */
-.aj-intro-title,
-.aj-end-title {
+/* Intro heading uses the site's display type: system sans, heavy, tight tracking. */
+.aj-intro-title {
   font-family: var(--font-sans);
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -151,33 +149,8 @@
   will-change: opacity, transform;
 }
 
-/* Finale heading beside the close-up astronaut (right half on wide stages). */
-.aj-end {
-  position: absolute;
-  top: 50%;
-  left: 52%;
-  z-index: 5;
-  width: min(42vw, 640px);
-  margin-top: -0.6em;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform-origin: 0% 50%;
-  will-change: transform, opacity;
-}
 
-.aj-end-title {
-  margin: 0;
-  font-size: clamp(2.4rem, 5.6vw, 5.4rem);
-  background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 45%, #38bdf8 70%, #93a4ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  filter: drop-shadow(0 8px 32px rgba(56, 189, 248, 0.25));
-}
-
-/* Static finale: reduced motion or no WebGL. */
+/* Static launch illustration: reduced motion or no WebGL. */
 .aj-fallback {
   position: relative;
   width: 100%;
@@ -200,46 +173,9 @@
   height: 100%;
 }
 
-.aj-end-static {
-  opacity: 1;
-  visibility: visible;
-}
-
-.aj-fallback .astronaut-waving .astronaut-right-arm {
-  transform-origin: 555px 210px;
-  animation: aj-wave 1.6s ease-in-out infinite;
-}
-
-@keyframes aj-wave {
-  0%, 100% { transform: rotate(0deg); }
-  30% { transform: rotate(14deg); }
-  70% { transform: rotate(-10deg); }
-}
-
-/* Tall stages: astronaut centred high, heading across the bottom. */
-@media (max-aspect-ratio: 1/1) {
-  .aj-end {
-    top: auto;
-    bottom: 12%;
-    left: 5vw;
-    width: 90vw;
-    margin-top: 0;
-    text-align: center;
-    transform-origin: 50% 100%;
-  }
-  .aj-end-title {
-    font-size: clamp(2.2rem, 10vw, 3.6rem);
-  }
-}
 
 @media (max-width: 768px) {
   .aj-title {
     font-size: clamp(2rem, 10vw, 3.4rem);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aj-fallback .astronaut-waving .astronaut-right-arm {
-    animation: none;
   }
 }

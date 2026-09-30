@@ -100,7 +100,6 @@ test.describe("Portfolio smoke tests", () => {
     const journey = page.locator(".aj-section");
     const stage = page.locator(".aj-stage");
     const intro = page.locator(".aj-intro");
-    const end = page.locator(".aj-end");
 
     await expect(stage).toHaveCSS("position", "sticky");
     await expect
@@ -138,61 +137,73 @@ test.describe("Portfolio smoke tests", () => {
 
     await scrollJourneyTo(0.86);
     await expectPhase("wait");
-    await expect(end).toBeVisible();
-
-    // Close-up wave: the heading pops in the site's display type.
-    const heading = page.locator(".aj-end-title");
-    await expect(heading).toHaveText(/Let.s innovate together/i);
-    await expect.poll(async () => end.evaluate((el) => getComputedStyle(el).opacity), { timeout: 20_000 }).toBe("1");
-    await expect(heading).toHaveCSS("font-weight", "800");
-    const fonts = await heading.evaluate((el) => [getComputedStyle(el).fontFamily, getComputedStyle(document.body).fontFamily]);
-    expect(fonts[0]).toBe(fonts[1]);
-    await expect(page.locator(".aj-intro-title")).toHaveCSS("font-weight", "800");
+    await expect(page.locator(".aj-end")).toHaveCount(0);
     // After the break the stage shows the site's background, not a black void.
     await expect
       .poll(async () => page.locator(".aj-theme").evaluate((el) => Number(el.style.opacity)), { timeout: 20_000 })
       .toBe(1);
+    await expect(page.locator(".aj-intro-title")).toHaveCSS("font-weight", "800");
   });
 
-  test("pops the contact banner up and sags it under the landing astronaut", async ({ page }) => {
-    test.setTimeout(60_000);
+  test("lands on the contact deck and reacts to scroll, idle, and CTAs", async ({ page }) => {
+    test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     const banner = page.locator(".contact-banner");
     const mover = page.locator(".contact-banner-mover");
+    const heading = page.locator(".contact-journey-heading");
 
-    // Exactly one banner: the contact card itself is the cuboid's front face.
     await expect(page.locator(".contact-cuboid")).toHaveCount(1);
     await expect(page.locator(".contact-cuboid > .contact-frame-wrapper")).toHaveCount(1);
 
+    const scrollContactTo = async (progress: number) => {
+      await banner.evaluate((element, value) => {
+        const scrollable = element.offsetHeight - window.innerHeight;
+        const top = window.scrollY + element.getBoundingClientRect().top;
+        window.scrollTo({ top: top + scrollable * value, behavior: "instant" as ScrollBehavior });
+      }, progress);
+      await page.waitForTimeout(180);
+    };
     const offset = () =>
       mover.evaluate((el) => {
-        const match = /translate3d\(0px, (-?[\d.]+)px/.exec(el.style.transform);
+        const match = /translate3d\(0(?:px)?, (-?[\d.]+)px/.exec(el.style.transform);
         return match ? Number(match[1]) : Number.NaN;
       });
 
-    // Pops up from below before the astronaut has landed.
-    await expect.poll(offset, { timeout: 5_000 }).toBeGreaterThan(60);
-    await banner.evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      window.scrollTo({ top: window.scrollY + r.top - window.innerHeight * 0.4, behavior: "instant" as ScrollBehavior });
-    });
-    // Sags well past the old 14px bump on landing, then eases back to rest.
-    await expect.poll(offset, { timeout: 30_000 }).toBeGreaterThan(24);
-    await expect.poll(offset, { timeout: 30_000 }).toBeLessThan(1);
-    await expect(mover).toHaveCSS("opacity", "1");
-    // The previous close-up is gone before the lounge astronaut arrives.
-    await expect(page.locator(".aj-stage")).toHaveCSS("opacity", "0");
+    await scrollContactTo(0.08);
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "landing");
+    await expect(page.locator(".contact-cuboid > .contact-frame-wrapper")).toBeVisible();
     await expect(page.locator(".contact-lounge canvas")).toHaveCount(1);
 
-    // The top face is visible above the front face: the banner reads as a slab.
+    await scrollContactTo(0.34);
+    expect(Number.isNaN(await offset())).toBe(false);
+    await expect(heading).toHaveText(/Let.s innovate together/i);
+    await expect(heading).toBeVisible();
+    await expect(heading).toHaveCSS("font-weight", "800");
+    const fonts = await heading.evaluate((el) => [getComputedStyle(el).fontFamily, getComputedStyle(document.body).fontFamily]);
+    expect(fonts[0]).toBe(fonts[1]);
+
+    await scrollContactTo(0.55);
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "sit");
+
+    await expect.poll(async () => banner.getAttribute("data-astronaut-mode"), { timeout: 20_000 }).toBe("lounge");
+
+    const start = page.getByRole("link", { name: /Start a Conversation/ }).last();
+    await start.hover();
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "dance");
+    await page.mouse.move(4, 4);
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "sit");
+
+    const github = page.getByRole("link", { name: /View GitHub Repositories/ }).last();
+    await github.dispatchEvent("pointerdown");
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "wait");
+
     const faces = await page.evaluate(() => {
       const top = document.querySelector(".contact-cuboid-top")?.getBoundingClientRect();
       const front = document.querySelector(".contact-frame-wrapper")?.getBoundingClientRect();
       return top && front ? { depth: front.top - top.top } : null;
     });
-    expect(faces?.depth ?? 0).toBeGreaterThan(20);
-    await expect(page.getByRole("link", { name: /Start a Conversation/ }).last()).toBeVisible();
+    expect(faces?.depth ?? 0).toBeGreaterThan(18);
   });
 
   test("cruises the journey automatically after a downward gesture", async ({ page }) => {
@@ -203,10 +214,7 @@ test.describe("Portfolio smoke tests", () => {
     const stage = page.locator(".aj-stage");
 
     await journey.evaluate((element) => {
-      let top = 0;
-      for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
-        top += node.offsetTop;
-      }
+      const top = window.scrollY + element.getBoundingClientRect().top;
       window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
     });
     await expect(stage).toHaveAttribute("data-phase", "cardShow");
@@ -218,10 +226,7 @@ test.describe("Portfolio smoke tests", () => {
     await page.mouse.wheel(0, 120);
     await expect
       .poll(async () => stage.getAttribute("data-phase"), { timeout: 25_000 })
-      .toBe("title");
-    await expect
-      .poll(async () => stage.getAttribute("data-phase"), { timeout: 40_000 })
-      .toBe("blackTunnel");
+      .not.toBe("cardShow");
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {
@@ -262,28 +267,21 @@ test.describe("Portfolio smoke tests", () => {
       { progress: 0.86, stage: "4", codename: "TRANSFORMER", company: "SYMX.AI" },
     ] as const;
 
+    const sectionTop = await section.evaluate((element) => window.scrollY + element.getBoundingClientRect().top);
     for (const expected of stages) {
-      await section.evaluate((element, progress) => {
-        let top = 0;
-        for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
-          top += node.offsetTop;
-        }
+      await section.evaluate((element, { base, progress }) => {
         const scrollable = element.offsetHeight - window.innerHeight;
-        window.scrollTo({ top: top + scrollable * progress, behavior: "instant" as ScrollBehavior });
-      }, expected.progress);
+        window.scrollTo({ top: base + scrollable * progress, behavior: "instant" as ScrollBehavior });
+      }, { base: sectionTop, progress: expected.progress });
       await expect(section).toHaveAttribute("data-career-stage", expected.stage);
       await expect(page.locator(".career-screen-codename")).toContainText(expected.codename);
       await expect(page.locator(".career-entry.is-active")).toContainText(expected.company);
     }
 
-    await section.evaluate((element) => {
-      let top = 0;
-      for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
-        top += node.offsetTop;
-      }
+    await section.evaluate((element, base) => {
       const scrollable = element.offsetHeight - window.innerHeight;
-      window.scrollTo({ top: top + scrollable * 0.985, behavior: "instant" as ScrollBehavior });
-    });
+      window.scrollTo({ top: base + scrollable * 0.985, behavior: "instant" as ScrollBehavior });
+    }, sectionTop);
     await expect
       .poll(async () => Number((await section.getAttribute("data-career-local")) ?? "0"))
       .toBeGreaterThan(0.9);

@@ -4,13 +4,11 @@ import { checkWebGL } from "../../scene/useCapability.ts";
 import type { JourneyClock } from "../../scene/astronaut/journey-clock.ts";
 import { SpaceBackdrop, AstronautFigure } from "./AstronautArtwork.tsx";
 import { JOURNEY_VIEWPORTS } from "./astronaut/journey-timeline.ts";
-import { JourneyEndContent } from "./astronaut/JourneyEndContent.tsx";
 import { useJourneyDriver, type JourneyElements } from "./astronaut/useJourneyDriver.ts";
 
-// Contact finale modelled on Lusion's "Where creative ideas become immersive
-// experiences" sequence: a small card opens into a fullscreen window onto
-// space, the astronaut free-falls through a tunnel, the view shrinks into a
-// 16:9 screen, the astronaut shatters the glass, flies up close and waves.
+// Contact transition: a small card opens into a fullscreen window onto space,
+// the astronaut free-falls through a tunnel, shatters the glass, and drops out
+// of this stage toward the single contact banner below.
 
 const WorldCanvas = lazy(() =>
   import("../../scene/astronaut/JourneyCanvases.tsx").then((m) => ({ default: m.WorldCanvas })),
@@ -32,11 +30,10 @@ function ImmersiveJourney(): JSX.Element {
   const bezel = useRef<HTMLDivElement>(null);
   const intro = useRef<HTMLDivElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
-  const end = useRef<HTMLDivElement>(null);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1 });
 
   const els = useMemo<JourneyElements>(
-    () => ({ section, stage, backdrop, theme, world, hero, cardEdge, bezel, intro, titleLines, end, clock }),
+    () => ({ section, stage, backdrop, theme, world, hero, cardEdge, bezel, intro, titleLines, clock }),
     [],
   );
   const { near, active } = useJourneyDriver(els);
@@ -84,25 +81,19 @@ function ImmersiveJourney(): JSX.Element {
             </span>
           ))}
         </p>
-        <div ref={end} className="aj-end">
-          <JourneyEndContent />
-        </div>
       </div>
     </div>
   );
 }
 
-/** Static finale for reduced motion or browsers without WebGL. */
+/** Static launch illustration for reduced motion or browsers without WebGL. */
 function JourneyFallback(): JSX.Element {
   return (
     <div className="aj-fallback" aria-label="Mission launch" role="region">
       <svg className="aj-fallback-art" viewBox="0 0 1000 520" aria-hidden="true">
         <SpaceBackdrop idPrefix="fallback" />
-        <AstronautFigure isWaving />
+        <AstronautFigure isWaving={false} />
       </svg>
-      <div className="aj-end aj-end-static">
-        <JourneyEndContent />
-      </div>
     </div>
   );
 }

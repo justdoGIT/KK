@@ -1,7 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import type { JourneyClock } from "../../../scene/astronaut/journey-clock.ts";
 import {
-  ARRIVE_AT,
   clamp01,
   frameRect,
   heroUnmasked,
@@ -22,23 +21,15 @@ export type JourneyElements = {
   bezel: RefObject<HTMLDivElement | null>;
   intro: RefObject<HTMLDivElement | null>;
   titleLines: RefObject<(HTMLElement | null)[]>;
-  end: RefObject<HTMLDivElement | null>;
   clock: RefObject<JourneyClock>;
 };
 
-/** Wait-phase ratio at which the finale heading pops, once the wave has begun. */
-const TITLE_POP_AT = ARRIVE_AT * 0.8;
 
 /** Slow scroll cruise: start window, destination, and speed in px per second. */
 const CRUISE_ARM = 0.28;
 const CRUISE_TARGET = 0.62;
 const CRUISE_SPEED = 240;
 
-function backOut(x: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * (x - 1) ** 3 + c1 * (x - 1) ** 2;
-}
 
 function clipFor(rect: FrameRect, width: number, height: number): string {
   const right = width - rect.x - rect.width;
@@ -72,8 +63,7 @@ function paint(els: JourneyElements, t: number): void {
   const rect = frameRect(t, width, height);
   const phase = phaseAt(t);
   if (stage.dataset.phase !== phase) stage.dataset.phase = phase;
-  // Clear the close-up before the transparent lounge canvas overlaps this
-  // stage; otherwise the finale astronaut appears behind the reclined one.
+  // Fade the departing stage before the contact landing zone takes over.
   stage.style.opacity = (1 - smoothstep(0.94, 1, t)).toFixed(3);
 
   const world = els.world.current;
@@ -129,14 +119,6 @@ function paint(els: JourneyElements, t: number): void {
     line.style.transform = `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`;
   });
 
-  const heading = els.end.current;
-  if (heading) {
-    const pop = clamp01((phaseRatio(t, "wait") - TITLE_POP_AT) / 0.16);
-    const eased = pop > 0 ? backOut(pop) : 0;
-    heading.style.opacity = pop.toFixed(3);
-    heading.style.visibility = pop > 0.001 ? "visible" : "hidden";
-    heading.style.transform = `translate3d(0, ${((1 - eased) * 28).toFixed(1)}px, 0) scale(${(0.82 + 0.18 * eased).toFixed(3)})`;
-  }
 }
 
 /**

@@ -37,6 +37,7 @@ export function ContactCTA(): JSX.Element {
               <a
                 href={`mailto:${contactInfo.email}?subject=Project%20Inquiry%20-%20Embedded%20Consultancy`}
                 className="btn btn-primary btn-lg contact-main-btn"
+                data-astronaut-action="dance"
               >
                 Start a Conversation <span className="btn-arrow" aria-hidden="true">↗</span>
               </a>
@@ -45,6 +46,7 @@ export function ContactCTA(): JSX.Element {
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secondary btn-lg"
+                data-astronaut-action="wait"
               >
                 View GitHub Repositories <span className="btn-arrow" aria-hidden="true">↗</span>
               </a>
@@ -53,6 +55,7 @@ export function ContactCTA(): JSX.Element {
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secondary btn-lg"
+                data-astronaut-action="wait"
               >
                 Connect on LinkedIn <span className="btn-arrow" aria-hidden="true">↗</span>
               </a>

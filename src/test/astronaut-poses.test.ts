@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
-import { PHASE_SPANS } from "../components/ui/astronaut/journey-timeline.ts";
-import { createRootPose, heroRoot } from "../scene/astronaut/hero-motion.ts";
 import {
   LOUNGE_ROOT,
   applyPose,
   createPoseBuffer,
-  sampleLoungePose,
-  samplePose,
+  sampleContactPose,
 } from "../scene/astronaut/astronaut-poses.ts";
 import { instantiateAstronaut, type AstronautInstance, type BoneName } from "../scene/astronaut/astronaut-rig.ts";
 
@@ -26,17 +23,15 @@ function position(astronaut: AstronautInstance, bone: BoneName): Vector3 {
 }
 
 describe("astronaut poses", () => {
-  it("keeps the waving palm facing the viewer through the whole wave", () => {
+  it("keeps the historical seated wave palm facing the viewer", () => {
     const astronaut = instantiateAstronaut({ parts: [] });
     const pose = createPoseBuffer();
-    const t = PHASE_SPANS.wait.to;
     // One full wave cycle (sin(time * 5.2)) sampled every ~7°.
     for (let time = 0; time < (2 * Math.PI) / 5.2; time += 0.025) {
-      const root = heroRoot(t, time, 16 / 9, createRootPose());
-      astronaut.root.position.set(root.x, root.y, root.z);
-      astronaut.root.rotation.set(root.rx, root.ry, root.rz);
-      astronaut.root.scale.setScalar(root.scale);
-      samplePose(t, time, pose);
+      astronaut.root.position.set(0, 0, 0);
+      astronaut.root.rotation.set(0, 0, 0);
+      astronaut.root.scale.setScalar(1);
+      sampleContactPose("sit", time, 1, pose);
       applyPose(astronaut, pose);
       astronaut.root.updateMatrixWorld(true);
 
@@ -51,7 +46,7 @@ describe("astronaut poses", () => {
   it("reclines on the elbow with the hand under the helmet", () => {
     const astronaut = instantiateAstronaut({ parts: [] });
     const pose = createPoseBuffer();
-    sampleLoungePose(0, pose);
+    sampleContactPose("lounge", 0, 1, pose);
     applyPose(astronaut, pose);
     astronaut.root.rotation.set(LOUNGE_ROOT[0], LOUNGE_ROOT[1], LOUNGE_ROOT[2]);
     astronaut.root.updateMatrixWorld(true);
