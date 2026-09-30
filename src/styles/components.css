@@ -3168,6 +3168,31 @@ main::before {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: none;
+}
+.contact-assurances-grid.is-visible .assurance-item {
+  animation: slideUpFade 0.6s ease-out both;
+}
+.contact-assurances-grid.is-visible .assurance-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.contact-assurances-grid.is-visible .assurance-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.contact-assurances-grid.is-visible .assurance-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .assurance-icon {
   font-size: 1.2rem;

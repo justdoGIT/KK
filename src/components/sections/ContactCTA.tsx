@@ -1,8 +1,26 @@
-import { type JSX } from "react";
+import { useEffect, useRef, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 import { AstronautSpaceJourney } from "../ui/AstronautSpaceJourney.tsx";
 
 export function ContactCTA(): JSX.Element {
+  const assurancesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!assurancesRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(assurancesRef.current);
+    return () => observer.disconnect();
+  }, []);
   return (
     <section aria-label="Contact" className="contact-section" id="contact">
       <AstronautSpaceJourney>
@@ -59,7 +77,7 @@ export function ContactCTA(): JSX.Element {
               </div>
 
               {/* Client Assurance Invariants */}
-              <div className="contact-assurances-grid" aria-label="Client service guarantees">
+              <div ref={assurancesRef} className="contact-assurances-grid" aria-label="Client service guarantees">
                 <div className="assurance-item">
                   <span className="assurance-icon">⚡</span>
                   <div className="assurance-text">
