@@ -163,7 +163,7 @@ function billboardTopTexture(): CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#09101d";
+    ctx.fillStyle = "#1a2a3a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Industrial grid pattern on platform surface matching card theme
@@ -199,12 +199,15 @@ export type LandingPanel = {
 
 /** 3D billboard hoarding deck with industrial frame outline and card-matched shaders. */
 export function createLandingPanel(): LandingPanel {
-  const side = new MeshBasicMaterial({ color: "#080e1a", transparent: true });
+  // Side shadows for 3D depth effect
+  const sideShadow = new MeshBasicMaterial({ color: "#050a13", transparent: true });
+  const sideLight = new MeshBasicMaterial({ color: "#0a1428", transparent: true });
   const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
   const bottom = new MeshBasicMaterial({ color: "#04070d", transparent: true });
   const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
-  // BoxGeometry face order: +X, -X, +Y, -Y, +Z, -Z.
-  const mesh = new Mesh(new BoxGeometry(1, 1, 1), [side, side, top, bottom, front, side]);
+  // BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back).
+  // Right shadow, left light (shadows on both sides for 3D effect), top, bottom, front, back.
+  const mesh = new Mesh(new BoxGeometry(1.35, 1.35, 1.35), [sideShadow, sideLight, top, bottom, front, sideShadow]);
   const edges = new LineSegments(
     new EdgesGeometry(mesh.geometry),
     new LineBasicMaterial({ color: "#38bdf8", transparent: true }),
