@@ -6,13 +6,13 @@ import huskyJoints from "../../robots/joints/husky.json";
 import { jointRigFor } from "../../robots/model-assets.ts";
 import { actProgress, morphProgress, smoothstep } from "../career-timeline.ts";
 import { useModelInstance } from "../robot-model.ts";
+import { ROVER_WHEEL_RADIUS, roverRideHeight } from "../rover-motion.ts";
 import { HAZARDS, LIDAR_RANGE, ROVER_LENGTH, ROVER_PATH, ROVER_START } from "../terrain/rover-course.ts";
 import { PartMorph } from "../transform/PartMorph.tsx";
 import type { StageProps } from "./registry.ts";
 import { MorphPad } from "./stage-kit.tsx";
 import { activeClock, cinematicLens, orbit } from "./stage-math.ts";
 
-const WHEEL_R = 0.1651;
 const WHEELS = ["front_left_wheel", "front_right_wheel", "rear_left_wheel", "rear_right_wheel"];
 
 function groundShape(): Shape {
@@ -104,11 +104,11 @@ export function RoverStage({ clock, index }: StageProps): JSX.Element {
     const body = rover.current;
     if (body) {
       body.visible = morph >= 1;
-      body.position.set(p.x, Math.sin(s * 7) * 0.008, p.z);
+      body.position.set(p.x, roverRideHeight(s), p.z);
       body.rotation.set(Math.sin(s * 3.1) * 0.02, Math.atan2(-t.z, t.x), Math.sin(s * 2.3) * 0.025);
     }
     const rig = jointRigFor(husky.scene, huskyJoints);
-    for (const wheel of WHEELS) rig.set(wheel, s / WHEEL_R);
+    for (const wheel of WHEELS) rig.set(wheel, s / ROVER_WHEEL_RADIUS);
     if (beam.current) beam.current.rotation.y = s * 9;
     const sweep = (s * 0.9) % 1;
     if (pulse.current) {
@@ -128,7 +128,9 @@ export function RoverStage({ clock, index }: StageProps): JSX.Element {
     cam.copy(tmp);
     look.set(ROVER_START.x, 0.3, ROVER_START.z);
     const track = smoothstep(0, 0.12, u);
-    cam.lerp(tmp.set(p.x - 0.7, 2.1, p.z + 3.7), track);
+    // High, pulled-back chase shot: a low camera passed through the crates and
+    // let their boxes fill the frame.
+    cam.lerp(tmp.set(p.x - 0.9, 3.1, p.z + 4.6), track);
     look.lerp(tmp.set(p.x + t.x * 0.7, 0.15, p.z + t.z * 0.7), track);
     camera.position.copy(cam);
     camera.lookAt(look);
@@ -143,7 +145,7 @@ export function RoverStage({ clock, index }: StageProps): JSX.Element {
       </mesh>
       <Hazards rings={rings} />
       <MorphPad radius={0.9} position={[ROVER_START.x, 0, ROVER_START.z]} />
-      <group position={[ROVER_START.x, 0, ROVER_START.z]}>
+      <group position={[ROVER_START.x, ROVER_WHEEL_RADIUS, ROVER_START.z]}>
         <PartMorph source={source} target={target} clock={clock} seed={11} />
       </group>
       <group ref={rover}>

@@ -11,7 +11,6 @@ no other changes were made to the upstream designs.
 | `robots/go2.glb` | [unitree_ros go2_description](https://github.com/unitreerobotics/unitree_ros/tree/master/robots/go2_description) | Unitree Robotics | BSD-3-Clause |
 | `characters/robot-expressive.glb` | [three.js examples RobotExpressive](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/RobotExpressive) | Tomás Laulhé (Quaternius), modified by Don McCurdy | CC0-1.0 |
 | `characters/nasa-astronaut.glb` | [NASA 3D Resources: Astronaut](https://science.nasa.gov/3d-resources/astronaut/) | NASA / DigitalSpace Corporation | NASA media usage guidelines (not copyrighted; no NASA endorsement implied) |
-| `vehicles/sports-car.glb` | [Poly Pizza: Sports Car](https://poly.pizza/m/1mkmFkAz5v) | Quaternius | CC0-1.0 |
 
 The BSD-3-Clause and Apache-2.0 notices of the upstream robot description
 packages apply to the derived meshes. Robot names are trademarks of their

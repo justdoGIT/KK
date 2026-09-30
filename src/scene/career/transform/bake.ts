@@ -25,6 +25,9 @@ type BakedMesh = { material: Material; positions: Float32Array; normals: Float32
 
 function bakeMeshes(root: Object3D, bounds: Box3): BakedMesh[] {
   root.updateWorldMatrix(true, true);
+  // SkinnedMesh refreshes bindMatrixInverse in updateMatrixWorld, not
+  // updateWorldMatrix. Bake the posed skin before any renderer has visited it.
+  root.updateMatrixWorld(true);
   // Parent space, so a factory can place the model (e.g. lift a standing robot) before baking.
   const toRoot = root.parent ? new Matrix4().copy(root.parent.matrixWorld).invert() : new Matrix4();
   const baked: BakedMesh[] = [];

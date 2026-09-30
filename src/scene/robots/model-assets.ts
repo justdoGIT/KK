@@ -7,7 +7,6 @@ export const MODEL_PATHS = {
   go2: "models/robots/go2.glb",
   humanoid: "models/characters/robot-expressive.glb",
   astronaut: "models/characters/nasa-astronaut.glb",
-  sportsCar: "models/vehicles/sports-car.glb",
 } as const;
 
 export type ModelKey = keyof typeof MODEL_PATHS;

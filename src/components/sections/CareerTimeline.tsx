@@ -6,6 +6,8 @@ import { checkWebGL } from "../../scene/useCapability.ts";
 import { CareerEntryList } from "./career/CareerEntryList.tsx";
 import { useCareerDriver } from "./career/useCareerDriver.ts";
 import { WallFollowerHud, type HudRefs } from "./career/WallFollowerHud.tsx";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 
 const CareerJourneyCanvas = lazy(() =>
   import("../../scene/career/CareerJourneyCanvas.tsx").then((m) => ({ default: m.CareerJourneyCanvas })),
@@ -18,13 +20,11 @@ const JOURNEY_ENTRIES = CAREER_STAGE_META.map((meta) => {
   return entry;
 });
 
-function prefersStatic(): boolean {
-  if (typeof window === "undefined") return true;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches || !checkWebGL();
-}
 
 export function CareerTimeline(): JSX.Element {
-  const [isStatic] = useState(prefersStatic);
+  const enhanced = useMotionMode() === "enhanced";
+  const [webgl] = useState(checkWebGL);
+  const isStatic = !enhanced || !webgl;
   const section = useRef<HTMLElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const clock = useRef<CareerClock>(createCareerClock());
@@ -53,18 +53,18 @@ export function CareerTimeline(): JSX.Element {
       <div className="career-sticky">
         <div className="career-column">
           <div className="career-header">
-            <p className="career-eyebrow">Career · robotics evolution</p>
-            <h2>Career &amp; Systems Evolution</h2>
-            <p className="section-subtitle">
-              Nine years of embedded Linux, RTOS, and edge AI engineering, told as one robot that keeps rebuilding
-              itself: wall follower, rover, quadruped, humanoid, supercar.
-            </p>
+            <LusionKineticHeading
+              kicker="Career · robotics evolution"
+              text="Career & Systems Evolution"
+              subtitle="Nine years of embedded Linux, RTOS, and edge AI engineering, told as one robot that keeps rebuilding itself: wall follower, rover, quadruped, humanoid, rocket."
+            />
           </div>
           <CareerEntryList
             entries={JOURNEY_ENTRIES}
             activeId={meta.entryId}
             openId={openId}
             clock={clock}
+            animated={!isStatic}
             onOpenChange={(id, open) => setOverride({ stage, id: open ? id : null })}
           />
         </div>
@@ -78,6 +78,7 @@ export function CareerTimeline(): JSX.Element {
                 </Suspense>
               )}
               <div className="career-screen-caption">
+                <span className="career-screen-chapter">Evolution {String(stage + 1).padStart(2, "0")} / 05</span>
                 <span className="career-screen-codename">{meta.codename}</span>
                 <span className="career-screen-robot">{meta.robot}</span>
                 <span className="career-screen-text">{meta.caption}</span>

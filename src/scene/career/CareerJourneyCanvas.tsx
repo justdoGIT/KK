@@ -22,7 +22,7 @@ function StudioEnvironment(): JSX.Element {
 
 export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps): JSX.Element {
   useEffect(() => {
-    preloadModels(["turtlebot3", "husky", "go2", "humanoid", "sportsCar"]);
+    preloadModels(["turtlebot3", "husky", "go2", "astronaut", "humanoid"]);
   }, []);
 
   return (
