@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type JSX } from "react";
+import { useState, useEffect, useRef, type JSX, type CSSProperties } from "react";
 import {
   getApprovedCaseStudies,
   type CaseStudyDetail,
@@ -124,7 +124,14 @@ export function CaseStudies(): JSX.Element {
           <div className="lusion-deck-header">
             <div className="lusion-header-left">
               <span className="lusion-section-pill">SELECTED MISSIONS // EVIDENCE-BACKED PLATFORMS</span>
-              <LusionKineticHeading text="Products with a pulse." variant="cascade" subtitle={animated ? "Scroll to deal the mission cards. Explore the evidence and expand each architecture." : "Verified hardware bring-up, distributed fleet runtimes, and autonomous agent architectures."} />
+              <div
+                style={animated ? {
+                  transform: `translateY(${Math.sin(scrollProgress * Math.PI * 4) * 12}px)`,
+                  transition: "none",
+                } as CSSProperties : undefined}
+              >
+                <LusionKineticHeading text="Products with a pulse." variant="cascade" subtitle={animated ? "Scroll to deal the mission cards. Explore the evidence and expand each architecture." : "Verified hardware bring-up, distributed fleet runtimes, and autonomous agent architectures."} />
+              </div>
             </div>
 
             {animated && <div className="lusion-deck-scrubber">
