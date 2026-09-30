@@ -28,19 +28,27 @@ function detectInteraction(
   clientY: number,
   ctaBtn: HTMLElement | null,
 ): ContactInteraction {
-  if (!(target instanceof Element)) return "none";
-  const action = target.closest<HTMLElement>("[data-astronaut-action]")?.dataset.astronautAction;
-  if (action === "wait") return "wait";
-  if (action === "dance") return "dance";
+  if (target instanceof Element) {
+    const action = target.closest<HTMLElement>("[data-astronaut-action]")?.dataset.astronautAction;
+    if (action === "wait") return "wait";
+    if (action === "dance") return "dance";
+  }
 
-  // Proximity detection: when cursor comes within 180px of "Start a Conversation" button
+  // Proximity detection: when cursor is over or close to "Start a Conversation" button
   if (ctaBtn) {
     const rect = ctaBtn.getBoundingClientRect();
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      return "dance";
+    }
     const btnCenterX = rect.left + rect.width / 2;
     const btnCenterY = rect.top + rect.height / 2;
     const dist = Math.hypot(clientX - btnCenterX, clientY - btnCenterY);
-    if (dist < 180) {
-      // Toggle between dance moonwalk and jumping two-handed wave based on position
+    if (dist < 240) {
       return clientX < btnCenterX ? "dance" : "jumpWave";
     }
   }
@@ -150,7 +158,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
           >
             <div className="contact-banner-stage">
               <h2 ref={contactHeading} className="contact-journey-heading">
-                Let’s innovate together
+                Let’s <span className="contact-heading-innovate">innovate</span> together
               </h2>
               <div ref={contactMover} className="contact-banner-mover">
                 <div className="contact-card">{children}</div>
@@ -183,7 +191,7 @@ function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
       <AstronautFigure isWaving={true} />
       {children ? (
         <div className="contact-banner contact-banner--static">
-          <h2 className="contact-journey-heading">Let’s innovate together</h2>
+          <h2 className="contact-journey-heading">Let’s <span className="contact-heading-innovate">innovate</span> together</h2>
           <div className="contact-card">{children}</div>
         </div>
       ) : null}

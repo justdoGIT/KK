@@ -63,7 +63,9 @@ export function useGridScrollReveal(
       el.style.setProperty("--r", t.toFixed(3));
       el.style.opacity = t.toFixed(3);
       el.style.transform = transform(inv, i);
-      el.style.filter = inv > 0.02 ? `blur(${(inv * 8).toFixed(2)}px)` : "none";
+      // Blur is the most expensive filter; only apply above threshold to avoid
+      // forcing a repaint stacking context on nearly-settled cards.
+      el.style.filter = inv > 0.12 ? `blur(${(inv * 6).toFixed(2)}px)` : "none";
     });
     onFrame?.(opened, count ? sum / count : 1);
   }, enabled);

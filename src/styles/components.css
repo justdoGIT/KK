@@ -378,8 +378,8 @@
   backdrop-filter: blur(10px);
   cursor: pointer;
   transform-style: preserve-3d;
-  will-change: transform;
-  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  will-change: auto;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
   overflow: hidden;
 }
@@ -398,6 +398,7 @@
 .system-showcase-card.card-pending-reveal {
   opacity: 0;
   transform: scale(0.55);
+  will-change: transform, opacity;
 }
 
 .system-showcase-card:hover,
@@ -580,11 +581,12 @@
   gap: 0.6rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   transform-origin: 0% 50%;
-  will-change: transform, opacity, filter;
-  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  will-change: auto;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .process-track.is-scroll-reveal .process-step-card:not(.is-open) {
   opacity: 0;
+  will-change: transform, opacity, filter;
 }
 .process-step-card.is-open {
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
@@ -747,11 +749,12 @@
   padding: 2.2rem 2rem;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
   transform-origin: 50% 100%;
-  will-change: transform, opacity, filter;
+  will-change: auto;
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .offers-grid.is-scroll-reveal .offer-card:not(.is-open) {
   opacity: 0;
+  will-change: transform, opacity, filter;
 }
 .offer-card.is-open {
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
@@ -2870,7 +2873,7 @@ main::before {
   grid-column: span 2;
   display: flex;
   transform-origin: 50% 100%;
-  will-change: transform, opacity, filter;
+  will-change: auto;
 }
 .skill-card-reveal > .skill-category-card {
   flex: 1;
@@ -2880,6 +2883,7 @@ main::before {
 }
 .skill-domains-pinned .skill-card-reveal:not(.is-open) {
   opacity: 0;
+  will-change: transform, opacity, filter;
 }
 .skills-categories-grid.is-single {
   grid-template-columns: minmax(0, 460px);
@@ -3359,11 +3363,16 @@ main::before {
   z-index: 0;
   overflow: hidden;
   opacity: 0.85;
+  /* Own compositor layer so SVG path mutations don't trigger page repaints */
+  will-change: transform;
+  transform: translateZ(0);
 }
 .global-ribbon-svg {
   display: block;
   width: 100%;
   height: 100%;
+  /* Disable subpixel antialiasing to cut rasterization cost */
+  shape-rendering: optimizeSpeed;
 }
 
 /* Lusion Kinetic Text & Heading Reveal */

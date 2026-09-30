@@ -18,7 +18,6 @@
   overflow: hidden;
   isolation: isolate;
   color: #ffffff;
-  will-change: opacity;
 }
 
 .aj-backdrop,

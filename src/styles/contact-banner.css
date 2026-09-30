@@ -2,7 +2,7 @@
    only the astronaut on his 3D landing panel (HeroScene); the card attaches
    beneath that panel as the view zooms out to the complete contact card. */
 .contact-banner {
-  --contact-scale: 0.58;
+  --contact-scale: 1;
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -58,14 +58,16 @@
   left: 70%;
   width: min(42vw, 620px);
   margin: 0;
+  padding-bottom: 0.18em;
+  padding-right: 0.1em;
   font-family: var(--font-sans);
   font-size: clamp(2.4rem, 4.5vw, 4.4rem);
   font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.055em;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
   text-align: left;
   text-wrap: balance;
-  background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 44%, #38bdf8 72%, #93a4ff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 50%, #94a3b8 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -76,16 +78,42 @@
   pointer-events: none;
 }
 
+.contact-heading-innovate {
+  background: linear-gradient(135deg, #38bdf8 0%, #00f0ff 40%, #7dd3fc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.75));
+  display: inline-block;
+}
+
 .contact-banner--animated .contact-journey-heading {
   opacity: 0;
   visibility: hidden;
   will-change: transform, opacity;
 }
 
+.contact-banner[data-finale-settled="true"] .contact-banner-mover,
+.contact-banner-mover[data-settled="true"] {
+  will-change: auto;
+}
+
+.contact-banner[data-finale-settled="true"] .contact-card,
+.contact-banner-mover[data-settled="true"] .contact-card,
+.contact-banner-mover[data-settled="true"] .contact-inner,
+.contact-banner-mover[data-settled="true"] .contact-heading,
+.contact-banner-mover[data-settled="true"] .contact-tagline,
+.contact-banner-mover[data-settled="true"] .contact-actions,
+.contact-banner-mover[data-settled="true"] .contact-assurances-grid {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 @media (max-width: 768px) {
   .contact-banner {
-    --contact-scale: 0.62;
+    --contact-scale: 1;
   }
 
   .contact-banner-stage {
@@ -112,7 +140,7 @@
 
 @media (max-height: 700px) {
   .contact-banner {
-    --contact-scale: 0.48;
+    --contact-scale: 0.85;
   }
 
   .contact-banner-mover {

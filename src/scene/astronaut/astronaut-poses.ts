@@ -134,23 +134,23 @@ const LIE_DOWN = raw({
   footR: [0.25, 0, 0],
 });
 
-/** Climbing down the clear corner wall. */
-const CLIMB = raw({
-  spine: [0.32, 0, 0],
-  chest: [0.12, 0, 0],
-  head: [0.2, 0, 0],
-  armL: [-0.85, -0.3, -0.45],
-  forearmL: [0.35, -0.65, 0.2],
-  handL: [0.2, 0, 0],
-  armR: [-0.45, 0.4, 0.65],
-  forearmR: [-0.2, 0.75, -0.2],
-  handR: [-0.2, 0, 0],
-  thighL: [-0.75, 0, 0.2],
-  shinL: [1.35, 0, 0],
-  footL: [0.2, 0, 0],
-  thighR: [-1.15, 0, -0.2],
-  shinR: [1.65, 0, 0],
-  footR: [0.3, 0, 0],
+/** Hanging from billboard edge with both arms straight up gripping the top edge and legs in front of the billboard. */
+const WALL_HANG = raw({
+  spine: [0.08, 0, 0],
+  chest: [0.04, 0, 0],
+  head: [-0.18, 0, 0],
+  armL: [0, 0, 2.95],
+  forearmL: [0, 0, 0],
+  handL: [-0.45, 0, 0],
+  armR: [0, 0, -2.95],
+  forearmR: [0, 0, 0],
+  handR: [-0.45, 0, 0],
+  thighL: [-0.55, 0, 0.12],
+  shinL: [0.45, 0, 0],
+  footL: [0.25, 0, 0],
+  thighR: [-0.5, 0, -0.12],
+  shinR: [0.42, 0, 0],
+  footR: [0.25, 0, 0],
 });
 
 /** Seated acknowledgement after a GitHub/LinkedIn click: palm-forward wave. */
@@ -330,34 +330,44 @@ export function sampleContactPose(
     return;
   }
   if (mode === "wallClimb") {
-    // Climbing down/up the corner wall
-    const climbPhase = time * 3.5;
-    const s = Math.sin(climbPhase);
-    const c = Math.cos(climbPhase);
-    blend(out, CLIMB, CLIMB, 0);
-    out.armL[0] += s * 0.45;
-    out.armR[0] -= s * 0.45;
-    out.thighL[0] -= c * 0.45;
-    out.thighR[0] += c * 0.45;
+    // Both hands straight holding billboard top edge with legs in front of the billboard
+    blend(out, WALL_HANG, WALL_HANG, 0);
+    const swing = Math.sin(time * 2.2);
+    out.thighL[0] += swing * 0.08;
+    out.thighR[0] -= swing * 0.08;
+    out.shinL[0] += Math.abs(swing) * 0.1;
+    out.shinR[0] += Math.abs(swing) * 0.1;
+    out.head[0] -= 0.12 + swing * 0.04;
     return;
   }
   if (mode === "dance") {
-    // Moonwalk / dance groove sideways
+    // Moonwalk slide mechanics facing sideways
     blend(out, STAND, STAND, 0);
-    const beat = Math.sin(time * 6.2);
-    const counter = Math.sin(time * 6.2 + Math.PI);
-    out.spine[2] += beat * 0.22;
-    out.chest[2] -= beat * 0.16;
-    out.head[0] -= 0.18;
-    out.head[2] -= beat * 0.14;
-    out.armL[2] += 0.85 + beat * 0.4;
-    out.armR[2] -= 0.85 + counter * 0.4;
-    out.forearmL[1] -= 0.85 + counter * 0.35;
-    out.forearmR[1] += 0.85 + beat * 0.35;
-    out.thighL[0] -= Math.max(0, beat) * 0.35;
-    out.thighR[0] -= Math.max(0, counter) * 0.35;
-    out.shinL[0] += Math.max(0, beat) * 0.5;
-    out.shinR[0] += Math.max(0, counter) * 0.5;
+    const cycle = Math.sin(time * 5.0);
+    if (cycle > 0) {
+      out.thighL[0] = -0.45;
+      out.shinL[0] = 0.85;
+      out.footL[0] = 0.55;
+      out.thighR[0] = 0.1;
+      out.shinR[0] = 0.05;
+      out.footR[0] = -0.1;
+    } else {
+      out.thighR[0] = -0.45;
+      out.shinR[0] = 0.85;
+      out.footR[0] = 0.55;
+      out.thighL[0] = 0.1;
+      out.shinL[0] = 0.05;
+      out.footL[0] = -0.1;
+    }
+    out.armL[0] = -0.38;
+    out.armL[2] = 1.05;
+    out.forearmL[1] = -1.15;
+    out.handL[0] = 0.35;
+    out.armR[0] = 0.32;
+    out.armR[2] = -0.55;
+    out.forearmR[1] = 0.35;
+    out.head[0] = -0.2;
+    out.head[1] = 0.1;
     return;
   }
   if (mode === "jumpWave") {

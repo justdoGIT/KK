@@ -125,8 +125,18 @@ export function contactRoot(
   out.z += (rest.z - out.z) * fall;
   out.scale += (anchor.scale - out.scale) * fall;
   out.rx *= 1 - fall;
-  out.ry *= 1 - fall;
   out.rz *= 1 - fall;
+  if (mode === "walkPlank") {
+    const dir = Math.cos(time * 0.8);
+    const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
+    out.ry = targetRy * fall;
+  } else if (mode === "dance") {
+    const dir = Math.cos(time * 1.5);
+    const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
+    out.ry = targetRy * fall;
+  } else {
+    out.ry *= 1 - fall;
+  }
   return out;
 }
 

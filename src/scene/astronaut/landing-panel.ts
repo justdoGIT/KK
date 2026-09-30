@@ -105,11 +105,10 @@ export function restOnPanel(
     return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale + jumpY, z: 0 };
   }
   if (mode === "wallClimb") {
-    // Climb down the right clear corner wall where there is no text and climb back up
-    const cycle = (time * 0.35) % (Math.PI * 2);
-    const climbDepth = Math.max(0, Math.sin(cycle)) * 1.6 * anchor.scale;
-    const cornerX = anchor.width * 0.44;
-    return { xOffset: cornerX, y: anchor.top - localSoleY * anchor.scale - climbDepth, z: anchor.frontZ * 0.5 };
+    // Both hands straight holding billboard top edge with legs in front of the billboard
+    const cornerX = anchor.width * 0.4;
+    const sway = Math.sin(time * 2.2) * 0.02 * anchor.scale;
+    return { xOffset: cornerX + sway, y: anchor.top - 1.18 * anchor.scale, z: anchor.frontZ + 0.14 * anchor.scale };
   }
   return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale, z: 0 };
 }
@@ -128,28 +127,28 @@ function billboardFrontTexture(): CanvasTexture {
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    // Card's exact radial/linear background: deep void slate #090d16 -> #0f172a
+    // Card exact void theme gradient: #090d16 -> #0d1728
     const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bg.addColorStop(0, "#0e182a");
-    bg.addColorStop(0.6, "#0b1220");
-    bg.addColorStop(1, "#070c16");
+    bg.addColorStop(0, "#0d1728");
+    bg.addColorStop(0.5, "#0a1120");
+    bg.addColorStop(1, "#090d16");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Top-center cyan spotlight / radial aura (billboard top illumination)
-    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 2, canvas.width / 2, 0, canvas.width * 0.48);
-    glow.addColorStop(0, "rgba(56, 189, 248, 0.35)");
-    glow.addColorStop(0.5, "rgba(56, 189, 248, 0.08)");
+    // Top-center cyan glow aura matching card theme
+    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 2, canvas.width / 2, 0, canvas.width * 0.5);
+    glow.addColorStop(0, "rgba(56, 189, 248, 0.4)");
+    glow.addColorStop(0.4, "rgba(56, 189, 248, 0.15)");
     glow.addColorStop(1, "rgba(56, 189, 248, 0)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Top edge metallic bevel highlight
-    ctx.fillStyle = "rgba(125, 211, 252, 0.75)";
-    ctx.fillRect(0, 0, canvas.width, 2.5);
+    // Top edge metallic cyan highlight rim
+    ctx.fillStyle = "rgba(125, 211, 252, 0.85)";
+    ctx.fillRect(0, 0, canvas.width, 3);
 
-    // Bottom rim border connecting flush to the lower card
-    ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
+    // Bottom rim border connecting flush to lower card
+    ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
     ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
   }
   const texture = new CanvasTexture(canvas);
@@ -164,11 +163,11 @@ function billboardTopTexture(): CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#0c1527";
+    ctx.fillStyle = "#09101d";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Subtle industrial grid pattern on the platform surface
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+    // Industrial grid pattern on platform surface matching card theme
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.18)";
     ctx.lineWidth = 1.5;
     const step = 32;
     for (let x = 0; x <= canvas.width; x += step) {
@@ -185,7 +184,7 @@ function billboardTopTexture(): CanvasTexture {
     }
 
     // Front lip glowing landing strip
-    ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
+    ctx.fillStyle = "rgba(56, 189, 248, 0.6)";
     ctx.fillRect(0, canvas.height - 6, canvas.width, 6);
   }
   const texture = new CanvasTexture(canvas);

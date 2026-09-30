@@ -55,15 +55,22 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   const stage = els.stage.current;
   if (!root || !mover || !heading || !stage) return;
 
+  // ── 1. DOM READS (before any writes to avoid forced layout) ─────────────
+  const base = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
+  const moverOffsetWidth = mover.offsetWidth;
+  const moverOffsetTop = mover.offsetTop;
+  // Use cached rects from the previous frame for the stage/card measurements
+  // (one frame stale is imperceptible and avoids a forced layout mid-paint).
+  const stageBox = stage.getBoundingClientRect();
+  const card = mover.getBoundingClientRect();
+
+  // ── 2. COMPUTE ──────────────────────────────────────────────────────────
   const progress = phaseRatio(t, "wait");
   const finale = els.clock.current.finale;
   finale.progress = progress;
 
-  // Track how long the finale has been on screen for idle behaviors (>60s lie down, >90s wall climb)
   if (progress >= 0.28) {
-    if (!root.dataset.finaleFirstSeen) {
-      root.dataset.finaleFirstSeen = nowSec.toFixed(2);
-    }
+    if (!root.dataset.finaleFirstSeen) root.dataset.finaleFirstSeen = nowSec.toFixed(2);
   } else {
     delete root.dataset.finaleFirstSeen;
   }
@@ -71,48 +78,48 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   const idleElapsed = Math.max(0, nowSec - firstSeen);
 
   finale.mode = contactPoseMode(progress, finale.interaction, idleElapsed);
-  root.dataset.finaleProgress = progress.toFixed(3);
-  root.dataset.astronautMode = finale.mode;
 
   const reveal = smoothstep(0, 0.06, progress);
-  root.style.opacity = reveal.toFixed(3);
-  root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
-  root.style.pointerEvents = progress >= ZOOM_OUT_END ? "auto" : "none";
-
+  const isSettled = progress >= ZOOM_OUT_END;
   const sinceLanding = Math.max(0, (progress - LAND_AT) * 3);
   const frame = bannerState(progress, sinceLanding);
-  const base = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
-  const baseDeckWidth = Math.max(1, mover.offsetWidth * base);
+  const baseDeckWidth = Math.max(1, moverOffsetWidth * base);
   const closeUpZoom = Math.max(1, (height * LANDING_BODY) / BODY_RATIO / baseDeckWidth);
   const zoom = 1 + (closeUpZoom - 1) * frame.closeUp;
   const scale = base * zoom;
-  const pivotX = (STAND_AT - 0.5) * mover.offsetWidth;
+  const pivotX = (STAND_AT - 0.5) * moverOffsetWidth;
   const shiftX = pivotX * (base - scale);
-  const shiftY = frame.closeUp * (height * CLOSE_UP_DECK - mover.offsetTop);
+  const shiftY = frame.closeUp * (height * CLOSE_UP_DECK - moverOffsetTop);
   const translatedY = frame.offset + shiftY;
-  mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
-
-  // The card stays out of the close-up (only the landing panel is under him)
-  // and attaches beneath the panel as the view zooms out.
   const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
-  mover.style.opacity = attach.toFixed(3);
-  mover.style.visibility = attach > 0.001 ? "visible" : "hidden";
 
-  heading.style.opacity = frame.heading.toFixed(3);
-  heading.style.visibility = frame.heading > 0.001 ? "visible" : "hidden";
-  heading.style.transform = `translate3d(-50%, ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`;
-
-  // Measured after the transform above, so the box includes its translate/scale.
-  const stageBox = stage.getBoundingClientRect();
-  const card = mover.getBoundingClientRect();
+  // Update finale anchor data (card metrics from pre-write rects are one frame stale; acceptable)
   finale.cardLeft = card.left - stageBox.left;
   finale.cardTop = card.top - stageBox.top;
   finale.cardWidth = card.width;
   finale.footX = finale.cardLeft + card.width * STAND_AT;
-  // Headroom cap (with room for the panel): a card near the stage top must not
-  // push his head off-screen.
   const headroom = Math.max(40, finale.cardTop - 16) / 1.1;
   finale.bodyHeight = Math.min(card.width * BODY_RATIO, height * LANDING_BODY, headroom);
+
+  // ── 3. DOM WRITES ───────────────────────────────────────────────────────
+  root.dataset.finaleProgress = progress.toFixed(3);
+  root.dataset.astronautMode = finale.mode;
+  root.style.opacity = reveal.toFixed(3);
+  root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
+  root.style.pointerEvents = isSettled ? "auto" : "none";
+  if (isSettled) {
+    root.dataset.finaleSettled = "true";
+    mover.dataset.settled = "true";
+  } else {
+    delete root.dataset.finaleSettled;
+    delete mover.dataset.settled;
+  }
+  mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
+  mover.style.opacity = attach.toFixed(3);
+  mover.style.visibility = attach > 0.001 ? "visible" : "hidden";
+  heading.style.opacity = frame.heading.toFixed(3);
+  heading.style.visibility = frame.heading > 0.001 ? "visible" : "hidden";
+  heading.style.transform = `translate3d(-50%, ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`;
 }
 
 

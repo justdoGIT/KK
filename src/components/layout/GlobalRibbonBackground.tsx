@@ -98,8 +98,8 @@ export function GlobalRibbonBackground(): JSX.Element {
             <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.09" />
             <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.01" />
           </linearGradient>
-          <filter id="ribbonGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="16" result="blur" />
+          <filter id="ribbonGlow" x="-4%" y="-20%" width="108%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
