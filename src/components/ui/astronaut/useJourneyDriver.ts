@@ -48,7 +48,7 @@ const BODY_RATIO = 0.3;
 /** Astronaut height at touchdown as a stage fraction — his size at the end of the drop. */
 const LANDING_BODY = 0.58;
 
-function paintFinale(els: JourneyElements, t: number, height: number): void {
+function paintFinale(els: JourneyElements, t: number, height: number, nowSec: number): void {
   const root = els.contact.current;
   const mover = els.contactMover.current;
   const heading = els.contactHeading.current;
@@ -58,7 +58,19 @@ function paintFinale(els: JourneyElements, t: number, height: number): void {
   const progress = phaseRatio(t, "wait");
   const finale = els.clock.current.finale;
   finale.progress = progress;
-  finale.mode = contactPoseMode(progress, finale.interaction);
+
+  // Track how long the finale has been on screen for idle behaviors (>60s lie down, >90s wall climb)
+  if (progress >= 0.28) {
+    if (!root.dataset.finaleFirstSeen) {
+      root.dataset.finaleFirstSeen = nowSec.toFixed(2);
+    }
+  } else {
+    delete root.dataset.finaleFirstSeen;
+  }
+  const firstSeen = root.dataset.finaleFirstSeen ? parseFloat(root.dataset.finaleFirstSeen) : nowSec;
+  const idleElapsed = Math.max(0, nowSec - firstSeen);
+
+  finale.mode = contactPoseMode(progress, finale.interaction, idleElapsed);
   root.dataset.finaleProgress = progress.toFixed(3);
   root.dataset.astronautMode = finale.mode;
 
@@ -70,9 +82,6 @@ function paintFinale(els: JourneyElements, t: number, height: number): void {
   const sinceLanding = Math.max(0, (progress - LAND_AT) * 3);
   const frame = bannerState(progress, sinceLanding);
   const base = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
-  // Size the close-up so the astronaut keeps his drop-end size at touchdown;
-  // the card (and the landing panel spanning it) scales with him, so zooming
-  // out shrinks astronaut, panel, and card together.
   const baseDeckWidth = Math.max(1, mover.offsetWidth * base);
   const closeUpZoom = Math.max(1, (height * LANDING_BODY) / BODY_RATIO / baseDeckWidth);
   const zoom = 1 + (closeUpZoom - 1) * frame.closeUp;
@@ -82,6 +91,7 @@ function paintFinale(els: JourneyElements, t: number, height: number): void {
   const shiftY = frame.closeUp * (height * CLOSE_UP_DECK - mover.offsetTop);
   const translatedY = frame.offset + shiftY;
   mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
+
   // The card stays out of the close-up (only the landing panel is under him)
   // and attaches beneath the panel as the view zooms out.
   const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
@@ -130,7 +140,7 @@ function applyMask(el: HTMLElement, rect: FrameRect | null, width: number, heigh
   el.style.transform = rect.rotation ? `rotate(${rect.rotation.toFixed(3)}deg)` : "none";
 }
 
-function paint(els: JourneyElements, t: number): void {
+function paint(els: JourneyElements, t: number, nowSec = 0): void {
   const stage = els.stage.current;
   if (!stage) return;
   const width = stage.clientWidth;
@@ -193,8 +203,7 @@ function paint(els: JourneyElements, t: number): void {
     line.style.opacity = (enter * (1 - leave)).toFixed(3);
     line.style.transform = `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`;
   });
-  paintFinale(els, t, height);
-
+  paintFinale(els, t, height, nowSec);
 }
 
 /**
@@ -261,6 +270,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
     const tick = () => {
       rafId = requestAnimationFrame(tick);
       const now = performance.now();
+      const nowSec = now / 1000;
       // Clamped so a stalled frame cannot teleport the reader.
       const elapsed = Math.min(0.1, Math.max(0, (now - lastFrame) / 1000));
       lastFrame = now;
@@ -296,7 +306,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
         clock.width = stageEl.clientWidth;
         clock.height = stageEl.clientHeight;
       }
-      paint(els, clock.t);
+      paint(els, clock.t, nowSec);
     };
     rafId = requestAnimationFrame(tick);
     return () => {

@@ -1,7 +1,8 @@
-// Scroll-driven choreography for the contact landing zone. The card first
-// presents its top face as a stable landing deck, holds a close-up while the
-// astronaut waves beside the invitation, then zooms out to the complete CTA.
-// Time is used only for the brief impact dip.
+// Scroll-driven choreography for the contact landing zone.
+// The billboard deck holds its fixed size, the astronaut lands standing,
+// transitions to sit or lie-down, dances/jumps when the cursor approaches
+// the CTA button, and engages in idle behaviors (lying down after 60s,
+// wall climbing down/up after 90s, random plank walking and sitting).
 
 export const LAND_START = 0.02;
 export const LAND_AT = 0.12;
@@ -9,16 +10,26 @@ export const HEADING_AT = 0.14;
 /** Close-up holds until here, then eases out to the full card by ZOOM_OUT_END. */
 export const ZOOM_OUT_START = 0.28;
 export const ZOOM_OUT_END = 0.44;
-export const SIT_AT = 0.56;
+export const SIT_AT = 0.54;
 
 /** Sag depth on impact, in px. */
-export const DIP_DEPTH = 30;
+export const DIP_DEPTH = 24;
 export const DIP_DOWN = 0.2;
-export const DIP_RISE = 1.8;
+export const DIP_RISE = 1.6;
 export const BANNER_SETTLED = DIP_DOWN + DIP_RISE;
 
-export type ContactPoseMode = "landing" | "stand" | "sit" | "dance" | "wait";
-export type ContactInteraction = "none" | "dance" | "wait";
+export type ContactPoseMode =
+  | "landing"
+  | "stand"
+  | "sit"
+  | "lie"
+  | "dance"
+  | "jumpWave"
+  | "walkPlank"
+  | "wallClimb"
+  | "wait";
+
+export type ContactInteraction = "none" | "dance" | "jumpWave" | "wait";
 
 export type BannerState = {
   /** Vertical offset of the banner in px (positive = down). */
@@ -57,13 +68,46 @@ export function bannerState(progress: number, sinceLanding: number): BannerState
   };
 }
 
-/** Pose precedence: landing → CTA interaction → scroll-selected upright rest. */
+/**
+ * Pose precedence & autonomous idle behaviors:
+ * 1. landing
+ * 2. CTA button hover/near -> dance or jump & wave
+ * 3. LinkedIn/GitHub click -> wait
+ * 4. Screen idle > 90s -> wall climbing down and up the clear corner
+ * 5. Screen idle > 60s -> lie down from standing
+ * 6. Periodic cycling (> 12s on screen): plank walk, sit, lie, wave
+ * 7. Standard scroll rest: stand -> sit
+ */
 export function contactPoseMode(
   progress: number,
   interaction: ContactInteraction,
+  elapsedTime = 0,
 ): ContactPoseMode {
   if (progress < LAND_AT) return "landing";
   if (interaction === "dance") return "dance";
+  if (interaction === "jumpWave") return "jumpWave";
   if (interaction === "wait") return "wait";
-  return progress < SIT_AT ? "stand" : "sit";
+
+  // Long idle behaviors once settled
+  if (progress >= SIT_AT) {
+    if (elapsedTime >= 90) {
+      // Wall climbing cycle every 20s (climb down corner and back up)
+      const cycle = (elapsedTime - 90) % 20;
+      if (cycle < 16) return "wallClimb";
+    }
+    if (elapsedTime >= 60) {
+      // Lie down from standing position
+      return "lie";
+    }
+    // Random / cycling actions after 12s on screen
+    if (elapsedTime >= 12) {
+      const loop = Math.floor(elapsedTime / 8) % 4;
+      if (loop === 1) return "walkPlank";
+      if (loop === 2) return "sit";
+      if (loop === 3) return "lie";
+    }
+    return "sit";
+  }
+
+  return "stand";
 }
