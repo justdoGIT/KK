@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import type { JourneyClock } from "../../../scene/astronaut/journey-clock.ts";
 import {
-  SEAT_AT,
-  SEAT_FRACTION,
+  ARRIVE_AT,
   clamp01,
   frameRect,
   heroUnmasked,
@@ -16,6 +15,7 @@ export type JourneyElements = {
   section: RefObject<HTMLDivElement | null>;
   stage: RefObject<HTMLDivElement | null>;
   backdrop: RefObject<HTMLDivElement | null>;
+  theme: RefObject<HTMLDivElement | null>;
   world: RefObject<HTMLDivElement | null>;
   hero: RefObject<HTMLDivElement | null>;
   cardEdge: RefObject<HTMLDivElement | null>;
@@ -26,14 +26,8 @@ export type JourneyElements = {
   clock: RefObject<JourneyClock>;
 };
 
-/** Finale bits the driver animates inside the card layer, cached on mount. */
-type FinaleParts = { title: HTMLElement | null; actions: HTMLElement | null };
-
-/** Card edge drop, in px, when the astronaut's weight lands on it. */
-const CARD_BUMP = 14;
-
-/** Wait-phase ratio at which the finale heading pops, after the card settles. */
-const TITLE_POP_AT = SEAT_AT + 0.12;
+/** Wait-phase ratio at which the finale heading pops, once the wave has begun. */
+const TITLE_POP_AT = ARRIVE_AT * 0.8;
 
 /** Slow scroll cruise: start window, destination, and speed in px per second. */
 const CRUISE_ARM = 0.28;
@@ -70,7 +64,7 @@ function applyMask(el: HTMLElement, rect: FrameRect | null, width: number, heigh
   el.style.transform = rect.rotation ? `rotate(${rect.rotation.toFixed(3)}deg)` : "none";
 }
 
-function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
+function paint(els: JourneyElements, t: number): void {
   const stage = els.stage.current;
   if (!stage) return;
   const width = stage.clientWidth;
@@ -78,6 +72,9 @@ function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
   const rect = frameRect(t, width, height);
   const phase = phaseAt(t);
   if (stage.dataset.phase !== phase) stage.dataset.phase = phase;
+  // Clear the close-up before the transparent lounge canvas overlaps this
+  // stage; otherwise the finale astronaut appears behind the reclined one.
+  stage.style.opacity = (1 - smoothstep(0.94, 1, t)).toFixed(3);
 
   const world = els.world.current;
   if (world) {
@@ -91,12 +88,17 @@ function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
   const white = phaseRatio(t, "whiteTunnel");
   const drop = phaseRatio(t, "drop");
 
+  // After the break the black void gives way to the site's own background:
+  // the backdrop fades out so the page colour shows, and the theme glows fade in.
+  const themed = smoothstep(0.15, 0.95, drop);
   const backdrop = els.backdrop.current;
   if (backdrop) {
     const navy = smoothstep(0.3, 1, white) * (1 - smoothstep(0.2, 0.9, drop));
-    backdrop.style.opacity = frameIn.toFixed(3);
+    backdrop.style.opacity = (frameIn * (1 - themed)).toFixed(3);
     backdrop.style.backgroundColor = `rgb(${(4 * navy).toFixed(0)}, ${(8 * navy).toFixed(0)}, ${(52 * navy).toFixed(0)})`;
   }
+  const theme = els.theme.current;
+  if (theme) theme.style.opacity = themed.toFixed(3);
 
   const cardEdge = els.cardEdge.current;
   if (cardEdge) {
@@ -127,27 +129,13 @@ function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
     line.style.transform = `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`;
   });
 
-  const wait = phaseRatio(t, "wait");
-  const end = els.end.current;
-  if (end) {
-    const show = smoothstep(0.01, SEAT_AT * 0.7, wait);
-    end.style.opacity = show.toFixed(3);
-    end.style.visibility = show > 0.01 ? "visible" : "hidden";
-    // The card dips under the astronaut's weight, then springs back.
-    const bump = Math.sin(smoothstep(SEAT_AT, SEAT_AT + 0.13, wait) * Math.PI) * CARD_BUMP;
-    end.style.transform = `translate3d(0, ${bump.toFixed(1)}px, 0)`;
-  }
-
-  if (finale.title) {
-    const pop = clamp01((wait - TITLE_POP_AT) / 0.22);
+  const heading = els.end.current;
+  if (heading) {
+    const pop = clamp01((phaseRatio(t, "wait") - TITLE_POP_AT) / 0.16);
     const eased = pop > 0 ? backOut(pop) : 0;
-    finale.title.style.opacity = pop.toFixed(3);
-    finale.title.style.transform = `translate3d(0, ${((1 - eased) * 18).toFixed(1)}px, 0) scale(${(0.86 + 0.14 * eased).toFixed(3)})`;
-  }
-  if (finale.actions) {
-    const pop = clamp01((wait - (TITLE_POP_AT + 0.12)) / 0.18);
-    finale.actions.style.opacity = pop.toFixed(3);
-    finale.actions.style.transform = `translate3d(0, ${((1 - pop) * 14).toFixed(1)}px, 0)`;
+    heading.style.opacity = pop.toFixed(3);
+    heading.style.visibility = pop > 0.001 ? "visible" : "hidden";
+    heading.style.transform = `translate3d(0, ${((1 - eased) * 28).toFixed(1)}px, 0) scale(${(0.82 + 0.18 * eased).toFixed(3)})`;
   }
 }
 
@@ -160,7 +148,6 @@ function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
 export function useJourneyDriver(els: JourneyElements): { near: boolean; active: boolean } {
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
-  const finaleParts = useRef<FinaleParts>({ title: null, actions: null });
 
   useEffect(() => {
     const section = els.section.current;
@@ -179,14 +166,6 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
 
   useEffect(() => {
     if (!near) return;
-    const stage = els.stage.current;
-    stage?.style.setProperty("--aj-seat", `${(SEAT_FRACTION * 100).toFixed(2)}%`);
-    const card = els.end.current;
-    finaleParts.current = {
-      title: card?.querySelector<HTMLElement>(".aj-end-title") ?? null,
-      actions: card?.querySelector<HTMLElement>(".aj-end-actions") ?? null,
-    };
-
     let rafId = 0;
     let cruising = false;
     let cruised = false;
@@ -259,7 +238,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
         clock.width = stageEl.clientWidth;
         clock.height = stageEl.clientHeight;
       }
-      paint(els, finaleParts.current, clock.t);
+      paint(els, clock.t);
     };
     rafId = requestAnimationFrame(tick);
     return () => {

@@ -31,13 +31,10 @@ export const PHASE_SPANS: Record<PhaseId, Span> = (() => {
 export const JOURNEY_VIEWPORTS = 4.5;
 
 /**
- * Wait-phase ratio at which the astronaut settles onto the finale card: the
- * pose, the root transform, and the card's impact bump are all keyed off it.
+ * Wait-phase ratio by which the astronaut has flown up close to the camera:
+ * the wave, the root framing, and the finale heading all key off it.
  */
-export const SEAT_AT = 0.18;
-
-/** Height of the finale card's top edge (the seat) as a fraction of the stage. */
-export const SEAT_FRACTION = 0.46;
+export const ARRIVE_AT = 0.2;
 
 export function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
