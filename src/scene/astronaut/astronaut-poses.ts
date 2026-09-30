@@ -1,4 +1,4 @@
-import { IMPACT_AT, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import { IMPACT_AT, SEAT_AT, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
 import { BONES, type BoneName } from "./astronaut-rig.ts";
 
 /**
@@ -9,7 +9,7 @@ import { BONES, type BoneName } from "./astronaut-rig.ts";
  */
 
 type Euler3 = readonly [number, number, number];
-type Side = { arm: Euler3; forearm: Euler3; thigh: Euler3; shin: Euler3 };
+type Side = { arm: Euler3; forearm: Euler3; thigh: Euler3; shin: Euler3; hand?: Euler3; foot?: Euler3 };
 export type Pose = Record<BoneName, Euler3>;
 export type PoseBuffer = Record<BoneName, [number, number, number]>;
 
@@ -25,16 +25,16 @@ function pose(body: { spine?: Euler3; chest?: Euler3; head?: Euler3 }, left: Sid
     head: body.head ?? ZERO,
     armL: left.arm,
     forearmL: left.forearm,
-    handL: ZERO,
+    handL: left.hand ?? ZERO,
     armR: m(right.arm),
     forearmR: m(right.forearm),
-    handR: ZERO,
+    handR: m(right.hand ?? ZERO),
     thighL: left.thigh,
     shinL: left.shin,
-    footL: ZERO,
+    footL: left.foot ?? ZERO,
     thighR: m(right.thigh),
     shinR: right.shin,
-    footR: ZERO,
+    footR: m(right.foot ?? ZERO),
   };
 }
 
@@ -66,10 +66,26 @@ const LAND = pose(
   { spine: [0.3, 0, 0], head: [-0.1, 0, 0] },
   { arm: [0, -0.2, -0.55], forearm: [0, -0.4, 0], thigh: [-0.85, 0, 0.12], shin: [1.4, 0, 0] },
 );
-const WAVE = pose(
-  { chest: [0.02, 0, 0], head: [0.04, -0.12, 0] },
-  { arm: [0, -0.15, 1.05], forearm: [0, 0, 0.75], thigh: [0, 0, 0.03], shin: [0.05, 0, 0] },
-  { arm: [0, -0.1, -1.25], forearm: [0, -0.25, 0], thigh: [0, 0, 0.03], shin: [0.05, 0, 0] },
+/** Seated on the finale card edge: thighs over the front, shins hanging. */
+const SIT = pose(
+  { spine: [0.24, 0, 0], chest: [0.06, 0, 0], head: [0.08, -0.14, 0] },
+  // Waving arm: raised, forearm rolled so the open palm faces the viewer.
+  {
+    arm: [0, -0.15, 1.05],
+    forearm: [1.35, 0, 0.7],
+    hand: [0.32, 0, 0],
+    thigh: [-1.3, 0, 0.14],
+    shin: [1.5, 0, 0],
+    foot: [0.3, 0, 0],
+  },
+  // Far arm rests down the card edge.
+  {
+    arm: [0, -0.1, -1.18],
+    forearm: [0, -0.3, 0],
+    thigh: [-1.3, 0, 0.14],
+    shin: [1.5, 0, 0],
+    foot: [0.3, 0, 0],
+  },
 );
 
 /** Keyframes on the frameBreak ratio: crouch → jump → kick (contact at IMPACT_AT) → shield. */
@@ -140,10 +156,11 @@ export function samplePose(t: number, time: number, out: PoseBuffer): void {
   } else if (drop > 0 && wait === 0) {
     blend(out, SHIELD, LAND, smoothstep(0.35, 1, drop));
   } else if (wait > 0) {
-    blend(out, LAND, WAVE, smoothstep(0, 0.18, wait));
-    const waving = smoothstep(0.1, 0.2, wait);
-    out.forearmL[2] += Math.sin(time * 6.5) * 0.4 * waving;
-    out.armL[2] += Math.sin(time * 6.5 + 0.6) * 0.08 * waving;
+    blend(out, LAND, SIT, smoothstep(0, SEAT_AT, wait));
+    const waving = smoothstep(SEAT_AT + 0.06, SEAT_AT + 0.2, wait);
+    out.forearmL[2] += Math.sin(time * 5.2) * 0.34 * waving;
+    out.handL[2] += Math.sin(time * 5.2 + 0.6) * 0.22 * waving;
+    out.head[1] += Math.sin(time * 2.1) * 0.05 * waving;
   } else if (runUp > 0 || white > 0.6) {
     blend(out, FREEFALL, STAND, smoothstep(0.6, 1, white));
     run(out, runUp * Math.PI * 7, smoothstep(0, 0.15, runUp) * (1 - smoothstep(0.85, 1, runUp)));

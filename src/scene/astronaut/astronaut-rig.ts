@@ -60,6 +60,9 @@ const JOINTS: Record<BoneName, JointSpec> = {
   footR: { parent: "shinR", at: [-6.5, -33, 0], tip: [-6.5, -36, 9] },
 };
 
+/** Model origin (bounding-box centre) down to the hips bone, in rig units. */
+export const HIP_OFFSET = (Math.abs(JOINTS.hips.at[1]) / MESH_HEIGHT) * ASTRONAUT_HEIGHT;
+
 const ARM_L: BoneName[] = ["chest", "armL", "forearmL", "handL"];
 const ARM_R: BoneName[] = ["chest", "armR", "forearmR", "handR"];
 const LEG_L: BoneName[] = ["hips", "thighL", "shinL", "footL"];
@@ -123,6 +126,27 @@ function suitMaterial(source: Material): MeshPhysicalMaterial {
   });
 }
 
+/** Helmet visor material name in the source GLB; the suit shell is `astnt1_1`. */
+const VISOR_MATERIAL = "astnt1_2";
+
+/**
+ * Mirrored visor glass. The source texture paints a bare head, which reads as a
+ * bald figure inside the helmet shell, so the visor gets its own material: dark,
+ * near-mirror, and picking up the scene environment as a real visor would.
+ */
+function visorMaterial(): MeshPhysicalMaterial {
+  return new MeshPhysicalMaterial({
+    color: "#131f3a",
+    metalness: 0.96,
+    roughness: 0.12,
+    clearcoat: 1,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 3,
+    iridescence: 0.45,
+    iridescenceIOR: 2,
+  });
+}
+
 export type AstronautRigData = { parts: { geometry: BufferGeometry; material: MeshPhysicalMaterial }[] };
 
 /**
@@ -162,7 +186,8 @@ export function buildAstronautRig(scene: Object3D): AstronautRigData {
     geometry.translate(-center.x, -center.y, -center.z);
     skin(geometry, scale);
     geometry.scale(ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale), ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale), ASTRONAUT_HEIGHT / (MESH_HEIGHT * scale));
-    const material = suitMaterial(Array.isArray(mesh.material) ? mesh.material[0] : mesh.material);
+    const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    const material = source.name === VISOR_MATERIAL ? visorMaterial() : suitMaterial(source);
     parts.push({ geometry, material });
   });
   return { parts };

@@ -5,11 +5,12 @@ import {
   AdditiveBlending,
   Color,
   MeshPhysicalMaterial,
+  PerspectiveCamera,
   Vector3,
   type DirectionalLight,
   type Group,
 } from "three";
-import { phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
+import { SEAT_FRACTION, phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import { modelUrl } from "../robots/model-assets.ts";
 import {
   BONES,
@@ -25,9 +26,9 @@ import {
   heroRoot,
   impactEnvelope,
   type RootPose,
+  type SeatFrame,
 } from "./hero-motion.ts";
 import { GlassShards } from "./GlassShards.tsx";
-import { Crystals } from "./Crystals.tsx";
 import type { JourneyClockRef } from "./journey-clock.ts";
 
 const CLONES = 4;
@@ -105,7 +106,16 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     const time = state.clock.elapsedTime;
 
     buf.cursor = (buf.cursor + 1) % HISTORY;
-    const root = heroRoot(t, time, buf.history[buf.cursor]);
+    const view = state.camera;
+    // Shorter stages get a smaller suit so the seated pose still clears the card.
+    const seatScale = Math.max(0.6, Math.min(1, clock.current.height / 1000));
+    const seat: SeatFrame = {
+      fraction: SEAT_FRACTION,
+      fov: view instanceof PerspectiveCamera ? view.fov : 35,
+      cameraZ: view.position.z,
+      scale: seatScale,
+    };
+    const root = heroRoot(t, time, seat, buf.history[buf.cursor]);
     samplePose(t, time, buf.pose);
     applyRoot(hero.root, root);
     applyPose(hero, buf.pose);
@@ -160,7 +170,6 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       <directionalLight ref={rimRef} position={[-4, 2.5, -3]} intensity={2.8} color="#38bdf8" />
       <directionalLight position={[-2, 1, -5]} intensity={0.75} color="#93a4ff" />
       <GlassShards clock={clock} impact={impactRef} />
-      <Crystals clock={clock} />
     </>
   );
 }
