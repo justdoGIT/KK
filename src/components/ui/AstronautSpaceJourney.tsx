@@ -5,7 +5,6 @@ import type { JourneyClock } from "../../scene/astronaut/journey-clock.ts";
 import { SpaceBackdrop, AstronautFigure } from "./AstronautArtwork.tsx";
 import { JOURNEY_VIEWPORTS } from "./astronaut/journey-timeline.ts";
 import { JourneyEndContent } from "./astronaut/JourneyEndContent.tsx";
-import { JourneyStickers } from "./astronaut/JourneyStickers.tsx";
 import { useJourneyDriver, type JourneyElements } from "./astronaut/useJourneyDriver.ts";
 
 // Contact finale modelled on Lusion's "Where creative ideas become immersive
@@ -33,11 +32,10 @@ function ImmersiveJourney(): JSX.Element {
   const intro = useRef<HTMLDivElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
   const end = useRef<HTMLDivElement>(null);
-  const stickers = useRef<(HTMLElement | null)[]>([]);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1 });
 
   const els = useMemo<JourneyElements>(
-    () => ({ section, stage, backdrop, world, hero, cardEdge, bezel, intro, titleLines, end, stickers, clock }),
+    () => ({ section, stage, backdrop, world, hero, cardEdge, bezel, intro, titleLines, end, clock }),
     [],
   );
   const { near, active } = useJourneyDriver(els);
@@ -84,11 +82,6 @@ function ImmersiveJourney(): JSX.Element {
             </span>
           ))}
         </p>
-        <JourneyStickers
-          stickerRef={(i) => (el) => {
-            stickers.current[i] = el;
-          }}
-        />
         <div ref={end} className="aj-end">
           <JourneyEndContent />
         </div>

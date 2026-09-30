@@ -94,17 +94,22 @@ test.describe("Portfolio smoke tests", () => {
   });
 
   test("stages the 3D astronaut card expansion, tunnel journey, and finale", async ({ page }) => {
+    test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/");
     const journey = page.locator(".aj-section");
     const stage = page.locator(".aj-stage");
     const intro = page.locator(".aj-intro");
     const end = page.locator(".aj-end");
+    const card = page.locator(".aj-end-card-inner");
 
     await expect(stage).toHaveCSS("position", "sticky");
     await expect
       .poll(async () => stage.evaluate((element) => Math.abs(element.getBoundingClientRect().height - window.innerHeight)))
       .toBeLessThan(2);
+
+    const expectPhase = (phase: string) =>
+      expect.poll(async () => stage.getAttribute("data-phase"), { timeout: 25_000 }).toBe(phase);
 
     const scrollJourneyTo = async (progress: number) => {
       await journey.evaluate((element, value) => {
@@ -119,21 +124,71 @@ test.describe("Portfolio smoke tests", () => {
     };
 
     await scrollJourneyTo(0.02);
-    await expect(stage).toHaveAttribute("data-phase", "cardShow");
+    await expectPhase("cardShow");
     await expect(intro).toBeVisible();
 
     await scrollJourneyTo(0.18);
-    await expect(stage).toHaveAttribute("data-phase", "title");
+    await expectPhase("title");
     await expect(page.getByText("Step into a new orbit")).toBeVisible();
 
     await scrollJourneyTo(0.30);
-    await expect(stage).toHaveAttribute("data-phase", "blackTunnel");
+    await expectPhase("blackTunnel");
 
-    await scrollJourneyTo(0.80);
-    await expect(stage).toHaveAttribute("data-phase", "wait");
+    await scrollJourneyTo(0.52);
+    await expectPhase("frameBreak");
+
+    await scrollJourneyTo(0.86);
+    await expectPhase("wait");
     await expect(end).toBeVisible();
-    await expect(page.getByText(/Let.*build it/i)).toBeVisible();
+
+    const heading = page.locator(".aj-end-title");
+    await expect(heading).toHaveText(/Let.s innovate together/i);
+    await expect(heading).toHaveCSS("opacity", "1");
+
+    // The card's top edge is the seat the astronaut lands on.
+    const seat = await stage.evaluate((element) => element.style.getPropertyValue("--aj-seat"));
+    expect(seat).toBe("46.00%");
+    await expect
+      .poll(
+        async () =>
+          card.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return Math.abs(rect.top - window.innerHeight * 0.46);
+          }),
+        { timeout: 20_000 },
+      )
+      .toBeLessThan(15);
+
     await expect(end.getByRole("link", { name: /Start a conversation/i })).toBeVisible();
+  });
+
+  test("cruises the journey automatically after a downward gesture", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/");
+    const journey = page.locator(".aj-section");
+    const stage = page.locator(".aj-stage");
+
+    await journey.evaluate((element) => {
+      let top = 0;
+      for (let node: HTMLElement | null = element; node; node = node.offsetParent as HTMLElement | null) {
+        top += node.offsetTop;
+      }
+      window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
+    });
+    await expect(stage).toHaveAttribute("data-phase", "cardShow");
+
+    // One downward gesture while the pinned card is centred arms the cruise;
+    // the journey then advances through its phases without further input.
+    await page.waitForTimeout(800);
+    await page.mouse.move(720, 500);
+    await page.mouse.wheel(0, 120);
+    await expect
+      .poll(async () => stage.getAttribute("data-phase"), { timeout: 25_000 })
+      .toBe("title");
+    await expect
+      .poll(async () => stage.getAttribute("data-phase"), { timeout: 40_000 })
+      .toBe("blackTunnel");
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {

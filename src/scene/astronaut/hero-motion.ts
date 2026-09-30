@@ -1,11 +1,13 @@
 import {
   IMPACT_AT,
   PHASE_SPANS,
+  SEAT_AT,
   backInOut,
   phaseRatio,
   smoothstep,
   type PhaseId,
 } from "../../components/ui/astronaut/journey-timeline.ts";
+import { HIP_OFFSET } from "./astronaut-rig.ts";
 
 // Root transform of the hero astronaut (world units; camera at z=6, 35° FOV,
 // so the stage is ~3.8 units tall and the glass screen lies on z = 0).
@@ -39,6 +41,7 @@ const SCALE: readonly Key[] = [
   { phase: "frameBreak", f: IMPACT_AT, v: 0.8 },
   { phase: "frameBreak", f: 1, v: 1.1 },
   { phase: "drop", f: 1, v: 1.28 },
+  { phase: "wait", f: SEAT_AT, v: 0.68 },
 ];
 const Y: readonly Key[] = [
   { phase: "cardShow", f: 0, v: 0.05 },
@@ -78,17 +81,32 @@ const ROT_X: readonly Key[] = [
 
 export type RootPose = { x: number; y: number; z: number; scale: number; rx: number; ry: number; rz: number };
 
-/** Hero root transform at progress `t`; `time` (s) only drives the tunnel tumble and idle bob. */
-export function heroRoot(t: number, time: number, out: RootPose): RootPose {
+/** Camera frame the finale card's top edge has to line up with. */
+export type SeatFrame = { fraction: number; fov: number; cameraZ: number; scale: number };
+
+/**
+ * Hero root transform at progress `t`. `time` (s) only drives the tunnel tumble
+ * and idle bob; `seat` describes where the finale card edge sits on screen, so
+ * the hips can settle onto it during the wait phase.
+ */
+export function heroRoot(t: number, time: number, seat: SeatFrame, out: RootPose): RootPose {
   const tunnel = phaseRatio(t, "blackTunnel");
   const settle = 1 - phaseRatio(t, "whiteTunnel");
   const tumble = smoothstep(0, 0.25, tunnel) * settle;
   const drop = phaseRatio(t, "drop");
   const wait = phaseRatio(t, "wait");
-  out.scale = keyed(t, SCALE);
+  out.scale = keyed(t, SCALE) * seat.scale;
   out.x = Math.sin(time * 0.9) * 0.35 * tumble + Math.sin(time * 0.37 + 1.3) * 0.12 * tumble;
-  out.y = keyed(t, Y) + Math.cos(time * 0.7) * 0.22 * tumble - 0.4 * backInOut(drop) + Math.sin(time * 1.4) * 0.02 * wait;
   out.z = keyed(t, Z);
+  const bob = Math.sin(time * 1.4) * 0.02 * wait;
+  const flight = keyed(t, Y) + Math.cos(time * 0.7) * 0.22 * tumble - 0.4 * backInOut(drop) + bob;
+  // World height of the card edge at the hero's depth: the hips land on it.
+  const distance = Math.max(0.5, seat.cameraZ - out.z);
+  const visible = 2 * Math.tan((seat.fov * Math.PI) / 360) * distance;
+  const seated = (0.5 - seat.fraction) * visible + HIP_OFFSET * out.scale;
+  const sit = smoothstep(0, SEAT_AT, wait);
+  const impact = Math.sin(smoothstep(SEAT_AT * 0.72, SEAT_AT, wait) * Math.PI) * 0.05;
+  out.y = flight + (seated - flight) * sit - impact * sit;
   out.rx = keyed(t, ROT_X) + Math.sin(time * 0.61) * 0.7 * tumble;
   out.ry = keyed(t, ROT_Y) + Math.sin(time * 0.43 + 0.8) * 0.9 * tumble;
   out.rz = Math.sin(time * 0.52 + 2.1) * 1.05 * tumble;

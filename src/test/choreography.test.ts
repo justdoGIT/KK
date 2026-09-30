@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   IMPACT_AT,
   PHASE_SPANS,
+  SEAT_FRACTION,
   heroUnmasked,
   shatterRatio,
 } from "../components/ui/astronaut/journey-timeline.ts";
+import { HIP_OFFSET } from "../scene/astronaut/astronaut-rig.ts";
+import { createRootPose, heroRoot, type SeatFrame } from "../scene/astronaut/hero-motion.ts";
 import {
   CAREER_STAGE_COUNT,
   STAGE_STARTS,
@@ -39,5 +42,20 @@ describe("scroll choreography", () => {
       expect(morphProgress(state.local)).toBe(0);
     }
     expect(careerStageAt(1)).toEqual({ stage: CAREER_STAGE_COUNT - 1, local: 1 });
+  });
+
+  it("settles the astronaut's hips onto the finale card edge", () => {
+    const seat: SeatFrame = { fraction: SEAT_FRACTION, fov: 35, cameraZ: 6, scale: 1 };
+    const pose = createRootPose();
+
+    // Fully seated at the end of the pinned journey.
+    heroRoot(PHASE_SPANS.wait.to, 0, seat, pose);
+    const visible = 2 * Math.tan((seat.fov * Math.PI) / 360) * (seat.cameraZ - pose.z);
+    const seatY = (0.5 - seat.fraction) * visible;
+    expect(pose.y - HIP_OFFSET * pose.scale).toBeCloseTo(seatY, 6);
+
+    // ...and still airborne when the sheet of glass breaks.
+    heroRoot(PHASE_SPANS.frameBreak.to - 0.01, 0, seat, pose);
+    expect(pose.y - HIP_OFFSET * pose.scale).toBeLessThan(seatY);
   });
 });

@@ -1,8 +1,9 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { JourneyClock } from "../../../scene/astronaut/journey-clock.ts";
 import {
+  SEAT_AT,
+  SEAT_FRACTION,
   clamp01,
-  fit,
   frameRect,
   heroUnmasked,
   phaseAt,
@@ -22,9 +23,22 @@ export type JourneyElements = {
   intro: RefObject<HTMLDivElement | null>;
   titleLines: RefObject<(HTMLElement | null)[]>;
   end: RefObject<HTMLDivElement | null>;
-  stickers: RefObject<(HTMLElement | null)[]>;
   clock: RefObject<JourneyClock>;
 };
+
+/** Finale bits the driver animates inside the card layer, cached on mount. */
+type FinaleParts = { title: HTMLElement | null; actions: HTMLElement | null };
+
+/** Card edge drop, in px, when the astronaut's weight lands on it. */
+const CARD_BUMP = 14;
+
+/** Wait-phase ratio at which the finale heading pops, after the card settles. */
+const TITLE_POP_AT = SEAT_AT + 0.12;
+
+/** Slow scroll cruise: start window, destination, and speed in px per second. */
+const CRUISE_ARM = 0.28;
+const CRUISE_TARGET = 0.62;
+const CRUISE_SPEED = 240;
 
 function backOut(x: number): number {
   const c1 = 1.70158;
@@ -56,7 +70,7 @@ function applyMask(el: HTMLElement, rect: FrameRect | null, width: number, heigh
   el.style.transform = rect.rotation ? `rotate(${rect.rotation.toFixed(3)}deg)` : "none";
 }
 
-function paint(els: JourneyElements, t: number): void {
+function paint(els: JourneyElements, finale: FinaleParts, t: number): void {
   const stage = els.stage.current;
   if (!stage) return;
   const width = stage.clientWidth;
@@ -116,21 +130,25 @@ function paint(els: JourneyElements, t: number): void {
   const wait = phaseRatio(t, "wait");
   const end = els.end.current;
   if (end) {
-    const show = smoothstep(0.05, 0.4, wait);
+    const show = smoothstep(0.01, SEAT_AT * 0.7, wait);
     end.style.opacity = show.toFixed(3);
     end.style.visibility = show > 0.01 ? "visible" : "hidden";
-    end.style.transform = `translate3d(0, ${((1 - show) * 40).toFixed(1)}px, 0)`;
+    // The card dips under the astronaut's weight, then springs back.
+    const bump = Math.sin(smoothstep(SEAT_AT, SEAT_AT + 0.13, wait) * Math.PI) * CARD_BUMP;
+    end.style.transform = `translate3d(0, ${bump.toFixed(1)}px, 0)`;
   }
 
-  els.stickers.current?.forEach((sticker) => {
-    if (!sticker) return;
-    const delay = Number(sticker.dataset.delay ?? 0);
-    const rotate = Number(sticker.dataset.rotate ?? 0);
-    const k = clamp01((wait - 0.12 - delay * 0.55) / 0.22);
-    const pop = k > 0 ? backOut(k) : 0;
-    sticker.style.opacity = k > 0 ? "1" : "0";
-    sticker.style.transform = `translate3d(-50%, -50%, 0) scale(${pop.toFixed(3)}) rotate(${fit(k, 0, 1, rotate - 40, rotate).toFixed(1)}deg)`;
-  });
+  if (finale.title) {
+    const pop = clamp01((wait - TITLE_POP_AT) / 0.22);
+    const eased = pop > 0 ? backOut(pop) : 0;
+    finale.title.style.opacity = pop.toFixed(3);
+    finale.title.style.transform = `translate3d(0, ${((1 - eased) * 18).toFixed(1)}px, 0) scale(${(0.86 + 0.14 * eased).toFixed(3)})`;
+  }
+  if (finale.actions) {
+    const pop = clamp01((wait - (TITLE_POP_AT + 0.12)) / 0.18);
+    finale.actions.style.opacity = pop.toFixed(3);
+    finale.actions.style.transform = `translate3d(0, ${((1 - pop) * 14).toFixed(1)}px, 0)`;
+  }
 }
 
 /**
@@ -142,6 +160,7 @@ function paint(els: JourneyElements, t: number): void {
 export function useJourneyDriver(els: JourneyElements): { near: boolean; active: boolean } {
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
+  const finaleParts = useRef<FinaleParts>({ title: null, actions: null });
 
   useEffect(() => {
     const section = els.section.current;
@@ -160,29 +179,54 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
 
   useEffect(() => {
     if (!near) return;
+    const stage = els.stage.current;
+    stage?.style.setProperty("--aj-seat", `${(SEAT_FRACTION * 100).toFixed(2)}%`);
+    const card = els.end.current;
+    finaleParts.current = {
+      title: card?.querySelector<HTMLElement>(".aj-end-title") ?? null,
+      actions: card?.querySelector<HTMLElement>(".aj-end-actions") ?? null,
+    };
+
     let rafId = 0;
-    let autoScrolling = false;
-    let autoCompleted = false;
-    let forwardIntent = false;
+    let cruising = false;
+    let cruised = false;
+    let armed = false;
+    let lastFrame = performance.now();
+    let touchY: number | null = null;
 
     const onWheel = (event: WheelEvent) => {
       if (event.deltaY < 0) {
-        autoScrolling = false;
-        forwardIntent = false;
+        armed = false;
+        cruising = false;
       } else if (event.deltaY > 0) {
-        forwardIntent = true;
+        armed = true;
       }
     };
-    const cancelAutoScroll = () => {
-      autoScrolling = false;
-      forwardIntent = false;
+    const onTouchStart = (event: TouchEvent) => {
+      cruising = false;
+      touchY = event.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const y = event.touches[0]?.clientY ?? null;
+      if (y !== null && touchY !== null && y < touchY) armed = true;
+      touchY = y;
+    };
+    const onKeyDown = () => {
+      armed = false;
+      cruising = false;
     };
 
     window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("touchstart", cancelAutoScroll, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
 
     const tick = () => {
       rafId = requestAnimationFrame(tick);
+      const now = performance.now();
+      // Clamped so a stalled frame cannot teleport the reader.
+      const elapsed = Math.min(0.1, Math.max(0, (now - lastFrame) / 1000));
+      lastFrame = now;
       const section = els.section.current;
       const clock = els.clock.current;
       if (!section || !clock) return;
@@ -191,37 +235,38 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       const target = scrollable > 0 ? clamp01(-sectionTop / scrollable) : 0;
       clock.t = target;
 
-      // Match Lusion's slow scroll scrub: one downward gesture while the
-      // centred card is pinned starts a deliberate cruise through the tunnel.
-      // A reverse wheel or touch immediately gives control back to the user.
-      if (target < 0.005) autoCompleted = false;
-      const cardCentered = sectionTop <= window.innerHeight * 0.08 && target < 0.1;
-      if (forwardIntent && cardCentered && !autoCompleted) {
-        autoScrolling = true;
-        forwardIntent = false;
-      }
-      if (autoScrolling) {
-        const destination = 0.62;
-        const remaining = (destination - target) * scrollable;
+      // Slow scroll scrub: once the pinned card is on screen and the reader has
+      // shown downward intent, the story cruises through the tunnel on its own.
+      // A reverse wheel, touch, or key hands control straight back.
+      if (target < 0.005) cruised = false;
+      const pinned = sectionTop <= 0 && target < CRUISE_ARM;
+      if (armed && pinned && !cruising && !cruised) cruising = true;
+      if (cruising) {
+        const remaining = (CRUISE_TARGET - target) * scrollable;
         if (remaining <= 2) {
-          autoScrolling = false;
-          autoCompleted = true;
+          cruising = false;
+          cruised = true;
         } else {
-          window.scrollBy(0, Math.min(2.6, remaining));
+          // `scroll-behavior: smooth` would animate every frame's nudge and the
+          // page would never actually advance, so the cruise steps instantly.
+          const step = Math.min(CRUISE_SPEED * elapsed, remaining);
+          window.scrollTo({ top: window.scrollY + step, behavior: "instant" });
         }
       }
 
-      const stage = els.stage.current;
-      if (stage) {
-        clock.width = stage.clientWidth;
-        clock.height = stage.clientHeight;
+      const stageEl = els.stage.current;
+      if (stageEl) {
+        clock.width = stageEl.clientWidth;
+        clock.height = stageEl.clientHeight;
       }
-      paint(els, clock.t);
+      paint(els, finaleParts.current, clock.t);
     };
     rafId = requestAnimationFrame(tick);
     return () => {
       window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", cancelAutoScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKeyDown);
       cancelAnimationFrame(rafId);
     };
   }, [near, els]);
