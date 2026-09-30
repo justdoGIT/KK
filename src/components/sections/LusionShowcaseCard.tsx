@@ -325,7 +325,8 @@ export function LusionShowcaseCard({
             target={item.link.startsWith("http") ? "_blank" : undefined}
             rel={item.link.startsWith("http") ? "noreferrer" : undefined}
           >
-            Discuss This Architecture <span aria-hidden="true">↗</span>
+            {item.link.startsWith("http") ? "View source on GitHub" : "Email about this architecture"}{" "}
+            <span aria-hidden="true">{item.link.startsWith("http") ? "↗" : "✉"}</span>
           </a>
         )}
       </div>

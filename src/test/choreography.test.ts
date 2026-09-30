@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { PerspectiveCamera } from "three";
 import { IMPACT_AT, PHASE_SPANS, heroUnmasked, shatterRatio } from "../components/ui/astronaut/journey-timeline.ts";
-import { createRootPose, heroRoot } from "../scene/astronaut/hero-motion.ts";
+import { createFinaleClock } from "../scene/astronaut/journey-clock.ts";
+import { contactRoot, createRootPose, heroRoot } from "../scene/astronaut/hero-motion.ts";
+import { landingAnchor } from "../scene/astronaut/landing-panel.ts";
 import {
   CAREER_STAGE_COUNT,
   STAGE_STARTS,
@@ -37,13 +40,37 @@ describe("scroll choreography", () => {
     expect(careerStageAt(1)).toEqual({ stage: CAREER_STAGE_COUNT - 1, local: 1 });
   });
 
-  it("drops the journey astronaut out before the contact landing scene", () => {
-    const landed = heroRoot(PHASE_SPANS.drop.to, 0, 16 / 9, createRootPose());
-    const gone = heroRoot(PHASE_SPANS.wait.to, 0, 16 / 9, createRootPose());
+  it("holds the drop's ending pose through the wait phase (contactRoot lands it)", () => {
+    const landed = heroRoot(PHASE_SPANS.drop.to, 0, createRootPose());
+    const held = heroRoot(PHASE_SPANS.wait.to, 0, createRootPose());
 
-    expect(gone.y).toBeLessThan(landed.y - 3);
-    expect(gone.z).toBeCloseTo(landed.z, 6);
-    expect(gone.scale).toBeCloseTo(landed.scale, 6);
-    expect(Math.abs(gone.x)).toBeLessThan(0.01);
+    expect(held.y).toBeCloseTo(landed.y, 6);
+    expect(held.z).toBeCloseTo(landed.z, 6);
+    expect(held.scale).toBeCloseTo(landed.scale, 6);
+  });
+
+  it("carries the root onto the landing panel as finale progress crosses the land window", () => {
+    const camera = new PerspectiveCamera(35, 1, 0.1, 80);
+    camera.position.z = 6;
+    const finale = createFinaleClock();
+    finale.cardLeft = 200;
+    finale.cardTop = 400;
+    finale.cardWidth = 600;
+    finale.footX = 410;
+    finale.bodyHeight = 260;
+
+    const before = createRootPose();
+    const anchor = landingAnchor(finale, camera, 1000, 800);
+    expect(anchor).not.toBeNull();
+    if (!anchor) return;
+
+    const untouched = contactRoot(anchor, "stand", -0.9, 0, 0, { ...before });
+    expect(untouched).toEqual(before);
+
+    const landed = contactRoot(anchor, "stand", -0.9, 1, 0, createRootPose());
+    expect(landed.scale).toBeCloseTo(anchor.scale, 6);
+    expect(landed.x).toBeCloseTo(anchor.x, 6);
+    expect(Number.isFinite(landed.y)).toBe(true);
+    expect(Number.isFinite(landed.z)).toBe(true);
   });
 });

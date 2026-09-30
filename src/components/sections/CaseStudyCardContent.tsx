@@ -1,7 +1,8 @@
-import type { JSX } from "react";
+import { useId, type JSX } from "react";
 import type { DiagramNode, CaseStudyDetail } from "../../content/case-studies.ts";
 
 export function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onExpand: () => void }) {
+  const wireGradient = useId();
   // Auto-size node boxes from the actual data instead of a fixed 24% width.
   // Diagrams with 4 top-row nodes (e.g. career-automation) pack tighter than
   // ones with 3 (e.g. personal-agent-harness), so a fixed box width overlaps
@@ -37,7 +38,7 @@ export function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onE
       <div className="diagram-popout-badge"><span>CLICK TO POP OUT [↗]</span></div>
       <svg viewBox="0 0 280 160" className="deck-mini-svg" role="img" aria-label="Architecture dataflow diagram">
         <defs>
-          <linearGradient id="dealWireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id={wireGradient} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
             <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
             <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.5" />
@@ -51,7 +52,7 @@ export function MiniArchDiagram({ nodes, onExpand }: { nodes: DiagramNode[]; onE
             return (
               <g key={`${node.id}-${targetId}`}>
                 <line x1={`${node.x}%`} y1={`${node.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="rgba(56, 189, 248, 0.35)" strokeWidth="1.2" />
-                <line x1={`${node.x}%`} y1={`${node.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="url(#dealWireGrad)" strokeWidth="1.6" strokeDasharray="4 4" className="arch-animated-wire" />
+                <line x1={`${node.x}%`} y1={`${node.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke={`url(#${wireGradient})`} strokeWidth="1.6" strokeDasharray="4 4" className="arch-animated-wire" />
               </g>
             );
           });
@@ -89,7 +90,7 @@ export function CardFrontContent({
         <span className="card-front-badge">VERIFIED</span>
       </div>
 
-      <div className="card-front-scroll-body">
+      <div className="card-front-scroll-body" tabIndex={0} role="region" aria-label={`${study.record.publicTitle} details`}>
         <p className="card-front-context">{study.context}</p>
 
         <div className="card-front-diagram-wrap">

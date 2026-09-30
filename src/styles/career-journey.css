@@ -57,7 +57,15 @@
   min-height: 0;
   flex: 1;
   scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.45) rgba(2, 6, 23, 0.45);
 }
+.career-entries::-webkit-scrollbar { width: 6px; }
+.career-entries::-webkit-scrollbar-track { background: rgba(2, 6, 23, 0.45); border-radius: 3px; }
+.career-entries::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 3px;
+}
+.career-entries::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.75); }
 .career-header .lusion-kinetic-kicker { font-size: .65rem; }
 .career-entry .timeline-detail { padding: .6rem .75rem; border-radius: 10px; background: rgba(15, 23, 42, .65); }
 .career-entry .tag { border-color: rgba(147, 164, 255, .25); }
@@ -369,11 +377,10 @@
     display: none;
   }
 
+  /* Two dense sensor readouts plus the caption text leave no room for the
+     robot itself on a short mobile screen box; the caption already carries
+     the story in words, so drop the decorative HUD here entirely. */
   .career-hud {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .career-hud-top {
     display: none;
   }
 }

@@ -1,14 +1,15 @@
-// Scroll-driven choreography for the contact landing zone. The banner is
-// already visible when the astronaut enters; progress lands him on its top
-// face, reveals the invitation, then selects standing, seated, and reclining
-// poses. Time is used only for the impact dip and idle/interaction overrides.
+// Scroll-driven choreography for the contact landing zone. The card first
+// presents its top face as a stable landing deck, holds a close-up while the
+// astronaut waves beside the invitation, then zooms out to the complete CTA.
+// Time is used only for the brief impact dip.
 
-export const LAND_START = 0.04;
-export const LAND_AT = 0.22;
-export const HEADING_AT = 0.24;
-export const SIT_AT = 0.48;
-export const LOUNGE_AT = 0.72;
-export const IDLE_AFTER = 4;
+export const LAND_START = 0.02;
+export const LAND_AT = 0.12;
+export const HEADING_AT = 0.14;
+/** Close-up holds until here, then eases out to the full card by ZOOM_OUT_END. */
+export const ZOOM_OUT_START = 0.28;
+export const ZOOM_OUT_END = 0.44;
+export const SIT_AT = 0.56;
 
 /** Sag depth on impact, in px. */
 export const DIP_DEPTH = 30;
@@ -16,7 +17,7 @@ export const DIP_DOWN = 0.2;
 export const DIP_RISE = 1.8;
 export const BANNER_SETTLED = DIP_DOWN + DIP_RISE;
 
-export type ContactPoseMode = "landing" | "stand" | "sit" | "lounge" | "dance" | "wait";
+export type ContactPoseMode = "landing" | "stand" | "sit" | "dance" | "wait";
 export type ContactInteraction = "none" | "dance" | "wait";
 
 export type BannerState = {
@@ -26,6 +27,8 @@ export type BannerState = {
   fall: number;
   /** "Let's innovate together" reveal progress. */
   heading: number;
+  /** Close-up amount: 1 = zoomed onto the card's top face, 0 = whole card. */
+  closeUp: number;
 };
 
 function clamp01(x: number): number {
@@ -50,20 +53,17 @@ export function bannerState(progress: number, sinceLanding: number): BannerState
     offset: progress >= LAND_AT ? dipAt(sinceLanding) : 0,
     fall: smoothstep(LAND_START, LAND_AT, progress),
     heading: smoothstep(HEADING_AT, HEADING_AT + 0.1, progress),
+    closeUp: 1 - smoothstep(ZOOM_OUT_START, ZOOM_OUT_END, progress),
   };
 }
 
-/** Pose precedence: landing → CTA interaction → idle → scroll-selected rest. */
+/** Pose precedence: landing → CTA interaction → scroll-selected upright rest. */
 export function contactPoseMode(
   progress: number,
-  idle: boolean,
   interaction: ContactInteraction,
 ): ContactPoseMode {
   if (progress < LAND_AT) return "landing";
   if (interaction === "dance") return "dance";
   if (interaction === "wait") return "wait";
-  if (idle) return "lounge";
-  if (progress < SIT_AT) return "stand";
-  if (progress < LOUNGE_AT) return "sit";
-  return "lounge";
+  return progress < SIT_AT ? "stand" : "sit";
 }

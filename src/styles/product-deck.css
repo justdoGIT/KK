@@ -1,0 +1,27 @@
+.lusion-deck-header .lusion-kinetic-heading-wrap { margin: 1rem 0 0; }
+.lusion-deck-header .lusion-kinetic-title { font-size: clamp(2rem, 3.2vw, 3.5rem); }
+.lusion-deck-header .lusion-kinetic-subtitle { font-size: .9rem; max-width: 65ch; }
+.lusion-deck-scroll-section.is-static { min-height: auto; }
+.is-static .lusion-deck-sticky-stage { position: relative; top: auto; height: auto; padding: 4rem 0; }
+.is-static .lusion-cards-stage { height: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; perspective: none; transform-style: flat; }
+.is-static .lusion-card-isolated-cell { position: relative; width: 100%; height: auto; left: auto; top: auto; margin: 0; transform: none; }
+.is-static .lusion-card-front--static { position: relative; height: 100%; min-height: 520px; transform: none; }
+.is-static .card-front-scroll-body { max-height: none; overflow: visible; }
+.card-front-scroll-body:focus-visible { outline: 2px solid #38bdf8; outline-offset: -3px; }
+@media (max-width: 640px) { .is-static .lusion-cards-stage { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .arch-animated-wire { animation: none; } }
+
+@media (max-height: 699px) and (min-width: 1024px) {
+  .lusion-deck-inner { padding: 0.75rem 1.5rem; }
+  .lusion-section-pill,
+  .lusion-deck-header .lusion-kinetic-subtitle { display: none; }
+  .lusion-deck-header .lusion-kinetic-heading-wrap { margin: 0; }
+  .lusion-deck-header .lusion-kinetic-title { font-size: clamp(1.5rem, 2.5vw, 2.2rem); }
+  .lusion-cards-stage { height: calc(100dvh - 6rem); min-height: 0; }
+  .lusion-card-isolated-cell {
+    width: 300px;
+    height: min(260px, calc(100dvh - 6.5rem));
+  }
+  .lusion-card-front { padding: 0.8rem 1rem 0.65rem; }
+  .lusion-card-front .card-front-scroll-body { min-height: 0; }
+}

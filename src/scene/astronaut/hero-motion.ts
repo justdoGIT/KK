@@ -6,6 +6,8 @@ import {
   smoothstep,
   type PhaseId,
 } from "../../components/ui/astronaut/journey-timeline.ts";
+import type { ContactPoseMode } from "../../components/ui/contact/banner-timeline.ts";
+import { restOnPanel, type LandingAnchor } from "./landing-panel.ts";
 
 // Root transform of the hero astronaut (world units; camera at z=6, 35° FOV,
 // so the stage is ~3.8 units tall and the glass screen lies on z = 0).
@@ -80,26 +82,51 @@ export type RootPose = { x: number; y: number; z: number; scale: number; rx: num
 
 /**
  * Hero root transform at progress `t`. `time` (s) only drives the tunnel
- * tumble; the wait phase drops the astronaut completely out of this canvas so
- * the contact scene can continue the landing without a close-up duplicate.
+ * tumble; once the wait phase begins, `contactRoot` takes over the position,
+ * carrying the astronaut from this drop's ending pose onto the landing deck.
  */
-export function heroRoot(t: number, time: number, aspect: number, out: RootPose): RootPose {
+export function heroRoot(t: number, time: number, out: RootPose): RootPose {
   const tunnel = phaseRatio(t, "blackTunnel");
   const settle = 1 - phaseRatio(t, "whiteTunnel");
   const tumble = smoothstep(0, 0.25, tunnel) * settle;
   const drop = phaseRatio(t, "drop");
-  const wait = phaseRatio(t, "wait");
-  const leave = smoothstep(0, 0.42, wait);
   const drift = Math.sin(time * 0.9) * 0.35 * tumble + Math.sin(time * 0.37 + 1.3) * 0.12 * tumble;
   const flight = keyed(t, Y) + Math.cos(time * 0.7) * 0.22 * tumble - 0.4 * backInOut(drop);
-  const exitDistance = 3.8 + smoothstep(0.85, 1, aspect) * 0.35;
   out.scale = keyed(t, SCALE);
   out.x = drift;
-  out.y = flight - exitDistance * leave;
+  out.y = flight;
   out.z = keyed(t, Z);
   out.rx = keyed(t, ROT_X) + Math.sin(time * 0.61) * 0.7 * tumble;
   out.ry = keyed(t, ROT_Y) + Math.sin(time * 0.43 + 0.8) * 0.9 * tumble;
   out.rz = Math.sin(time * 0.52 + 2.1) * 1.05 * tumble;
+  return out;
+}
+
+/**
+ * Carries the hero root from its drop-ending pose onto the landing panel as
+ * `fall` goes 0..1. Once landed the root tracks the card-anchored panel every
+ * frame, so the astronaut, panel, and card zoom out together. `localSole` is
+ * the current pose's lowest boot sole in rig units, so any standing pose
+ * (landing crouch, wave, dance) keeps its boots on the panel top.
+ */
+export function contactRoot(
+  anchor: LandingAnchor | null,
+  mode: ContactPoseMode,
+  localSole: number,
+  fall: number,
+  time: number,
+  out: RootPose,
+): RootPose {
+  if (fall <= 0 || !anchor) return out;
+  const rest = restOnPanel(anchor, mode, localSole);
+  const sway = Math.sin(time * 0.6) * 0.015;
+  out.x += (anchor.x + sway - out.x) * fall;
+  out.y += (rest.y - out.y) * fall;
+  out.z += (rest.z - out.z) * fall;
+  out.scale += (anchor.scale - out.scale) * fall;
+  out.rx *= 1 - fall;
+  out.ry *= 1 - fall;
+  out.rz *= 1 - fall;
   return out;
 }
 

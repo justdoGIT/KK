@@ -142,68 +142,54 @@ test.describe("Portfolio smoke tests", () => {
     await expect
       .poll(async () => page.locator(".aj-theme").evaluate((el) => Number(el.style.opacity)), { timeout: 20_000 })
       .toBe(1);
-    await expect(page.locator(".aj-intro-title")).toHaveCSS("font-weight", "800");
   });
 
-  test("lands on the contact deck and reacts to scroll, idle, and CTAs", async ({ page }) => {
+  test("keeps one astronaut through landing, greeting, and playful banner finale", async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    const banner = page.locator(".contact-banner");
-    const mover = page.locator(".contact-banner-mover");
-    const heading = page.locator(".contact-journey-heading");
-
-    await expect(page.locator(".contact-cuboid")).toHaveCount(1);
-    await expect(page.locator(".contact-cuboid > .contact-frame-wrapper")).toHaveCount(1);
-
-    const scrollContactTo = async (progress: number) => {
-      await banner.evaluate((element, value) => {
-        const scrollable = element.offsetHeight - window.innerHeight;
+    const journey = page.locator(".aj-section");
+    const banner = journey.locator(".contact-banner");
+    const heading = journey.locator(".contact-journey-heading");
+    const scrollFinaleTo = async (progress: number) => {
+      await journey.evaluate((element, value) => {
         const top = window.scrollY + element.getBoundingClientRect().top;
-        window.scrollTo({ top: top + scrollable * value, behavior: "instant" as ScrollBehavior });
+        window.scrollTo({
+          top: top + (element.offsetHeight - window.innerHeight) * (0.65 + value * 0.35),
+          behavior: "instant",
+        });
       }, progress);
-      await page.waitForTimeout(180);
+      await expect.poll(async () => Number(await banner.getAttribute("data-finale-progress")), {
+        timeout: 20_000,
+      }).toBeCloseTo(progress, 2);
     };
-    const offset = () =>
-      mover.evaluate((el) => {
-        const match = /translate3d\(0(?:px)?, (-?[\d.]+)px/.exec(el.style.transform);
-        return match ? Number(match[1]) : Number.NaN;
-      });
 
-    await scrollContactTo(0.08);
+    await scrollFinaleTo(0.08);
     await expect(banner).toHaveAttribute("data-astronaut-mode", "landing");
-    await expect(page.locator(".contact-cuboid > .contact-frame-wrapper")).toBeVisible();
-    await expect(page.locator(".contact-lounge canvas")).toHaveCount(1);
+    const heroCanvas = await journey.locator(".aj-hero canvas").elementHandle();
+    expect(heroCanvas).not.toBeNull();
+    await expect(journey.locator(".contact-frame-wrapper")).toHaveCount(1);
 
-    await scrollContactTo(0.34);
-    expect(Number.isNaN(await offset())).toBe(false);
-    await expect(heading).toHaveText(/Let.s innovate together/i);
+    await scrollFinaleTo(0.32);
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "stand");
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveCSS("font-weight", "800");
-    const fonts = await heading.evaluate((el) => [getComputedStyle(el).fontFamily, getComputedStyle(document.body).fontFamily]);
-    expect(fonts[0]).toBe(fonts[1]);
+    await expect(heading).toHaveText(/Let.s innovate together/i);
+    // Idling during the greeting must not replace the wave with a rest pose.
+    await page.waitForTimeout(4500);
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "stand");
 
-    await scrollContactTo(0.55);
+    await scrollFinaleTo(0.9);
     await expect(banner).toHaveAttribute("data-astronaut-mode", "sit");
-
-    await expect.poll(async () => banner.getAttribute("data-astronaut-mode"), { timeout: 20_000 }).toBe("lounge");
-
-    const start = page.getByRole("link", { name: /Start a Conversation/ }).last();
+    expect(await heroCanvas!.evaluate((node) => node === document.querySelector(".aj-hero canvas"))).toBe(true);
+    const card = await journey.locator(".contact-frame-wrapper").boundingBox();
+    expect(card!.y).toBeGreaterThan(50);
+    expect(card!.y + card!.height).toBeLessThanOrEqual(900);
+    const start = banner.getByRole("link", { name: /Start a Conversation/ });
     await start.hover();
     await expect(banner).toHaveAttribute("data-astronaut-mode", "dance");
-    await page.mouse.move(4, 4);
-    await expect(banner).toHaveAttribute("data-astronaut-mode", "sit");
-
-    const github = page.getByRole("link", { name: /View GitHub Repositories/ }).last();
+    const github = banner.getByRole("link", { name: /View GitHub Repositories/ });
     await github.dispatchEvent("pointerdown");
     await expect(banner).toHaveAttribute("data-astronaut-mode", "wait");
-
-    const faces = await page.evaluate(() => {
-      const top = document.querySelector(".contact-cuboid-top")?.getBoundingClientRect();
-      const front = document.querySelector(".contact-frame-wrapper")?.getBoundingClientRect();
-      return top && front ? { depth: front.top - top.top } : null;
-    });
-    expect(faces?.depth ?? 0).toBeGreaterThan(18);
   });
 
   test("cruises the journey automatically after a downward gesture", async ({ page }) => {
@@ -264,7 +250,7 @@ test.describe("Portfolio smoke tests", () => {
       { progress: 0.31, stage: "1", codename: "ROVER", company: "Capgemini" },
       { progress: 0.49, stage: "2", codename: "EDGE AI QUADRUPED", company: "Dozee" },
       { progress: 0.65, stage: "3", codename: "HUMANOID", company: "Vestel International" },
-      { progress: 0.86, stage: "4", codename: "TRANSFORMER", company: "SYMX.AI" },
+      { progress: 0.86, stage: "4", codename: "LAUNCH", company: "SYMX.AI" },
     ] as const;
 
     const sectionTop = await section.evaluate((element) => window.scrollY + element.getBoundingClientRect().top);
@@ -313,6 +299,24 @@ test.describe("Portfolio smoke tests", () => {
     await workLink.click();
     await expect(page).toHaveURL(/#work$/);
     await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
+  });
+
+  test("keeps card choreography usable on short wide screens", async ({ page }) => {
+    await page.setViewportSize({ width: 1381, height: 367 });
+    await page.goto("/");
+
+    const caseStudies = page.getByLabel("Case studies");
+    await expect(caseStudies).not.toHaveClass(/is-static/);
+
+    const serviceCard = page.getByLabel(/Firmware & Board Bring-Up service details/i);
+    const overflow = await serviceCard.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        scrollable: element.scrollHeight > element.clientHeight,
+        overflowY: style.overflowY,
+      };
+    });
+    expect(overflow).toEqual({ scrollable: true, overflowY: "auto" });
   });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {

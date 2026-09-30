@@ -9,6 +9,11 @@ import {
   type ArchitectureDetail,
 } from "../ui/ArchitectureModal.tsx";
 import { CardFrontContent } from "./CaseStudyCardContent.tsx";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { useScrollFrame } from "../../motion/scroll-frame.ts";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+import "../../styles/product-deck.css";
 
 // flipSpeed < 1 = flip completes before full scroll travel (faster).
 // Outer/edge cards flip fast; inner cards flip slower.
@@ -31,6 +36,9 @@ const CARD_CONFIGS = [
 
 export function CaseStudies(): JSX.Element {
   const studies = getApprovedCaseStudies();
+  const enhanced = useMotionMode() === "enhanced";
+  const wide = useMediaQuery("(min-width: 1024px)");
+  const animated = enhanced && wide;
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
@@ -38,8 +46,6 @@ export function CaseStudies(): JSX.Element {
   // Computed targetX per card: card 0 left edge = heading left edge.
   // Recalculated whenever the stage resizes (viewport change, font zoom, etc.).
   const [targetXs, setTargetXs] = useState<number[]>([-468, -156, 156, 468]);
-  // One ref per card cell — used for non-passive wheel interception
-  const cellRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Align card 0's left edge with the heading's left edge.
   // Cards are positioned via translate3d(X,…) where X is offset from stage center.
@@ -71,60 +77,13 @@ export function CaseStudies(): JSX.Element {
     return () => ro.disconnect();
   }, []);
 
-  // Page-scroll tracker (passive — only reads position)
-  useEffect(() => {
-    const handleScroll = () => {
-      const section = sectionRef.current;
-      if (!section) return;
-      const rect = section.getBoundingClientRect();
-      const totalScroll = rect.height - window.innerHeight;
-      if (totalScroll <= 0) return;
-      const progress = Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75)));
-      setScrollProgress(progress);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Non-passive wheel listeners: when a card is front-visible, redirect
-  // wheel delta into the card's scroll body and block page scroll.
-  // Only blocks page scroll while the card body has remaining content
-  // in the scroll direction; at the limits the page scrolls normally.
-  useEffect(() => {
-    const cleanups: (() => void)[] = [];
-
-    cellRefs.current.forEach((cell) => {
-      if (!cell) return;
-
-      const handler = (e: WheelEvent) => {
-        // Check the data attribute set during render
-        if (cell.dataset.frontVisible !== "true") return;
-
-        const body = cell.querySelector<HTMLElement>(".card-front-scroll-body");
-        if (!body) return;
-
-        const { scrollTop, scrollHeight, clientHeight } = body;
-        const scrollable = scrollHeight - clientHeight;
-        if (scrollable <= 0) return; // card content fits — let page scroll
-
-        const goingDown = e.deltaY > 0;
-        const atTop    = scrollTop <= 0 && !goingDown;
-        const atBottom = scrollTop >= scrollable - 1 && goingDown;
-
-        if (!atTop && !atBottom) {
-          e.preventDefault(); // block page scroll
-          e.stopPropagation();
-          body.scrollTop += e.deltaY;
-        }
-      };
-
-      cell.addEventListener("wheel", handler, { passive: false });
-      cleanups.push(() => cell.removeEventListener("wheel", handler));
-    });
-
-    return () => cleanups.forEach((fn) => fn());
-  }); // re-runs every render so new refs are always wired up
+  useScrollFrame(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const rect = section.getBoundingClientRect();
+    const totalScroll = rect.height - window.innerHeight;
+    if (totalScroll > 0) setScrollProgress(Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))));
+  }, animated);
 
   const openArchitectureModal = (study: CaseStudyDetail, index: number) => {
     if (!study) return;
@@ -143,7 +102,7 @@ export function CaseStudies(): JSX.Element {
     const section = sectionRef.current;
     if (!section) return;
     const totalScroll = (section.offsetHeight - window.innerHeight) * 0.75;
-    const targetY = section.offsetTop + targetProgress * totalScroll;
+    const targetY = section.getBoundingClientRect().top + window.scrollY + targetProgress * totalScroll;
     window.scrollTo({ top: targetY, behavior: "smooth" });
   };
 
@@ -155,7 +114,7 @@ export function CaseStudies(): JSX.Element {
   ];
 
   return (
-    <section ref={sectionRef} aria-label="Case studies" className="lusion-deck-scroll-section" id="work">
+    <section ref={sectionRef} aria-label="Case studies" className={`lusion-deck-scroll-section${animated ? "" : " is-static"}`} id="work">
       <div className="lusion-deck-sticky-stage">
         <svg className="lusion-bg-ribbon" viewBox="0 0 1440 600" aria-hidden="true">
           <path d="M -100,140 Q 720,500 1540,100" fill="none" stroke="rgba(56, 189, 248, 0.08)" strokeWidth="32" />
@@ -165,27 +124,23 @@ export function CaseStudies(): JSX.Element {
           <div className="lusion-deck-header">
             <div className="lusion-header-left">
               <span className="lusion-section-pill">SELECTED MISSIONS // EVIDENCE-BACKED PLATFORMS</span>
-              <h2 className="lusion-deck-title">Products with a pulse.</h2>
-              <p className="lusion-deck-subtitle">
-                Scroll to deal and fan out the mission cards — revealing verified hardware bring-up,
-                distributed fleet runtimes, and autonomous agent architectures.
-              </p>
+              <LusionKineticHeading text="Products with a pulse." variant="cascade" subtitle={animated ? "Scroll to deal the mission cards. Explore the evidence and expand each architecture." : "Verified hardware bring-up, distributed fleet runtimes, and autonomous agent architectures."} />
             </div>
 
-            <div className="lusion-deck-scrubber">
+            {animated && <div className="lusion-deck-scrubber">
               <button type="button" className={`lusion-scrub-btn ${scrollProgress < 0.3 ? "active" : ""}`} onClick={() => jumpToProgress(0)}>
                 <span>Stack Deck</span>
               </button>
               <button type="button" className={`lusion-scrub-btn ${scrollProgress >= 0.3 ? "active" : ""}`} onClick={() => jumpToProgress(1)}>
                 <span>Fan Out Cards</span>
               </button>
-            </div>
+            </div>}
           </div>
 
           <div className="lusion-cards-stage" ref={stageRef}>
             {studies.map((study, idx) => {
               const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
-              const cardP = Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay)));
+              const cardP = animated ? Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay))) : 1;
               // Each card's flip completes at a different scroll point (flipSpeed).
               // Edge cards (0,3) finish the 180° flip early; inner cards (1,2) finish later.
               const flipP = Math.min(1, cardP / cfg.flipSpeed);
@@ -230,11 +185,10 @@ export function CaseStudies(): JSX.Element {
                 return (
                   <div
                     key={study.record.slug}
-                    ref={(el) => { cellRefs.current[idx] = el; }}
                     className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
                     data-front-visible="true"
                     style={{
-                      transform: `translate(${currentX}px, ${currentY}px)`,
+                      transform: animated ? `translate(${currentX}px, ${currentY}px)` : "none",
                       zIndex: 10 + idx,
                     }}
                   >
@@ -253,7 +207,6 @@ export function CaseStudies(): JSX.Element {
               return (
                 <div
                   key={study.record.slug}
-                  ref={(el) => { cellRefs.current[idx] = el; }}
                   className="lusion-card-isolated-cell"
                   data-front-visible={isFrontVisible ? "true" : "false"}
                   style={{
@@ -263,7 +216,7 @@ export function CaseStudies(): JSX.Element {
                   onClick={() => { if (!isFrontVisible) jumpToProgress(1); }}
                 >
                   <div className="lusion-card-flipper" style={{ transform: `rotateY(${rotYDisplay}deg)` }}>
-                    <div className="lusion-card-face lusion-card-front" style={{ pointerEvents: isFrontVisible ? "auto" : "none", opacity: isFrontVisible ? 1 : 0 }}>
+                    <div className="lusion-card-face lusion-card-front" inert={!isFrontVisible} aria-hidden={!isFrontVisible} style={{ pointerEvents: isFrontVisible ? "auto" : "none", opacity: isFrontVisible ? 1 : 0 }}>
                       <CardFrontContent
                         study={study}
                         idx={idx}

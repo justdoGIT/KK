@@ -73,18 +73,20 @@ export function ProcessTimeline(): JSX.Element {
     cardRefs.current.forEach((card, i) => {
       nodeRefs.current[i]?.classList.toggle("is-lit", !!card?.classList.contains("is-open"));
     });
-  });
+  }, 0.2);
 
   return (
     <section
       className="process-section"
       id="approach"
       aria-label="Working approach"
+      data-scroll-slow="0.6"
     >
       <div className="section-header process-header">
         <LusionKineticHeading
           kicker="Engineering Invariants"
           text="A Proven Method for High-Stakes Systems"
+          variant="cascade"
           subtitle="How we take high-complexity hardware projects from initial prototype uncertainty to dependable, enterprise-scale production reality."
         />
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
+import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 
 type TerminalCommand = {
   id: string;
@@ -242,12 +243,11 @@ export function InteractiveTerminal(): JSX.Element {
     <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
       <div className="terminal-sticky-stage">
         <div className="section-header terminal-pinned-heading">
-          <p className="section-kicker">Technical Capabilities</p>
-          <h2>Interactive System Console &amp; Toolchains</h2>
-          <p className="section-subtitle">
-            Live developer terminal simulation and comprehensive skill matrix —
-            inspecting verified languages, heterogeneous SoC platforms, wireless protocols, and automated CI/CD pipelines.
-          </p>
+          <LusionKineticHeading
+            kicker="Technical Capabilities"
+            text="Interactive System Console & Toolchains"
+            subtitle="Live developer terminal simulation and comprehensive skill matrix — inspecting verified languages, heterogeneous SoC platforms, wireless protocols, and automated CI/CD pipelines."
+          />
         </div>
         <div
           className={`interactive-terminal-wrapper ${revealProgress > 0.85 ? "terminal-glow" : ""} ${
@@ -276,6 +276,7 @@ export function InteractiveTerminal(): JSX.Element {
                     onClick={() => handleTabClick(idx)}
                   >
                     <span className="tab-icon">❯_</span>
+                    <span className="tab-index" aria-hidden="true">{String(idx + 1).padStart(2, "0")}</span>
                     <span className="tab-label">{cmd.tabTitle}</span>
                   </button>
                 ))}

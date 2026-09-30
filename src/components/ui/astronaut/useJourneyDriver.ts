@@ -9,6 +9,13 @@ import {
   smoothstep,
   type FrameRect,
 } from "./journey-timeline.ts";
+import {
+  LAND_AT,
+  ZOOM_OUT_END,
+  ZOOM_OUT_START,
+  bannerState,
+  contactPoseMode,
+} from "../contact/banner-timeline.ts";
 
 export type JourneyElements = {
   section: RefObject<HTMLDivElement | null>;
@@ -20,6 +27,9 @@ export type JourneyElements = {
   cardEdge: RefObject<HTMLDivElement | null>;
   bezel: RefObject<HTMLDivElement | null>;
   intro: RefObject<HTMLDivElement | null>;
+  contact: RefObject<HTMLDivElement | null>;
+  contactMover: RefObject<HTMLDivElement | null>;
+  contactHeading: RefObject<HTMLHeadingElement | null>;
   titleLines: RefObject<(HTMLElement | null)[]>;
   clock: RefObject<JourneyClock>;
 };
@@ -29,6 +39,71 @@ export type JourneyElements = {
 const CRUISE_ARM = 0.28;
 const CRUISE_TARGET = 0.62;
 const CRUISE_SPEED = 240;
+/** Fraction of the card width where the astronaut stands; the zoom pivots on his feet. */
+const STAND_AT = 0.35;
+/** Close-up: where the card's front-top edge sits, as a fraction of stage height. */
+const CLOSE_UP_DECK = 0.92;
+/** Astronaut height : card width, held through the zoom so pad and astronaut shrink as one. */
+const BODY_RATIO = 0.3;
+/** Astronaut height at touchdown as a stage fraction — his size at the end of the drop. */
+const LANDING_BODY = 0.58;
+
+function paintFinale(els: JourneyElements, t: number, height: number): void {
+  const root = els.contact.current;
+  const mover = els.contactMover.current;
+  const heading = els.contactHeading.current;
+  const stage = els.stage.current;
+  if (!root || !mover || !heading || !stage) return;
+
+  const progress = phaseRatio(t, "wait");
+  const finale = els.clock.current.finale;
+  finale.progress = progress;
+  finale.mode = contactPoseMode(progress, finale.interaction);
+  root.dataset.finaleProgress = progress.toFixed(3);
+  root.dataset.astronautMode = finale.mode;
+
+  const reveal = smoothstep(0, 0.06, progress);
+  root.style.opacity = reveal.toFixed(3);
+  root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
+  root.style.pointerEvents = progress >= ZOOM_OUT_END ? "auto" : "none";
+
+  const sinceLanding = Math.max(0, (progress - LAND_AT) * 3);
+  const frame = bannerState(progress, sinceLanding);
+  const base = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
+  // Size the close-up so the astronaut keeps his drop-end size at touchdown;
+  // the card (and the landing panel spanning it) scales with him, so zooming
+  // out shrinks astronaut, panel, and card together.
+  const baseDeckWidth = Math.max(1, mover.offsetWidth * base);
+  const closeUpZoom = Math.max(1, (height * LANDING_BODY) / BODY_RATIO / baseDeckWidth);
+  const zoom = 1 + (closeUpZoom - 1) * frame.closeUp;
+  const scale = base * zoom;
+  const pivotX = (STAND_AT - 0.5) * mover.offsetWidth;
+  const shiftX = pivotX * (base - scale);
+  const shiftY = frame.closeUp * (height * CLOSE_UP_DECK - mover.offsetTop);
+  const translatedY = frame.offset + shiftY;
+  mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
+  // The card stays out of the close-up (only the landing panel is under him)
+  // and attaches beneath the panel as the view zooms out.
+  const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
+  mover.style.opacity = attach.toFixed(3);
+  mover.style.visibility = attach > 0.001 ? "visible" : "hidden";
+
+  heading.style.opacity = frame.heading.toFixed(3);
+  heading.style.visibility = frame.heading > 0.001 ? "visible" : "hidden";
+  heading.style.transform = `translate3d(-50%, ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`;
+
+  // Measured after the transform above, so the box includes its translate/scale.
+  const stageBox = stage.getBoundingClientRect();
+  const card = mover.getBoundingClientRect();
+  finale.cardLeft = card.left - stageBox.left;
+  finale.cardTop = card.top - stageBox.top;
+  finale.cardWidth = card.width;
+  finale.footX = finale.cardLeft + card.width * STAND_AT;
+  // Headroom cap (with room for the panel): a card near the stage top must not
+  // push his head off-screen.
+  const headroom = Math.max(40, finale.cardTop - 16) / 1.1;
+  finale.bodyHeight = Math.min(card.width * BODY_RATIO, height * LANDING_BODY, headroom);
+}
 
 
 function clipFor(rect: FrameRect, width: number, height: number): string {
@@ -63,8 +138,8 @@ function paint(els: JourneyElements, t: number): void {
   const rect = frameRect(t, width, height);
   const phase = phaseAt(t);
   if (stage.dataset.phase !== phase) stage.dataset.phase = phase;
-  // Fade the departing stage before the contact landing zone takes over.
-  stage.style.opacity = (1 - smoothstep(0.94, 1, t)).toFixed(3);
+  // The contact card and astronaut remain in this pinned stage through t=1.
+  stage.style.opacity = "1";
 
   const world = els.world.current;
   if (world) {
@@ -118,6 +193,7 @@ function paint(els: JourneyElements, t: number): void {
     line.style.opacity = (enter * (1 - leave)).toFixed(3);
     line.style.transform = `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`;
   });
+  paintFinale(els, t, height);
 
 }
 

@@ -1,0 +1,81 @@
+/* Services "card throw" deck (Services.tsx + motion/throw-deck.ts).
+   The heading and tabs stay pinned beside the pile while cards fly in. */
+.services-section.services-throw { padding-top: 0; padding-bottom: 0; }
+.services-throw-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 5.25rem 0 1.5rem;
+  overflow: clip;
+}
+.services-throw .section-header { padding-bottom: 1rem; }
+.services-throw .services-deck-nav { padding-bottom: 1.25rem; }
+.services-throw-table {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  perspective: 1600px;
+}
+/* Column wrappers only matter in the throw layout; stacked cards flow as before. */
+.service-card-main,
+.service-card-side { display: contents; }
+.services-throw .service-card-deck-item {
+  position: absolute;
+  /* Leave room below for the stack: each landed card rests STACK_STEP_PX (12px) lower. */
+  inset: 0 0 calc(5 * 12px) 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 2.5rem;
+  padding: 1.6rem 2.2rem;
+  overflow: hidden;
+  /* Background, border and backdrop blur stay from .service-card-deck-item:
+     the translucent glass card is the intended look. */
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  transform-origin: 50% 60%;
+  will-change: transform;
+  visibility: hidden;
+}
+/* Covered cards keep their glass edge visible in the stack but fade their content. */
+.services-throw .service-card-deck-item > * { opacity: calc(1 - var(--covered, 0)); }
+.services-throw .service-card-topbar { grid-column: 1 / -1; }
+.services-throw .service-card-main,
+.services-throw .service-card-side { display: flex; flex-direction: column; min-height: 0; }
+.services-throw .service-card-title { font-size: clamp(1.35rem, 2vw, 1.8rem); }
+.services-throw .service-card-desc { font-size: 0.92rem; margin-top: 0.5rem; }
+.services-throw .service-card-capabilities { margin-top: 1rem; padding-top: 0.9rem; }
+.services-throw .service-card-matrix { grid-template-columns: 1fr; gap: 1rem; margin-top: 0; }
+.services-throw .service-card-footer { margin-top: 1rem; padding-top: 0.9rem; }
+.services-throw .service-capabilities-list li { font-size: 0.84rem; }
+@media (max-height: 960px) {
+  .services-throw .lusion-kinetic-subtitle { display: none; }
+  .services-throw .service-card-watermark { font-size: 1.6rem; }
+}
+
+@media (max-height: 699px) and (min-width: 981px) {
+  .service-card-deck-item {
+    max-height: calc(100dvh - 6.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.55) rgba(2, 6, 23, 0.45);
+  }
+
+  .service-card-deck-item:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: -3px;
+  }
+
+  .service-card-deck-item::-webkit-scrollbar { width: 8px; }
+  .service-card-deck-item::-webkit-scrollbar-track { background: rgba(2, 6, 23, 0.45); }
+  .service-card-deck-item::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(2, 6, 23, 0.45);
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.55);
+  }
+}

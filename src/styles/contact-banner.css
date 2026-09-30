@@ -1,73 +1,54 @@
-/* One continuous contact landing zone: sticky reveal, top deck, and front card. */
+/* Finale card inside the astronaut's single pinned stage. The close-up shows
+   only the astronaut on his 3D landing panel (HeroScene); the card attaches
+   beneath that panel as the view zooms out to the complete contact card. */
 .contact-banner {
-  --cuboid-depth: clamp(48px, 6.5vw, 78px);
-  --contact-scale: 0.82;
-  position: relative;
-  height: 190vh;
-  margin: -1rem auto 0;
+  --contact-scale: 0.58;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  margin: 0;
+  overflow: clip;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: opacity;
 }
 
 .contact-banner-stage {
-  position: sticky;
-  top: 0;
+  position: absolute;
+  inset: 0;
   display: grid;
   align-items: start;
   width: 100%;
-  height: 100vh;
-  padding: clamp(5rem, 10vh, 8rem) 1.25rem clamp(2rem, 6vh, 4rem);
+  height: 100%;
+  padding: 0 1.25rem;
   overflow: clip;
 }
 
 .contact-banner-mover {
   position: relative;
-  width: min(88vw, 1040px);
-  margin: clamp(11rem, 21vh, 13rem) auto 0;
-  perspective: 1600px;
-  perspective-origin: 50% -45%;
+  width: min(92vw, 1200px);
+  margin: clamp(13rem, 32vh, 16rem) auto 0;
   transform-origin: 50% 0%;
-  will-change: transform;
+  will-change: transform, opacity;
 }
 
-.contact-cuboid {
+.contact-card {
   position: relative;
   z-index: 1;
-  transform: rotateX(-5deg);
-  transform-style: preserve-3d;
-  transform-origin: 50% 0%;
-  filter: drop-shadow(0 38px 54px rgba(0, 0, 0, 0.48));
 }
 
-.contact-cuboid-top {
-  position: absolute;
-  z-index: 3;
-  top: calc(-1 * var(--cuboid-depth));
-  left: 0;
-  width: 100%;
-  height: var(--cuboid-depth);
-  border: 1px solid rgba(125, 211, 252, 0.52);
-  border-bottom-color: rgba(56, 189, 248, 0.85);
-  border-radius: 22px 22px 0 0;
-  background:
-    linear-gradient(180deg, rgba(147, 164, 255, 0.38), rgba(56, 189, 248, 0.1)),
-    linear-gradient(90deg, #132441, #1e3a5f 48%, #111d38);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.38),
-    0 -16px 48px rgba(56, 189, 248, 0.18);
-  transform: rotateX(68deg);
-  transform-origin: 50% 100%;
-  pointer-events: none;
-}
-
-/* The card itself is the cuboid's only front face. */
-.contact-cuboid > .contact-frame-wrapper {
+.contact-card > .contact-frame-wrapper {
   position: relative;
   z-index: 2;
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: clamp(2.4rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3.5rem);
-  border-radius: 0 0 22px 22px;
-  transform: translateZ(1px);
+}
+
+/* Squared where the landing panel sits flush on the card's top edge. */
+.contact-banner--animated .contact-card > .contact-frame-wrapper {
+  border-radius: 0 0 24px 24px;
 }
 
 .contact-journey-heading {
@@ -101,62 +82,71 @@
   will-change: transform, opacity;
 }
 
-/* Canvas deck line lands inside the projected top face, not above the card. */
-.contact-lounge {
-  position: absolute;
-  z-index: 4;
-  right: 0;
-  bottom: calc(100% - 116px);
-  left: 0;
-  height: min(58vh, 520px);
-  pointer-events: none;
-}
-
-.contact-lounge-canvas {
-  position: absolute !important;
-  inset: 0;
-}
 
 @media (max-width: 768px) {
   .contact-banner {
-    --cuboid-depth: 46px;
-    --contact-scale: 0.9;
-    height: 180vh;
+    --contact-scale: 0.62;
   }
 
   .contact-banner-stage {
-    padding-inline: 0.75rem;
+    padding-inline: 0.5rem;
   }
 
   .contact-banner-mover {
-    width: min(92vw, 1040px);
+    width: min(96vw, 1200px);
     margin-top: 12rem;
   }
 
   .contact-journey-heading {
+    top: 2rem;
     left: 50%;
     width: 92vw;
-    font-size: clamp(2.3rem, 11vw, 3.5rem);
+    font-size: clamp(2.2rem, 10vw, 3.4rem);
     text-align: center;
   }
 
-  .contact-cuboid > .contact-frame-wrapper {
-    padding: 2.25rem 1.25rem;
-  }
-
-  .contact-lounge {
-    height: min(52vh, 440px);
+  .contact-card > .contact-frame-wrapper {
+    padding: 2rem 1.25rem;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (max-height: 700px) {
   .contact-banner {
-    height: auto;
+    --contact-scale: 0.48;
   }
 
-  .contact-banner-stage {
-    position: relative;
-    height: auto;
-    min-height: 75vh;
+  .contact-banner-mover {
+    margin-top: 10.5rem;
+  }
+}
+
+.contact-banner--static {
+  position: relative;
+  inset: auto;
+  width: min(94vw, 1200px);
+  margin: 2rem auto 0;
+  overflow: visible;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.contact-banner--static .contact-journey-heading {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: auto;
+  margin: 0 0 2rem;
+  color: #f8fafc;
+  -webkit-text-fill-color: currentColor;
+  text-align: center;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-banner,
+  .contact-banner-mover,
+  .contact-journey-heading {
+    transition: none;
   }
 }

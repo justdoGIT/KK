@@ -1,25 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { pageJourneyStops } from "./page-journey-stops.ts";
+
+// A stop is current once its top passes this fraction of the viewport. Scroll
+// position (not IntersectionObserver ratios) keeps multi-viewport pinned
+// sections current for their whole length.
+const ACTIVE_LINE = 0.4;
 
 export function ScrollNavigator() {
   const [active, setActive] = useState<string>(pageJourneyStops[0].id);
 
-  useEffect(() => {
-    const sections = pageJourneyStops
-      .map((stop) => document.getElementById(stop.id))
-      .filter((section): section is HTMLElement => section !== null);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target instanceof HTMLElement) setActive(visible.target.id);
-      },
-      { threshold: [0.2, 0.55], rootMargin: "-18% 0px -48%" },
-    );
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, []);
+  useScrollFrame(() => {
+    const line = window.innerHeight * ACTIVE_LINE;
+    let current: string = pageJourneyStops[0].id;
+    for (const stop of pageJourneyStops) {
+      const section = document.getElementById(stop.id);
+      if (section && section.getBoundingClientRect().top <= line) current = stop.id;
+    }
+    setActive(current);
+  });
 
   const activeIndex = pageJourneyStops.findIndex((stop) => stop.id === active);
   const next = pageJourneyStops[Math.min(activeIndex + 1, pageJourneyStops.length - 1)];
