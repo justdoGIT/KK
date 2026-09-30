@@ -135,22 +135,23 @@ const LIE_DOWN = raw({
 });
 
 /** Hanging from billboard edge with both arms straight up gripping the top edge and legs in front of the billboard. */
+/** Hanging from billboard edge: arms straight up gripping edge, body hanging down, legs in front hiding plank. */
 const WALL_HANG = raw({
-  spine: [0.08, 0, 0],
-  chest: [0.04, 0, 0],
-  head: [-0.18, 0, 0],
-  armL: [0, 0, 2.95],
-  forearmL: [0, 0, 0],
-  handL: [-0.45, 0, 0],
-  armR: [0, 0, -2.95],
-  forearmR: [0, 0, 0],
-  handR: [-0.45, 0, 0],
-  thighL: [-0.55, 0, 0.12],
-  shinL: [0.45, 0, 0],
-  footL: [0.25, 0, 0],
-  thighR: [-0.5, 0, -0.12],
-  shinR: [0.42, 0, 0],
-  footR: [0.25, 0, 0],
+  spine: [0.12, -0.35, 0],
+  chest: [0.08, -0.28, 0],
+  head: [-0.12, -0.22, 0.08],
+  armL: [0.15, 0.18, 2.92],
+  forearmL: [-0.08, -0.12, 0.05],
+  handL: [-0.42, -0.18, 0.08],
+  armR: [0.15, 0.18, -2.92],
+  forearmR: [-0.08, -0.12, -0.05],
+  handR: [-0.42, -0.18, -0.08],
+  thighL: [-0.62, -0.45, 0.28],
+  shinL: [0.55, -0.18, 0.15],
+  footL: [0.32, 0.12, 0.18],
+  thighR: [-0.58, -0.42, -0.28],
+  shinR: [0.52, -0.15, -0.15],
+  footR: [0.32, 0.12, -0.18],
 });
 
 /** Seated acknowledgement after a GitHub/LinkedIn click: palm-forward wave. */

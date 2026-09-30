@@ -12,6 +12,17 @@
   padding-left: 0;
 }
 
+/* Heading word highlight for theme color emphasis */
+.heading-highlight-theme {
+  background: linear-gradient(135deg, #38bdf8 0%, #00f0ff 40%, #7dd3fc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+  font-weight: inherit;
+  display: inline;
+}
 /* === Scroll-Driven Cinematic Journey: Split-screen left text / right canvas === */
 .journey-scroll-section {
   position: relative;

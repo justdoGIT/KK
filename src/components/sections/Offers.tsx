@@ -158,10 +158,11 @@ export function Offers(): JSX.Element {
       <div className="section-header offers-header">
         <LusionKineticHeading
           kicker="Client Engagement Models"
-          text="How We Can Collaborate"
           variant="scatter"
           subtitle="High-impact, deterministic engineering engagements designed to de-risk hardware, accelerate time-to-market, and establish rock-solid production platforms."
-        />
+        >
+          How We Can <span className="heading-highlight-theme">Collaborate</span>
+        </LusionKineticHeading>
       </div>
 
       <div ref={gridRef} className={`offers-grid ${enhanced ? "is-scroll-reveal" : ""}`}>
