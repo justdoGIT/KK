@@ -15,8 +15,9 @@ import { ASTRONAUT_HEIGHT, type AstronautInstance } from "./astronaut-rig.ts";
 import { stageUnitAt, type FinaleClock } from "./journey-clock.ts";
 
 // 3D Billboard / Hoarding Landing Deck under the astronaut's boots.
-// Appears under him as he lands, zooms out in lockstep, and connects flush
-// onto the contact card's top edge to form a continuous 3D billboard structure.
+// Appears under him as he lands, maintains fixed billboard scale at zoom-out,
+// and connects flush onto the contact card's top edge to form a continuous
+// 3D billboard hoarding structure.
 
 const THICKNESS = 0.16;
 const DEPTH = 0.55;
@@ -27,6 +28,9 @@ const SOLE_BELOW_ANKLE = 0.1;
 /** Seated poses: hips above the panel top, and how far behind the front edge (rig units). */
 const SEAT_HEIGHT = 0.2;
 const SEAT_BACK = 0.22;
+/** Lying down pose: torso height above platform deck. */
+const LIE_HEIGHT = 0.08;
+const LIE_BACK = 0.25;
 
 export type LandingAnchor = {
   /** Astronaut x, panel top y, and scale once landed (world units). */
@@ -72,16 +76,42 @@ export function landingAnchor(
   };
 }
 
-/** Root y/z resting the astronaut on the panel: boots on its top, or seated on its front edge. */
+/** Root y/z resting the astronaut on the panel for all modes: standing, seated, lying, climbing, walking. */
 export function restOnPanel(
   anchor: LandingAnchor,
   mode: ContactPoseMode,
   localSoleY: number,
-): { y: number; z: number } {
+  time = 0,
+): { xOffset: number; y: number; z: number } {
   if (mode === "sit" || mode === "wait") {
-    return { y: anchor.top + SEAT_HEIGHT * anchor.scale, z: anchor.frontZ - SEAT_BACK * anchor.scale };
+    return { xOffset: 0, y: anchor.top + SEAT_HEIGHT * anchor.scale, z: anchor.frontZ - SEAT_BACK * anchor.scale };
   }
-  return { y: anchor.top - localSoleY * anchor.scale, z: 0 };
+  if (mode === "lie") {
+    return { xOffset: 0, y: anchor.top + LIE_HEIGHT * anchor.scale, z: anchor.frontZ - LIE_BACK * anchor.scale };
+  }
+  if (mode === "walkPlank") {
+    // Walking across the plank catwalk back and forth
+    const walkX = Math.sin(time * 0.8) * (anchor.width * 0.38);
+    return { xOffset: walkX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
+  }
+  if (mode === "dance") {
+    // Moonwalk sideways shift
+    const danceX = Math.sin(time * 1.5) * (anchor.width * 0.25);
+    return { xOffset: danceX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
+  }
+  if (mode === "jumpWave") {
+    // Up and down jumping on the deck
+    const jumpY = Math.abs(Math.sin(time * 5.0)) * 0.15 * anchor.scale;
+    return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale + jumpY, z: 0 };
+  }
+  if (mode === "wallClimb") {
+    // Climb down the right clear corner wall where there is no text and climb back up
+    const cycle = (time * 0.35) % (Math.PI * 2);
+    const climbDepth = Math.max(0, Math.sin(cycle)) * 1.6 * anchor.scale;
+    const cornerX = anchor.width * 0.44;
+    return { xOffset: cornerX, y: anchor.top - localSoleY * anchor.scale - climbDepth, z: anchor.frontZ * 0.5 };
+  }
+  return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale, z: 0 };
 }
 
 /** Lowest boot sole in root-local rig units for the pose currently on the skeleton. */

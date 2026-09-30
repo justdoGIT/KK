@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useMemo, useRef } from "react";
 import type { FocusEvent, JSX, PointerEvent, ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { checkWebGL } from "../../scene/useCapability.ts";
@@ -7,6 +7,7 @@ import { createFinaleClock } from "../../scene/astronaut/journey-clock.ts";
 import { SpaceBackdrop, AstronautFigure } from "./AstronautArtwork.tsx";
 import { JOURNEY_VIEWPORTS } from "./astronaut/journey-timeline.ts";
 import { useJourneyDriver, type JourneyElements } from "./astronaut/useJourneyDriver.ts";
+import type { ContactInteraction } from "./contact/banner-timeline.ts";
 
 // One pinned scene owns the glass break, landing deck, greeting, contact card,
 // and foreground astronaut. The shared clock keeps the DOM and R3F layers in
@@ -21,10 +22,30 @@ const HeroCanvas = lazy(() =>
 
 const TITLE_LINES = ["Step into a new orbit", "and let your", "silicon run wild"];
 
-function actionFrom(target: EventTarget | null): "none" | "dance" | "wait" {
+function detectInteraction(
+  target: EventTarget | null,
+  clientX: number,
+  clientY: number,
+  ctaBtn: HTMLElement | null,
+): ContactInteraction {
   if (!(target instanceof Element)) return "none";
   const action = target.closest<HTMLElement>("[data-astronaut-action]")?.dataset.astronautAction;
-  return action === "dance" || action === "wait" ? action : "none";
+  if (action === "wait") return "wait";
+  if (action === "dance") return "dance";
+
+  // Proximity detection: when cursor comes within 180px of "Start a Conversation" button
+  if (ctaBtn) {
+    const rect = ctaBtn.getBoundingClientRect();
+    const btnCenterX = rect.left + rect.width / 2;
+    const btnCenterY = rect.top + rect.height / 2;
+    const dist = Math.hypot(clientX - btnCenterX, clientY - btnCenterY);
+    if (dist < 180) {
+      // Toggle between dance moonwalk and jumping two-handed wave based on position
+      return clientX < btnCenterX ? "dance" : "jumpWave";
+    }
+  }
+
+  return "none";
 }
 
 function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
@@ -42,6 +63,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   const contactHeading = useRef<HTMLHeadingElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1, finale: createFinaleClock() });
+  const ctaBtnRef = useRef<HTMLElement | null>(null);
 
   const els = useMemo<JourneyElements>(
     () => ({
@@ -52,21 +74,31 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   );
   const { near, active } = useJourneyDriver(els);
 
-  const updateInteraction = (target: EventTarget | null) => {
-    clock.current.finale.interaction = actionFrom(target);
+  const updateInteraction = (target: EventTarget | null, clientX = 0, clientY = 0) => {
+    if (!ctaBtnRef.current && contact.current) {
+      ctaBtnRef.current = contact.current.querySelector<HTMLElement>(".contact-main-btn");
+    }
+    clock.current.finale.interaction = detectInteraction(target, clientX, clientY, ctaBtnRef.current);
   };
+
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const finale = clock.current.finale;
     finale.cursorX = event.clientX;
     finale.cursorY = event.clientY;
     finale.lastPointerAt = performance.now() / 1000;
-    updateInteraction(event.target);
+    updateInteraction(event.target, event.clientX, event.clientY);
   };
+
   const onPointerLeave = () => {
     clock.current.finale.interaction = "none";
   };
-  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => updateInteraction(event.target);
-  const onFocus = (event: FocusEvent<HTMLDivElement>) => updateInteraction(event.target);
+
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) =>
+    updateInteraction(event.target, event.clientX, event.clientY);
+
+  const onFocus = (event: FocusEvent<HTMLDivElement>) =>
+    updateInteraction(event.target);
+
   const onBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       clock.current.finale.interaction = "none";
@@ -143,14 +175,12 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   );
 }
 
-/** Static launch illustration for reduced motion or browsers without WebGL. */
+/** Static launch illustration for native motion or browsers without WebGL. */
 function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
   return (
-    <div className="aj-fallback" aria-label="Mission launch and contact" role="region">
-      <svg className="aj-fallback-art" viewBox="0 0 1000 520" aria-hidden="true">
-        <SpaceBackdrop idPrefix="fallback" />
-        <AstronautFigure isWaving />
-      </svg>
+    <div className="aj-fallback">
+      <SpaceBackdrop idPrefix="fallback" />
+      <AstronautFigure isWaving={true} />
       {children ? (
         <div className="contact-banner contact-banner--static">
           <h2 className="contact-journey-heading">Let’s innovate together</h2>
@@ -162,9 +192,10 @@ function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
 }
 
 export function AstronautSpaceJourney({ children }: { children?: ReactNode }): JSX.Element {
-  const enhanced = useMotionMode() === "enhanced";
-  const [webgl] = useState(checkWebGL);
-  return enhanced && webgl
-    ? <ImmersiveJourney>{children}</ImmersiveJourney>
-    : <JourneyFallback>{children}</JourneyFallback>;
+  const motionMode = useMotionMode();
+  const webgl = checkWebGL();
+  if (motionMode === "native" || !webgl) {
+    return <JourneyFallback>{children}</JourneyFallback>;
+  }
+  return <ImmersiveJourney>{children}</ImmersiveJourney>;
 }

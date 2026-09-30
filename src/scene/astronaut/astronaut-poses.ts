@@ -67,18 +67,13 @@ const LAND = pose(
   { spine: [0.3, 0, 0], head: [-0.1, 0, 0] },
   { arm: [0, -0.2, -0.55], forearm: [0, -0.4, 0], thigh: [-0.85, 0, 0.12], shin: [1.4, 0, 0] },
 );
-/** Pose given bone by bone (solved offline from world-space aims); unset bones rest. */
+
 function raw(bones: Partial<Record<BoneName, Euler3>>): Pose {
   const out = {} as Record<BoneName, Euler3>;
   for (const name of BONES) out[name] = bones[name] ?? ZERO;
   return out;
 }
 
-/**
- * Close-up wave, facing the camera. Solved so the raised left hand has its
- * palm toward the viewer (+Z), fingers up and thumb toward the body's
- * midline; the far arm and legs hang relaxed in zero-g.
- */
 const WAVE = raw({
   spine: [0.05, 0, -0.03],
   chest: [0.02, 0, -0.03],
@@ -96,23 +91,17 @@ const WAVE = raw({
   shinR: [0.654, 0.007, 0.043],
   footR: [0.279, -0.039, -0.008],
 });
-/**
- * Wave extremes: the forearm swings ±0.32 rad (hand ±0.43) about the palm
- * normal, so the palm keeps facing the viewer through the whole wave.
- */
+
 const WAVE_SWING = {
   in: { forearmL: [0.301, -1.161, 0.684], handL: [-0.039, -0.222, 0.032] },
   out: { forearmL: [-0.089, -0.565, 0.364], handL: [-0.014, 0, 0.035] },
 } as const;
 
-
-/** Seated on the front edge with both legs hanging over the banner face. */
+/** Seated on the front edge with both legs hanging over the billboard edge. */
 const SIT = raw({
   spine: [0.24, 0, 0],
   chest: [0.06, 0, 0],
   head: [0.08, -0.14, 0],
-  // Preserve the historical seated body/legs, but use the calibrated glove
-  // chain so the palm—not the back of the hand—faces the viewer.
   armL: WAVE.armL,
   forearmL: WAVE.forearmL,
   handL: WAVE.handL,
@@ -123,6 +112,44 @@ const SIT = raw({
   footL: [0.3, 0, 0],
   thighR: [-1.3, 0, -0.14],
   shinR: [1.5, 0, 0],
+  footR: [0.3, 0, 0],
+});
+
+/** Lying down relaxed flat on the billboard platform deck. */
+const LIE_DOWN = raw({
+  spine: [-0.05, 0, 0],
+  chest: [0, 0, 0],
+  head: [-0.18, 0.15, 0],
+  armL: [0.45, 0.2, -1.3],
+  forearmL: [0, -0.85, 0],
+  handL: [0, 0, 0],
+  armR: [0.45, -0.2, 1.3],
+  forearmR: [0, 0.85, 0],
+  handR: [0, 0, 0],
+  thighL: [0.05, 0, 0.15],
+  shinL: [0.15, 0, 0],
+  footL: [0.25, 0, 0],
+  thighR: [0.05, 0, -0.15],
+  shinR: [0.15, 0, 0],
+  footR: [0.25, 0, 0],
+});
+
+/** Climbing down the clear corner wall. */
+const CLIMB = raw({
+  spine: [0.32, 0, 0],
+  chest: [0.12, 0, 0],
+  head: [0.2, 0, 0],
+  armL: [-0.85, -0.3, -0.45],
+  forearmL: [0.35, -0.65, 0.2],
+  handL: [0.2, 0, 0],
+  armR: [-0.45, 0.4, 0.65],
+  forearmR: [-0.2, 0.75, -0.2],
+  handR: [-0.2, 0, 0],
+  thighL: [-0.75, 0, 0.2],
+  shinL: [1.35, 0, 0],
+  footL: [0.2, 0, 0],
+  thighR: [-1.15, 0, -0.2],
+  shinR: [1.65, 0, 0],
   footR: [0.3, 0, 0],
 });
 
@@ -199,7 +226,8 @@ export function sampleWalkPose(phase: number, out: PoseBuffer): void {
   out.shinR[0] += 0.18 + 0.28 * Math.max(0, -c);
   out.armL[1] += 0.32 * s;
   out.armR[1] += 0.32 * s;
-  out.spine[0] += 0.05;
+  out.forearmL[1] += -0.45;
+  out.forearmR[1] += 0.45;
 }
 
 /**
@@ -218,8 +246,6 @@ export function samplePose(t: number, time: number, out: PoseBuffer): void {
   } else if (drop > 0 && wait === 0) {
     blend(out, SHIELD, LAND, smoothstep(0.35, 1, drop));
   } else if (wait > 0) {
-    // The integrated finale switches to `sampleContactPose` as soon as the
-    // landing deck appears; hold the exit silhouette at that handoff frame.
     blend(out, LAND, LAND, 0);
   } else if (runUp > 0 || white > 0.6) {
     blend(out, FREEFALL, STAND, smoothstep(0.6, 1, white));
@@ -234,7 +260,6 @@ export function samplePose(t: number, time: number, out: PoseBuffer): void {
   }
 }
 
-/** Lerps `bone` from its WAVE value toward a swing extreme by `k` (0..1). */
 function swingBone(out: PoseBuffer, bone: "forearmL" | "handL", to: readonly number[], k: number): void {
   const from = WAVE[bone];
   for (let i = 0; i < 3; i += 1) out[bone][i] += (to[i] - from[i]) * k;
@@ -257,7 +282,7 @@ function cursorPlay(out: PoseBuffer, time: number, cursorX: number, cursorY: num
   out.head[1] += cursorX * 0.16 * weight;
 }
 
-/** Contact-card pose selected by scroll or CTA interaction. */
+/** Contact-card pose selected by scroll or CTA interaction & idle sequence. */
 export function sampleContactPose(
   mode: ContactPoseMode,
   time: number,
@@ -271,7 +296,6 @@ export function sampleContactPose(
     return;
   }
   if (mode === "stand") {
-    // Standing on the card's top face, greeting the viewer palm-forward.
     blend(out, STAND, STAND, 0);
     for (const bone of ["armL", "forearmL", "handL"] as const) {
       for (let i = 0; i < 3; i += 1) out[bone][i] = WAVE[bone][i];
@@ -289,22 +313,65 @@ export function sampleContactPose(
     cursorPlay(out, time, cursorX, cursorY, 1);
     return;
   }
+  if (mode === "lie") {
+    // Lie down relaxed on the platform deck
+    blend(out, LIE_DOWN, LIE_DOWN, 0);
+    const breathe = Math.sin(time * 1.8);
+    out.chest[0] += breathe * 0.04;
+    out.spine[0] += breathe * 0.02;
+    out.head[1] += Math.sin(time * 0.7) * 0.08;
+    return;
+  }
+  if (mode === "walkPlank") {
+    // Walking across the catwalk plank
+    sampleWalkPose(time * 4.2, out);
+    out.armL[2] += Math.sin(time * 2.1) * 0.15;
+    out.armR[2] -= Math.sin(time * 2.1) * 0.15;
+    return;
+  }
+  if (mode === "wallClimb") {
+    // Climbing down/up the corner wall
+    const climbPhase = time * 3.5;
+    const s = Math.sin(climbPhase);
+    const c = Math.cos(climbPhase);
+    blend(out, CLIMB, CLIMB, 0);
+    out.armL[0] += s * 0.45;
+    out.armR[0] -= s * 0.45;
+    out.thighL[0] -= c * 0.45;
+    out.thighR[0] += c * 0.45;
+    return;
+  }
   if (mode === "dance") {
+    // Moonwalk / dance groove sideways
     blend(out, STAND, STAND, 0);
-    const beat = Math.sin(time * 5.4);
-    const counter = Math.sin(time * 5.4 + Math.PI);
-    out.spine[2] += beat * 0.18;
-    out.chest[2] -= beat * 0.14;
-    out.head[0] -= 0.2;
-    out.head[2] -= beat * 0.12;
-    out.armL[2] += 0.9 + beat * 0.35;
-    out.armR[2] -= 0.9 + counter * 0.35;
-    out.forearmL[1] -= 0.8 + counter * 0.3;
-    out.forearmR[1] += 0.8 + beat * 0.3;
-    out.thighL[0] -= Math.max(0, beat) * 0.28;
-    out.thighR[0] -= Math.max(0, counter) * 0.28;
-    out.shinL[0] += Math.max(0, beat) * 0.4;
-    out.shinR[0] += Math.max(0, counter) * 0.4;
+    const beat = Math.sin(time * 6.2);
+    const counter = Math.sin(time * 6.2 + Math.PI);
+    out.spine[2] += beat * 0.22;
+    out.chest[2] -= beat * 0.16;
+    out.head[0] -= 0.18;
+    out.head[2] -= beat * 0.14;
+    out.armL[2] += 0.85 + beat * 0.4;
+    out.armR[2] -= 0.85 + counter * 0.4;
+    out.forearmL[1] -= 0.85 + counter * 0.35;
+    out.forearmR[1] += 0.85 + beat * 0.35;
+    out.thighL[0] -= Math.max(0, beat) * 0.35;
+    out.thighR[0] -= Math.max(0, counter) * 0.35;
+    out.shinL[0] += Math.max(0, beat) * 0.5;
+    out.shinR[0] += Math.max(0, counter) * 0.5;
+    return;
+  }
+  if (mode === "jumpWave") {
+    // Jump and wave both hands wildly
+    blend(out, STAND, STAND, 0);
+    const waveRate = Math.sin(time * 9.5);
+    out.armL[2] += 1.45 + waveRate * 0.3;
+    out.armR[2] -= 1.45 + waveRate * 0.3;
+    out.forearmL[1] -= 0.95 + waveRate * 0.25;
+    out.forearmR[1] += 0.95 + waveRate * 0.25;
+    out.thighL[0] -= Math.abs(Math.sin(time * 5.0)) * 0.3;
+    out.thighR[0] -= Math.abs(Math.sin(time * 5.0)) * 0.3;
+    out.shinL[0] += Math.abs(Math.sin(time * 5.0)) * 0.45;
+    out.shinR[0] += Math.abs(Math.sin(time * 5.0)) * 0.45;
     return;
   }
   if (mode === "wait") {

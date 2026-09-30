@@ -118,9 +118,9 @@ export function contactRoot(
   out: RootPose,
 ): RootPose {
   if (fall <= 0 || !anchor) return out;
-  const rest = restOnPanel(anchor, mode, localSole);
+  const rest = restOnPanel(anchor, mode, localSole, time);
   const sway = Math.sin(time * 0.6) * 0.015;
-  out.x += (anchor.x + sway - out.x) * fall;
+  out.x += (anchor.x + rest.xOffset + sway - out.x) * fall;
   out.y += (rest.y - out.y) * fall;
   out.z += (rest.z - out.z) * fall;
   out.scale += (anchor.scale - out.scale) * fall;
