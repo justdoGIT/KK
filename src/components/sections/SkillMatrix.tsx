@@ -1,7 +1,6 @@
 import { type JSX } from "react";
 import { InteractiveTerminal } from "../ui/InteractiveTerminal.tsx";
 import { SkillDomainsReveal } from "./SkillDomainsReveal.tsx";
-import { DiceUnfold } from "../ui/DiceUnfold.tsx";
 
 export function SkillMatrix(): JSX.Element {
   return (
@@ -10,9 +9,6 @@ export function SkillMatrix(): JSX.Element {
       className="skills-section"
       id="skills"
     >
-      {/* Dice-to-Cross unfold animation: experience stats summary. */}
-      <DiceUnfold />
-
       {/* Cinematic Interactive Scroll/Typing Terminal -- owns its own
           pinned section heading so the heading stays visible alongside
           the terminal while it's maximized/scrolling. */}

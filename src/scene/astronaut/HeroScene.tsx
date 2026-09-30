@@ -10,12 +10,14 @@ import {
   type DirectionalLight,
   type Group,
 } from "three";
-import { phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
+import { phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import { LAND_AT, LAND_START } from "../../components/ui/contact/banner-timeline.ts";
 import { modelUrl } from "../robots/model-assets.ts";
 import { buildAstronautRig, instantiateAstronaut } from "./astronaut-rig.ts";
-import { applyPose, createPoseBuffer, samplePose, type PoseBuffer } from "./astronaut-poses.ts";
+import { applyPose, createPoseBuffer, sampleContactPose, samplePose, type PoseBuffer } from "./astronaut-poses.ts";
 import {
   cloneWeight,
+  contactRoot,
   createRootPose,
   heroRoot,
   impactEnvelope,
@@ -23,6 +25,13 @@ import {
 } from "./hero-motion.ts";
 import { GlassShards } from "./GlassShards.tsx";
 import type { JourneyClockRef } from "./journey-clock.ts";
+import {
+  createLandingPanel,
+  disposeLandingPanel,
+  landingAnchor,
+  localSoleY,
+  placeLandingPanel,
+} from "./landing-panel.ts";
 
 const CLONES = 4;
 const TRAIL_STEP = 7;
@@ -32,6 +41,7 @@ type FrameBuffers = {
   pose: PoseBuffer;
   history: RootPose[];
   impact: Vector3;
+  scratch: Vector3;
   cursor: number;
 };
 
@@ -68,6 +78,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     () => Array.from({ length: CLONES }, () => instantiateAstronaut(rig, ghostMaterial)),
     [ghostMaterial, rig],
   );
+  const panel = useMemo(() => createLandingPanel(), []);
+  useEffect(() => () => disposeLandingPanel(panel), [panel]);
 
   useEffect(
     () => () => {
@@ -85,18 +97,30 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       pose: createPoseBuffer(),
       history: Array.from({ length: HISTORY }, createRootPose),
       impact: new Vector3(),
+      scratch: new Vector3(),
       cursor: 0,
     };
     const buf = buffers.current;
-    const { t } = clock.current;
+    const { t, finale, width, height } = clock.current;
     const time = state.clock.elapsedTime;
+    const fall = smoothstep(LAND_START, LAND_AT, finale.progress);
+
+    samplePose(t, time, buf.pose);
+    if (finale.progress > 0) {
+      const nx = width > 0 ? (finale.cursorX / width) * 2 - 1 : 0;
+      const ny = height > 0 ? (finale.cursorY / height) * 2 - 1 : 0;
+      sampleContactPose(finale.mode, time, fall, buf.pose, nx, ny);
+    }
+    applyPose(hero, buf.pose);
+    // Boot height depends only on the pose, so measure it before moving the root.
+    hero.root.updateWorldMatrix(true, true);
+    const sole = localSoleY(hero, buf.scratch);
+    const anchor = landingAnchor(finale, state.camera, width, height);
 
     buf.cursor = (buf.cursor + 1) % HISTORY;
-    const aspect = clock.current.width / Math.max(1, clock.current.height);
-    const root = heroRoot(t, time, aspect, buf.history[buf.cursor]);
-    samplePose(t, time, buf.pose);
+    const root = heroRoot(t, time, buf.history[buf.cursor]);
+    contactRoot(anchor, finale.mode, sole, fall, time, root);
     applyRoot(hero.root, root);
-    applyPose(hero, buf.pose);
 
     const cloneAlpha = cloneWeight(t);
     ghostMaterialRef.current.opacity = cloneAlpha * 0.24;
@@ -122,6 +146,7 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     hero.bones.footL.getWorldPosition(buf.impact).project(state.camera);
     impactRef.current.x = Math.max(0.05, Math.min(0.95, (buf.impact.x + 1) * 0.5));
     impactRef.current.y = Math.max(0.05, Math.min(0.95, (buf.impact.y + 1) * 0.5));
+    placeLandingPanel(panel, anchor, hero, fall, smoothstep(0, 0.04, finale.progress), buf.scratch);
 
     const rim = rimRef.current;
     if (rim) {
@@ -134,6 +159,7 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
   return (
     <>
       <primitive object={hero.root} />
+      <primitive object={panel.mesh} />
       {ghosts.map((ghost, index) => (
         <primitive key={index} object={ghost.root} />
       ))}

@@ -190,7 +190,6 @@ def compress_external(src: Path) -> None:
     targets = {
         "robot-expressive.glb": "characters/robot-expressive.glb",
         "nasa-astronaut.glb": "characters/nasa-astronaut.glb",
-        "sportscar.glb": "vehicles/sports-car.glb",
     }
     for source, dest in targets.items():
         out = OUT_MODELS.parent / dest

@@ -1340,6 +1340,15 @@ main::before {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
 }
+/* Stacked (non-throw) layout has no per-frame --covered value; hide a
+   covered card's own content outright so its text doesn't bleed through
+   the sliver of glass peeking above the focused card. */
+.services-deck-container .service-card-deck-item > * {
+  transition: opacity 0.3s ease;
+}
+.services-deck-container .service-card-deck-item:not(.card-focused) > * {
+  opacity: 0;
+}
 .service-card-deck-item:hover,
 .service-card-deck-item.card-focused {
   border-color: rgba(125, 211, 252, 0.4);
@@ -1439,16 +1448,30 @@ main::before {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
+.service-matrix-col {
+  /* Grid items default to min-width: auto, which lets long chip text push
+     this column (and the chip list below) wider than the card instead of
+     wrapping — clamp it to the track's assigned width. */
+  min-width: 0;
+}
 .service-chip-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  min-width: 0;
 }
 .service-matrix-chip {
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
+  /* Flex items default to min-width: auto (their min-content size). For
+     text, `overflow-wrap: break-word` alone doesn't shrink that floor —
+     only `anywhere` does — so long unbroken chip text still forced this
+     item wider than the card. min-width: 0 removes the floor entirely. */
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .chip-protocol {
   background: rgba(56, 189, 248, 0.08);
@@ -1775,9 +1798,9 @@ main::before {
   transform: rotateY(180deg) translateZ(1px);
   background: radial-gradient(
     circle at 85% 15%,
-    rgba(56, 189, 248, 0.08) 0%,
-    rgba(15, 23, 42, 0.96) 60%,
-    rgba(9, 13, 22, 0.99) 100%
+    rgba(56, 189, 248, 0.12) 0%,
+    rgba(15, 23, 42, 0.98) 60%,
+    rgba(9, 13, 22, 1) 100%
   );
   border: 1px solid rgba(56, 189, 248, 0.35);
   color: #f8fafc;
@@ -2169,6 +2192,8 @@ main::before {
   max-width: 960px;
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.45) rgba(2, 6, 23, 0.45);
   background: radial-gradient(
     circle at 80% 20%,
     rgba(56, 189, 248, 0.08) 0%,
@@ -2180,20 +2205,13 @@ main::before {
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.2);
   padding: 2rem 2.4rem;
 }
-.arch-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+.arch-modal-container::-webkit-scrollbar { width: 8px; }
+.arch-modal-container::-webkit-scrollbar-track { background: rgba(2, 6, 23, 0.45); border-radius: 4px; }
+.arch-modal-container::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 4px;
 }
-.arch-modal-badge {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  color: var(--color-accent);
-}
+.arch-modal-container::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.75); }
 .arch-modal-header h3 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -2332,24 +2350,30 @@ main::before {
   padding: 1.5rem;
   margin: 0;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.45) transparent;
   font-family: var(--font-mono);
   font-size: 0.82rem;
   color: #7dd3fc;
   line-height: 1.6;
 }
+.arch-mermaid-code::-webkit-scrollbar { height: 6px; }
+.arch-mermaid-code::-webkit-scrollbar-track { background: transparent; }
+.arch-mermaid-code::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+}
+.arch-mermaid-code::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.75); }
 .arch-modal-footer-info {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 1.5rem;
   margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
-.arch-info-block h4,
-.arch-protocols-block h4 {
+.arch-info-block h4 {
+  font-size: 0.75rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--color-accent);
+  color: #38bdf8;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
@@ -2541,8 +2565,8 @@ main::before {
   gap: 0.45rem;
 }
 .window-btn {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -2554,7 +2578,17 @@ main::before {
   display: flex;
   gap: 0.35rem;
   overflow-x: auto;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.45) transparent;
 }
+.terminal-tabs-list::-webkit-scrollbar { height: 4px; }
+.terminal-tabs-list::-webkit-scrollbar-track { background: transparent; }
+.terminal-tabs-list::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+}
+.terminal-tabs-list::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.7); }
 .terminal-tab {
   display: inline-flex;
   align-items: center;
@@ -2580,13 +2614,26 @@ main::before {
   font-weight: 600;
 }
 .tab-icon { color: var(--color-accent); }
+.tab-index { display: none; color: var(--color-accent); font-weight: 700; }
+/* Narrow screens: five filename tabs never fit without an ugly scrollbar.
+   Swap the icon + filename for a compact numbered button instead. */
+@media (max-width: 640px) {
+  .terminal-titlebar { padding: 0.5rem 0.6rem; gap: 0.4rem; }
+  .terminal-tabs-list { flex: 1 1 auto; overflow-x: visible; gap: 0.25rem; }
+  .terminal-tab { padding: 0.3rem 0.5rem; flex: 0 0 auto; }
+  .tab-icon, .tab-label { display: none; }
+  .tab-index { display: inline-flex; }
+  /* The orange window dot already toggles minimize; drop the redundant
+     text button so the numbered tabs have room to breathe. */
+  .terminal-actions-right .terminal-tool-btn:last-child { display: none; }
+}
 
 .terminal-actions-right {
   display: flex;
   gap: 0.4rem;
 }
 .terminal-tool-btn {
-  padding: 0.25rem 0.65rem;
+  padding: 0.15rem 0.45rem;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2601,7 +2648,6 @@ main::before {
   border-color: #38bdf8;
   color: #f8fafc;
 }
-
 .terminal-body {
   padding: 1rem 1.8rem 0.75rem;
   /* Fixed height: 440px window − 44px titlebar − 38px footer = 358px */
@@ -2655,12 +2701,13 @@ main::before {
   margin-top: 0.8rem;
   padding-left: 0.5rem;
   border-left: 2px solid rgba(56, 189, 248, 0.3);
-  /* Fixed height: never causes layout reflow */
-  height: 240px;
-  min-height: 240px;
-  max-height: 240px;
-  flex-shrink: 0;
-  overflow-y: auto;
+  /* Fills whatever space remains in the fixed-height terminal-body instead
+     of scrolling on its own: an inner scrollbar would swallow wheel events
+     while the pointer sits over the terminal, blocking the page scroll
+     that drives the typing/reveal animation. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -3368,14 +3415,18 @@ main::before {
 }
 .kinetic-word-inner {
   display: inline-block;
-  transform: translateY(110%) rotate(2deg);
-  opacity: 0;
-  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease;
+  transform: none;
+  opacity: 1;
   background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 60%, #38bdf8 100%);
   -webkit-background-clip: text;
 }
+.is-kinetic .kinetic-word-inner {
+  transform: translateY(110%) rotate(2deg);
+  opacity: 0;
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease;
+}
 .lusion-kinetic-heading-wrap.is-revealed .kinetic-word-inner {
-  transform: translateY(0%) rotate(0deg);
+  transform: none;
   opacity: 1;
 }
 
@@ -3385,12 +3436,61 @@ main::before {
   font-size: 0.98rem;
   max-width: 64ch;
   line-height: 1.55;
+  opacity: 1;
+  transform: none;
+}
+.is-kinetic .lusion-kinetic-subtitle {
   opacity: 0;
   transform: translateY(15px);
   transition: opacity 0.8s ease 0.3s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
 }
 .lusion-kinetic-heading-wrap.is-revealed .lusion-kinetic-subtitle {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+}
+.kinetic-scatter .kinetic-word-mask,
+.kinetic-cascade .kinetic-word-mask { overflow: visible; }
+.kinetic-scatter .kinetic-word-inner,
+.kinetic-cascade .kinetic-word-inner { transform: none; opacity: 1; transition: none; }
+.kinetic-letter { display: inline-block; }
+/* scatter: letters converge from all around the viewport into the word. */
+.is-kinetic.kinetic-scatter .kinetic-letter {
+  opacity: 0;
+  transform: translate(var(--letter-x), var(--letter-y)) rotate(var(--letter-r)) scale(1.8);
+  transition: transform 1.6s cubic-bezier(.16, 1, .3, 1), opacity .9s ease;
+  transition-delay: var(--letter-delay);
+}
+.is-revealed.kinetic-scatter .kinetic-letter { opacity: 1; transform: none; }
+/* cascade: letters flip down onto the baseline one by one. Keep the glyph
+   fill on each composited letter; clipping one gradient across 3D child
+   layers corrupts the first glyph in Chromium. */
+.is-kinetic.kinetic-cascade .lusion-kinetic-title { perspective: 800px; }
+.is-kinetic.kinetic-cascade .kinetic-letter {
+  color: #f8fafc;
+  opacity: 0;
+  transform: translateY(-0.55em) rotateX(95deg);
+  transform-origin: 50% 100%;
+  transition: transform .9s cubic-bezier(.16, 1, .3, 1), opacity .45s ease, color .45s ease;
+  transition-delay: var(--letter-delay);
+}
+.is-revealed.kinetic-cascade .kinetic-letter {
+  color: #dff6ff;
+  opacity: 1;
+  transform: none;
+}
+.is-kinetic.kinetic-cascade .kinetic-word-inner {
+  color: #f8fafc;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lusion-kinetic-heading-wrap .kinetic-word-inner,
+  .lusion-kinetic-heading-wrap .kinetic-letter,
+  .lusion-kinetic-heading-wrap .lusion-kinetic-subtitle {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .kicker-pulse-dot { animation: none; }
 }
 /* 3D Robot Evolution Journey & Transformer Mech Styles */

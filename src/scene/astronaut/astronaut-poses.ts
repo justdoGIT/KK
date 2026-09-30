@@ -105,34 +105,6 @@ const WAVE_SWING = {
   out: { forearmL: [-0.089, -0.565, 0.364], handL: [-0.014, 0, 0.035] },
 } as const;
 
-/**
- * Reclining on the contact banner ("draw me like one of your French girls"):
- * on the left side with the face to the camera, left elbow planted on the
- * banner's top face and the forearm rising to the helmet's underside so the
- * helmet rests on the left hand; right leg folded over the straight left one
- * and the right hand on the hip. Bones solved offline within human joint
- * limits; `LOUNGE_ROOT` lays the body down (head to screen right, torso
- * raised ~17° on the elbow, front tipped toward a camera looking down).
- */
-export const LOUNGE_ROOT: Euler3 = [-0.14, 0, -1.271];
-const LOUNGE = raw({
-  spine: [0.06, 0, 0.06],
-  chest: [0.04, 0, 0.06],
-  neck: [-0.18, -0.06, -0.42],
-  head: [-0.26, -0.04, -0.34],
-  armL: [1.255, 0.49, 0.268],
-  forearmL: [2.509, 0.608, -1.689],
-  handL: [-0.018, -0.028, -0.381],
-  armR: [-0.871, -0.885, 1.243],
-  forearmR: [0.316, -0.812, 0.139],
-  handR: [-0.411, 0.516, -0.236],
-  thighL: [-0.029, 0.154, -0.286],
-  shinL: [0.049, 0.002, -0.045],
-  footL: [0.164, 0.037, 0.1],
-  thighR: [-0.78, -1.054, -0.034],
-  shinR: [1.177, -0.071, 0.174],
-  footR: [0.022, 0.429, 0.052],
-});
 
 /** Seated on the front edge with both legs hanging over the banner face. */
 const SIT = raw({
@@ -216,6 +188,20 @@ function run(out: PoseBuffer, phase: number, weight: number): void {
   out.spine[0] += 0.18 * weight;
 }
 
+/** Unhurried walk (career launch pad): STAND with alternating stride at `phase` radians. */
+export function sampleWalkPose(phase: number, out: PoseBuffer): void {
+  blend(out, STAND, STAND, 0);
+  const s = Math.sin(phase);
+  const c = Math.cos(phase);
+  out.thighL[0] += -0.42 * s;
+  out.thighR[0] += 0.42 * s;
+  out.shinL[0] += 0.18 + 0.28 * Math.max(0, c);
+  out.shinR[0] += 0.18 + 0.28 * Math.max(0, -c);
+  out.armL[1] += 0.32 * s;
+  out.armR[1] += 0.32 * s;
+  out.spine[0] += 0.05;
+}
+
 /**
  * Full-body pose at journey progress `t`. `time` only drives ambient motion
  * (tumble breathing, wave); the choreography itself is a function of scroll.
@@ -232,9 +218,9 @@ export function samplePose(t: number, time: number, out: PoseBuffer): void {
   } else if (drop > 0 && wait === 0) {
     blend(out, SHIELD, LAND, smoothstep(0.35, 1, drop));
   } else if (wait > 0) {
-    // Continue the post-shatter fall out of this stage. The next canvas picks
-    // up the same upright silhouette above the contact banner's landing deck.
-    blend(out, LAND, FREEFALL, smoothstep(0, 0.35, wait));
+    // The integrated finale switches to `sampleContactPose` as soon as the
+    // landing deck appears; hold the exit silhouette at that handoff frame.
+    blend(out, LAND, LAND, 0);
   } else if (runUp > 0 || white > 0.6) {
     blend(out, FREEFALL, STAND, smoothstep(0.6, 1, white));
     run(out, runUp * Math.PI * 7, smoothstep(0, 0.15, runUp) * (1 - smoothstep(0.85, 1, runUp)));
@@ -261,27 +247,46 @@ function wave(out: PoseBuffer, s: number): void {
   swingBone(out, "handL", extreme.handL, Math.abs(s));
 }
 
-/** Contact-banner pose selected by scroll, inactivity, or CTA interaction. */
+function cursorPlay(out: PoseBuffer, time: number, cursorX: number, cursorY: number, weight: number): void {
+  const toss = Math.sin(time * 2.7);
+  out.armR[0] -= (0.3 + cursorY * 0.2) * weight;
+  out.armR[2] -= (0.55 + cursorX * 0.22) * weight;
+  out.forearmR[1] += (0.72 + Math.abs(toss) * 0.34) * weight;
+  out.handR[0] += toss * 0.24 * weight;
+  out.head[0] -= cursorY * 0.1 * weight;
+  out.head[1] += cursorX * 0.16 * weight;
+}
+
+/** Contact-card pose selected by scroll or CTA interaction. */
 export function sampleContactPose(
   mode: ContactPoseMode,
   time: number,
   fall: number,
   out: PoseBuffer,
+  cursorX = 0,
+  cursorY = 0,
 ): void {
   if (mode === "landing") {
-    blend(out, FREEFALL, LAND, smoothstep(0.55, 1, fall));
+    blend(out, LAND, STAND, smoothstep(0.55, 1, fall));
     return;
   }
   if (mode === "stand") {
+    // Standing on the card's top face, greeting the viewer palm-forward.
     blend(out, STAND, STAND, 0);
-    out.head[0] -= 0.18;
+    for (const bone of ["armL", "forearmL", "handL"] as const) {
+      for (let i = 0; i < 3; i += 1) out[bone][i] = WAVE[bone][i];
+    }
+    wave(out, Math.sin(time * 5.2));
+    out.head[0] -= 0.12;
     out.head[1] += Math.sin(time * 0.8) * 0.04;
+    cursorPlay(out, time, cursorX, cursorY, 0.35);
     return;
   }
   if (mode === "sit") {
     blend(out, SIT, SIT, 0);
     wave(out, Math.sin(time * 5.2));
     out.head[1] += Math.sin(time * 2.1) * 0.05;
+    cursorPlay(out, time, cursorX, cursorY, 1);
     return;
   }
   if (mode === "dance") {
@@ -309,14 +314,8 @@ export function sampleContactPose(
     out.head[1] += Math.sin(time * 1.4) * 0.08;
     return;
   }
-
-  blend(out, LOUNGE, LOUNGE, 0);
-  const breath = Math.sin(time * 1.6);
-  out.chest[0] += breath * 0.025;
-  out.spine[0] += breath * 0.015;
-  out.head[0] -= 0.1;
-  out.head[2] += Math.sin(time * 0.7) * 0.035;
-  out.footR[0] += Math.max(0, Math.sin(time * 2.4)) * 0.22;
+  blend(out, SIT, SIT, 0);
+  cursorPlay(out, time, cursorX, cursorY, 1);
 }
 
 /** Writes a sampled pose onto an astronaut's skeleton. */

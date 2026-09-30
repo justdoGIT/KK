@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
 import {
-  LOUNGE_ROOT,
   applyPose,
   createPoseBuffer,
   sampleContactPose,
@@ -23,7 +22,7 @@ function position(astronaut: AstronautInstance, bone: BoneName): Vector3 {
 }
 
 describe("astronaut poses", () => {
-  it("keeps the historical seated wave palm facing the viewer", () => {
+  it.each(["sit", "stand"] as const)("keeps the %s wave palm facing the viewer", (mode) => {
     const astronaut = instantiateAstronaut({ parts: [] });
     const pose = createPoseBuffer();
     // One full wave cycle (sin(time * 5.2)) sampled every ~7°.
@@ -31,7 +30,7 @@ describe("astronaut poses", () => {
       astronaut.root.position.set(0, 0, 0);
       astronaut.root.rotation.set(0, 0, 0);
       astronaut.root.scale.setScalar(1);
-      sampleContactPose("sit", time, 1, pose);
+      sampleContactPose(mode, time, 1, pose);
       applyPose(astronaut, pose);
       astronaut.root.updateMatrixWorld(true);
 
@@ -43,29 +42,22 @@ describe("astronaut poses", () => {
     }
   });
 
-  it("reclines on the elbow with the hand under the helmet", () => {
+  it("keeps the seated rest upright over the deck", () => {
     const astronaut = instantiateAstronaut({ parts: [] });
     const pose = createPoseBuffer();
-    sampleContactPose("lounge", 0, 1, pose);
+    sampleContactPose("sit", 0, 1, pose);
     applyPose(astronaut, pose);
-    astronaut.root.rotation.set(LOUNGE_ROOT[0], LOUNGE_ROOT[1], LOUNGE_ROOT[2]);
+    astronaut.root.rotation.set(0, 0, 0);
     astronaut.root.updateMatrixWorld(true);
 
     const hips = position(astronaut, "hips");
     const head = position(astronaut, "head");
-    const elbow = position(astronaut, "forearmL");
-    const shoulder = position(astronaut, "armL");
-    const hand = position(astronaut, "handL");
-    const bottomKnee = position(astronaut, "shinL");
+    const leftKnee = position(astronaut, "shinL");
+    const rightKnee = position(astronaut, "shinR");
 
-    // Lying along the banner: head to one side of the hips, not above them.
-    expect(Math.abs(head.x - hips.x)).toBeGreaterThan(Math.abs(head.y - hips.y));
-    // The elbow is planted: lowest point of the arm, level with the bottom leg.
-    expect(elbow.y).toBeLessThan(shoulder.y - 0.1);
-    expect(elbow.y).toBeLessThan(hand.y);
-    expect(Math.abs(elbow.y - bottomKnee.y)).toBeLessThan(0.08);
-    // The hand holds the helmet up: just beneath the head, not beside the hips.
-    expect(hand.distanceTo(head)).toBeLessThan(0.35);
-    expect(hand.y).toBeLessThan(head.y);
+    expect(head.y).toBeGreaterThan(hips.y + 0.45);
+    expect(Math.abs(head.x - hips.x)).toBeLessThan(head.y - hips.y);
+    expect(leftKnee.y).toBeLessThan(hips.y);
+    expect(rightKnee.y).toBeLessThan(hips.y);
   });
 });

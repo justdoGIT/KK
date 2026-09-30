@@ -1,0 +1,30 @@
+/* Metrics strip as a rolling die (ClientMetricsStrip + motion/metrics-dice.ts).
+   Six square, opaque faces meet edge-to-edge so the hinges close into a cube. */
+.metrics-strip-inner.metrics-dice {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  perspective: 1600px;
+  transform-style: preserve-3d;
+}
+.metrics-dice .metric-strip-card {
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+  justify-content: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: linear-gradient(150deg, #10284a 0%, #0b1628 55%, #080f1c 100%);
+  box-shadow: inset 0 0 28px rgba(56, 189, 248, 0.1);
+  transform-origin: 0 0;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.metrics-dice .metric-strip-card:first-child { border-radius: 20px 0 0 20px; }
+.metrics-dice .metric-strip-card:last-child { border-radius: 0 20px 20px 0; border-right: 1px solid rgba(125, 211, 252, 0.35); }
+.metrics-dice[data-dice="open"] .metric-strip-card { will-change: auto; }
+.metrics-dice:not([data-dice="open"]) .metric-strip-card { border-radius: 0; }

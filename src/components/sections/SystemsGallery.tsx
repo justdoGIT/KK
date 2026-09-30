@@ -93,6 +93,7 @@ export function SystemsGallery(): JSX.Element {
         <LusionKineticHeading
           kicker="Systems Showcase"
           text="Proven Industrial Architectures"
+          variant="cascade"
           subtitle="A deep dive into mission-critical platforms designed, built, and shipped across automotive, industrial IoT, medical monitoring, and high-throughput edge systems."
         />
       </div>

@@ -34,6 +34,7 @@ export function useGridScrollReveal(
   transform: RevealTransform,
   enabled: boolean,
   onFrame?: (opened: number, mean: number) => void,
+  settleAt = 0.5,
 ): void {
   useScrollFrame(() => {
     const grid = gridRef.current;
@@ -47,7 +48,7 @@ export function useGridScrollReveal(
     items.forEach((el, i) => {
       if (!el) return;
       const local = clamp01(
-        viewportEntry(el, 0.95, 0.5) * span - (i % cols) * COLUMN_STAGGER,
+        viewportEntry(el, 0.95, settleAt) * span - (i % cols) * COLUMN_STAGGER,
       );
       const t = easeOutCubic(local);
       count += 1;

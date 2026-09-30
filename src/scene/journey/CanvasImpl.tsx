@@ -1,6 +1,6 @@
 import { Suspense, type JSX } from "react";
 import { Canvas } from "@react-three/fiber";
-import { SandToSiliconScene } from "./SandToSiliconScene.tsx";
+import { SiliconFleetScene } from "./SiliconFleetScene.tsx";
 import { isMobile } from "../useCapability.ts";
 
 type CanvasImplProps = {
@@ -26,7 +26,7 @@ export function CanvasImpl({ currentStage }: CanvasImplProps): JSX.Element {
       style={{ position: "absolute", inset: 0 }}
     >
       <Suspense fallback={null}>
-        <SandToSiliconScene currentStage={currentStage} />
+        <SiliconFleetScene currentStage={currentStage} />
       </Suspense>
     </Canvas>
   );

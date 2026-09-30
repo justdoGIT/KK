@@ -59,7 +59,7 @@ test("production limits connections to same-origin models and blocks injected st
       }
     };
     return [
-      await attempt("./models/vehicles/sports-car.glb"),
+      await attempt("./models/characters/robot-expressive.glb"),
       await attempt("https://example.com/"),
     ];
   });

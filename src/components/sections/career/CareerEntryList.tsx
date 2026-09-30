@@ -10,15 +10,17 @@ type CareerEntryListProps = {
   activeId: string;
   openId: string | null;
   clock: CareerClockRef;
+  animated: boolean;
   onOpenChange: (id: string, open: boolean) => void;
 };
 
 /** Left column: every role stays in the DOM; the active role scrolls into the viewport and expands. */
-export function CareerEntryList({ entries, activeId, openId, clock, onOpenChange }: CareerEntryListProps): JSX.Element {
+export function CareerEntryList({ entries, activeId, openId, clock, animated, onOpenChange }: CareerEntryListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
   const activeRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
+    if (!animated) return;
     let frame = 0;
     const scrub = () => {
       frame = requestAnimationFrame(scrub);
@@ -36,7 +38,7 @@ export function CareerEntryList({ entries, activeId, openId, clock, onOpenChange
     };
     frame = requestAnimationFrame(scrub);
     return () => cancelAnimationFrame(frame);
-  }, [activeId, clock]);
+  }, [activeId, clock, animated]);
 
   return (
     <ol ref={listRef} className="career-entries">

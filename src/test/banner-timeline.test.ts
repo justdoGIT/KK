@@ -6,15 +6,16 @@ import {
   HEADING_AT,
   LAND_AT,
   LAND_START,
-  LOUNGE_AT,
   SIT_AT,
+  ZOOM_OUT_END,
+  ZOOM_OUT_START,
   bannerState,
   contactPoseMode,
 } from "../components/ui/contact/banner-timeline.ts";
 
 describe("contact banner landing", () => {
   it("keeps the landing deck still while the astronaut descends", () => {
-    expect(bannerState(LAND_START, 0)).toEqual({ offset: 0, fall: 0, heading: 0 });
+    expect(bannerState(LAND_START, 0)).toEqual({ offset: 0, fall: 0, heading: 0, closeUp: 1 });
     expect(bannerState((LAND_START + LAND_AT) / 2, 0).fall).toBeGreaterThan(0);
     expect(bannerState(LAND_AT, 0).fall).toBe(1);
     expect(bannerState(LAND_AT, 0).offset).toBe(0);
@@ -26,6 +27,17 @@ describe("contact banner landing", () => {
     expect(bannerState(HEADING_AT + 0.1, 0).heading).toBe(1);
   });
 
+  it("waves in the close-up, then zooms out before sitting upright", () => {
+    expect(bannerState(LAND_AT, 0).closeUp).toBe(1);
+    expect(bannerState(HEADING_AT + 0.1, 0).closeUp).toBe(1);
+    expect(HEADING_AT + 0.1).toBeLessThanOrEqual(ZOOM_OUT_START);
+    expect(contactPoseMode(ZOOM_OUT_START, "none")).toBe("stand");
+    expect(bannerState(ZOOM_OUT_END, 0).closeUp).toBe(0);
+    expect(SIT_AT).toBeGreaterThanOrEqual(ZOOM_OUT_END);
+    expect(contactPoseMode(SIT_AT, "none")).toBe("sit");
+    expect(contactPoseMode(1, "none")).toBe("sit");
+  });
+
   it("sags quickly but rises back slowly and settles flat", () => {
     expect(bannerState(LAND_AT, DIP_DOWN).offset).toBeCloseTo(DIP_DEPTH, 6);
     let half = DIP_DOWN;
@@ -34,13 +46,12 @@ describe("contact banner landing", () => {
     expect(bannerState(LAND_AT, BANNER_SETTLED).offset).toBeCloseTo(0, 6);
   });
 
-  it("selects standing, seated, reclining, and interactive poses", () => {
-    expect(contactPoseMode(LAND_AT - 0.01, false, "dance")).toBe("landing");
-    expect(contactPoseMode(LAND_AT, false, "none")).toBe("stand");
-    expect(contactPoseMode(SIT_AT, false, "none")).toBe("sit");
-    expect(contactPoseMode(LOUNGE_AT, false, "none")).toBe("lounge");
-    expect(contactPoseMode(SIT_AT, true, "none")).toBe("lounge");
-    expect(contactPoseMode(SIT_AT, false, "dance")).toBe("dance");
-    expect(contactPoseMode(SIT_AT, false, "wait")).toBe("wait");
+  it("selects landing, standing, seated, and interactive upright poses", () => {
+    expect(contactPoseMode(LAND_AT - 0.01, "dance")).toBe("landing");
+    expect(contactPoseMode(LAND_AT, "none")).toBe("stand");
+    expect(contactPoseMode(SIT_AT, "none")).toBe("sit");
+    expect(contactPoseMode(1, "none")).toBe("sit");
+    expect(contactPoseMode(SIT_AT, "dance")).toBe("dance");
+    expect(contactPoseMode(SIT_AT, "wait")).toBe("wait");
   });
 });

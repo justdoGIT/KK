@@ -1,36 +1,29 @@
 import { Suspense, lazy, useState, type JSX } from "react";
 import { checkWebGL } from "../useCapability.ts";
+import { boardLifecycle } from "../../content/board-lifecycle.ts";
 
 const CanvasImpl = lazy(() =>
   import("./CanvasImpl.tsx").then((m) => ({ default: m.CanvasImpl })),
 );
 
-type SandToSiliconCanvasProps = {
+type SiliconFleetCanvasProps = {
   currentStage: number;
 };
 
 function CSSJourneyFallback({ currentStage }: { currentStage: number }): JSX.Element {
-  const stageNames = [
-    "01 // Quartz Sand Particles (SiO2)",
-    "02 // 2000°C Arc Furnace & Oxygen Stripping",
-    "03 // Czochralski Ingot & 300mm Wafer Slicing",
-    "04 // EUV 13.5nm Lithography Transistors",
-    "05 // QFP/BGA Packaging & First Boot Signal",
-    "06 // Distributed Autonomous Fleet Mesh",
-  ];
 
   return (
     <div className="journey-css-fallback" aria-hidden="true">
       <div className="css-orbit-ring" />
       <div className="css-core-orb" />
-      <span className="css-stage-name">{stageNames[currentStage]}</span>
+      <span className="css-stage-name">{boardLifecycle[currentStage].signal}</span>
     </div>
   );
 }
 
-export function SandToSiliconCanvas({
+export function SiliconFleetCanvas({
   currentStage,
-}: SandToSiliconCanvasProps): JSX.Element {
+}: SiliconFleetCanvasProps): JSX.Element {
   const [webglSupported] = useState(() => checkWebGL());
 
   if (!webglSupported) {

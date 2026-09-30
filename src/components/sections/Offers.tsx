@@ -159,6 +159,7 @@ export function Offers(): JSX.Element {
         <LusionKineticHeading
           kicker="Client Engagement Models"
           text="How We Can Collaborate"
+          variant="scatter"
           subtitle="High-impact, deterministic engineering engagements designed to de-risk hardware, accelerate time-to-market, and establish rock-solid production platforms."
         />
       </div>
