@@ -5,7 +5,7 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
-  TorusGeometry,
+  SphereGeometry,
   type AnimationAction,
   type Material,
   type Object3D,
@@ -30,28 +30,28 @@ type HumanoidMaterialStyle = {
 export function humanoidMaterialStyle(name: string): HumanoidMaterialStyle {
   if (name === "Main") {
     return {
-      color: "#38bdf8",
-      emissive: "#06233a",
-      emissiveIntensity: 0.32,
-      metalness: 0.85,
-      roughness: 0.22,
+      color: "#f6f1e7",
+      emissive: "#2a2014",
+      emissiveIntensity: 0.05,
+      metalness: 0.12,
+      roughness: 0.42,
     };
   }
   if (name === "Grey") {
     return {
-      color: "#eef8ff",
-      emissive: "#0b1c2b",
-      emissiveIntensity: 0.12,
-      metalness: 0.55,
-      roughness: 0.26,
+      color: "#e0812f",
+      emissive: "#180d03",
+      emissiveIntensity: 0.05,
+      metalness: 0.2,
+      roughness: 0.45,
     };
   }
   return {
-    color: "#06111f",
-    emissive: "#020711",
-    emissiveIntensity: 0.18,
-    metalness: 0.88,
-    roughness: 0.15,
+    color: "#15151d",
+    emissive: "#050509",
+    emissiveIntensity: 0.1,
+    metalness: 0.3,
+    roughness: 0.4,
   };
 }
 
@@ -68,7 +68,7 @@ function modernizeHumanoidMaterials(root: Object3D): void {
       material.emissiveIntensity = style.emissiveIntensity;
       material.metalness = style.metalness;
       material.roughness = style.roughness;
-      material.envMapIntensity = 1.8;
+      material.envMapIntensity = 1.4;
     }
     styled.set(source, material);
     return material;
@@ -82,131 +82,115 @@ function modernizeHumanoidMaterials(root: Object3D): void {
   });
 }
 
-/** Modern aerodynamic cybernetic humanoid head with obsidian visor and LiDAR strip. */
-function createModernCyberneticHead(): Group {
+/** Chibi astronaut head: rounded cream dome helmet, orange collar trim, big glowing cyan eyes. */
+function createChibiAstronautHead(): Group {
   const headGroup = new Group();
-  headGroup.name = "ModernCyberneticHead";
+  headGroup.name = "ChibiAstronautHead";
 
-  // 1. Sleek aerodynamic helmet shell
-  const craniumGeom = new BoxGeometry(0.72, 0.78, 0.82);
-  const craniumMat = new MeshStandardMaterial({
-    color: "#0a121e",
-    emissive: "#040b15",
-    emissiveIntensity: 0.2,
-    metalness: 0.9,
-    roughness: 0.2,
-    envMapIntensity: 1.8,
+  // 1. Rounded cream helmet dome
+  const domeGeom = new SphereGeometry(0.46, 28, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
+  const domeMat = new MeshStandardMaterial({
+    color: "#f6f1e7",
+    emissive: "#2a2014",
+    emissiveIntensity: 0.05,
+    metalness: 0.12,
+    roughness: 0.38,
+    envMapIntensity: 1.3,
   });
-  const cranium = new Mesh(craniumGeom, craniumMat);
-  cranium.position.set(0, 0.12, -0.04);
-  headGroup.add(cranium);
+  const dome = new Mesh(domeGeom, domeMat);
+  dome.position.set(0, 0.2, -0.02);
+  headGroup.add(dome);
 
-  // 2. High-gloss curved obsidian visor faceplate
-  const visorGeom = new BoxGeometry(0.68, 0.42, 0.22);
-  const visorMat = new MeshStandardMaterial({
-    color: "#010409",
-    emissive: "#020712",
-    emissiveIntensity: 0.1,
-    metalness: 0.98,
-    roughness: 0.04,
-    envMapIntensity: 2.2,
+  // 2. Orange collar trim band at the helmet's base
+  const collarGeom = new CylinderGeometry(0.46, 0.44, 0.1, 28);
+  const collarMat = new MeshStandardMaterial({
+    color: "#e0812f",
+    metalness: 0.22,
+    roughness: 0.42,
   });
-  const visor = new Mesh(visorGeom, visorMat);
-  visor.position.set(0, 0.08, 0.38);
-  headGroup.add(visor);
+  const collar = new Mesh(collarGeom, collarMat);
+  collar.position.set(0, -0.02, -0.02);
+  headGroup.add(collar);
 
-  // 3. Glowing neon cyan LiDAR / optical sensor aperture band
-  const lidarGeom = new BoxGeometry(0.62, 0.07, 0.04);
-  const lidarMat = new MeshStandardMaterial({
-    color: "#38bdf8",
-    emissive: "#00f0ff",
-    emissiveIntensity: 3.2,
-    metalness: 0.2,
-    roughness: 0.1,
+  // 3. Dark rounded face visor recess (where the glowing eyes sit)
+  const faceGeom = new SphereGeometry(0.36, 24, 18, -Math.PI * 0.34, Math.PI * 0.68, Math.PI * 0.26, Math.PI * 0.48);
+  const faceMat = new MeshStandardMaterial({
+    color: "#15151d",
+    metalness: 0.35,
+    roughness: 0.5,
   });
-  const lidar = new Mesh(lidarGeom, lidarMat);
-  lidar.position.set(0, 0.1, 0.5);
-  headGroup.add(lidar);
+  const face = new Mesh(faceGeom, faceMat);
+  face.position.set(0, 0.13, 0.03);
+  headGroup.add(face);
 
-  // 4. Lateral spatial audio/telemetry sensor pods (temples)
-  const podGeom = new CylinderGeometry(0.14, 0.14, 0.12, 16);
-  podGeom.rotateZ(Math.PI / 2);
-  const podMat = new MeshStandardMaterial({
-    color: "#1e293b",
-    metalness: 0.85,
-    roughness: 0.25,
-  });
-  const podL = new Mesh(podGeom, podMat);
-  podL.position.set(-0.42, 0.1, 0.05);
-  const podR = new Mesh(podGeom, podMat);
-  podR.position.set(0.42, 0.1, 0.05);
-  headGroup.add(podL, podR);
-
-  // 5. Lateral glowing cyan indicator nodes
-  const nodeGeom = new CylinderGeometry(0.04, 0.04, 0.04, 12);
-  nodeGeom.rotateZ(Math.PI / 2);
-  const nodeMat = new MeshStandardMaterial({
-    color: "#38bdf8",
+  // 4. Big glowing round cyan eyes
+  const eyeGeom = new SphereGeometry(0.1, 20, 16);
+  const eyeMat = new MeshStandardMaterial({
+    color: "#7dd3fc",
     emissive: "#38bdf8",
-    emissiveIntensity: 2.5,
+    emissiveIntensity: 3.4,
+    metalness: 0.1,
+    roughness: 0.12,
   });
-  const nodeL = new Mesh(nodeGeom, nodeMat);
-  nodeL.position.set(-0.48, 0.1, 0.05);
-  const nodeR = new Mesh(nodeGeom, nodeMat);
-  nodeR.position.set(0.48, 0.1, 0.05);
-  headGroup.add(nodeL, nodeR);
+  const eyeL = new Mesh(eyeGeom, eyeMat);
+  eyeL.position.set(-0.15, 0.15, 0.31);
+  const eyeR = new Mesh(eyeGeom, eyeMat);
+  eyeR.position.set(0.15, 0.15, 0.31);
+  headGroup.add(eyeL, eyeR);
 
-  // 6. Chin / jaw intake vent
-  const jawGeom = new BoxGeometry(0.46, 0.18, 0.28);
-  const jaw = new Mesh(jawGeom, craniumMat);
-  jaw.position.set(0, -0.22, 0.26);
-  headGroup.add(jaw);
+  // 5. Small orange antenna pods at the temples
+  const podGeom = new SphereGeometry(0.07, 16, 14);
+  const podMat = collarMat;
+  const podL = new Mesh(podGeom, podMat);
+  podL.position.set(-0.46, 0.22, 0.02);
+  const podR = new Mesh(podGeom, podMat);
+  podR.position.set(0.46, 0.22, 0.02);
+  headGroup.add(podL, podR);
 
   return headGroup;
 }
 
-/** Modern cybernetic chest armor plate with quantum reactor core node. */
-function createModernTorsoCore(): Group {
+/** Chibi astronaut chest: rounded cream shell, orange belt stripe, glowing cyan core button. */
+function createChibiAstronautTorso(): Group {
   const torsoGroup = new Group();
-  torsoGroup.name = "ModernTorsoCore";
+  torsoGroup.name = "ChibiAstronautTorso";
 
-  // 1. Pectoral armor reinforcement plate
-  const plateGeom = new BoxGeometry(0.92, 0.55, 0.18);
-  const plateMat = new MeshStandardMaterial({
-    color: "#0a1322",
-    emissive: "#040b15",
-    emissiveIntensity: 0.15,
-    metalness: 0.9,
-    roughness: 0.22,
+  // 1. Rounded cream chest shell overlay
+  const shellGeom = new SphereGeometry(0.5, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.58);
+  const shellMat = new MeshStandardMaterial({
+    color: "#f6f1e7",
+    metalness: 0.12,
+    roughness: 0.4,
   });
-  const plate = new Mesh(plateGeom, plateMat);
-  plate.position.set(0, 0.08, 0.42);
-  torsoGroup.add(plate);
+  const shell = new Mesh(shellGeom, shellMat);
+  shell.rotation.x = Math.PI;
+  shell.position.set(0, 0.12, 0.05);
+  torsoGroup.add(shell);
 
-  // 2. Central quantum power reactor core node
-  const coreGeom = new CylinderGeometry(0.14, 0.14, 0.06, 24);
+  // 2. Orange belt stripe
+  const stripeGeom = new BoxGeometry(0.5, 0.14, 0.14);
+  const stripeMat = new MeshStandardMaterial({
+    color: "#e0812f",
+    metalness: 0.2,
+    roughness: 0.42,
+  });
+  const stripe = new Mesh(stripeGeom, stripeMat);
+  stripe.position.set(0, 0.04, 0.42);
+  torsoGroup.add(stripe);
+
+  // 3. Glowing cyan chest core button
+  const coreGeom = new CylinderGeometry(0.09, 0.09, 0.05, 20);
   coreGeom.rotateX(Math.PI / 2);
   const coreMat = new MeshStandardMaterial({
-    color: "#38bdf8",
-    emissive: "#00f0ff",
+    color: "#7dd3fc",
+    emissive: "#38bdf8",
     emissiveIntensity: 3.0,
-    metalness: 0.4,
+    metalness: 0.15,
     roughness: 0.15,
   });
   const core = new Mesh(coreGeom, coreMat);
-  core.position.set(0, 0.12, 0.52);
+  core.position.set(0, 0.24, 0.45);
   torsoGroup.add(core);
-
-  // 3. Glowing ring around power core
-  const ringGeom = new TorusGeometry(0.18, 0.02, 12, 32);
-  const ringMat = new MeshStandardMaterial({
-    color: "#0284c7",
-    emissive: "#38bdf8",
-    emissiveIntensity: 2.2,
-  });
-  const ring = new Mesh(ringGeom, ringMat);
-  ring.position.set(0, 0.12, 0.52);
-  torsoGroup.add(ring);
 
   return torsoGroup;
 }
@@ -247,10 +231,10 @@ export function humanoidRigFor(instance: ModelInstance): HumanoidRig {
   });
 
   if (headBone) {
-    (headBone as Object3D).add(createModernCyberneticHead());
+    (headBone as Object3D).add(createChibiAstronautHead());
   }
   if (torsoBone) {
-    (torsoBone as Object3D).add(createModernTorsoCore());
+    (torsoBone as Object3D).add(createChibiAstronautTorso());
   }
 
   root.add(instance.scene);

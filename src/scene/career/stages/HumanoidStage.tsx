@@ -14,8 +14,12 @@ import { MorphPad } from "./stage-kit.tsx";
 import { activeClock, cinematicLens, orbit } from "./stage-math.ts";
 
 const WALK_START = 0.35;
-const WALK_DISTANCE = 6;
+/** Sprint kicks in here, holds a front-on hero shot through the stage end. */
+const RUN_START = 0.72;
+const WALK_DISTANCE = 4;
+const RUN_DISTANCE = 4;
 const STRIDE = 1.35;
+const RUN_STRIDE = 1.9;
 const ARCHES = [2, 4, 6, 8];
 /** Arch posts closer than this to the camera are culled; they would otherwise
  *  sweep through the frame as opaque slabs and eclipse the robot. */
@@ -101,10 +105,14 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
     const morph = morphProgress(c.local);
     const u = actProgress(c.local);
     const walk = smoothstep(WALK_START - 0.08, WALK_START + 0.04, u);
-    const distance = Math.max(0, (u - WALK_START) / (1 - WALK_START)) * WALK_DISTANCE;
+    const run = smoothstep(RUN_START - 0.06, RUN_START + 0.06, u);
+    const walkDistance = Math.max(0, (Math.min(u, RUN_START) - WALK_START) / (RUN_START - WALK_START)) * WALK_DISTANCE;
+    const runDistance = Math.max(0, (u - RUN_START) / (1 - RUN_START)) * RUN_DISTANCE;
+    const distance = walkDistance + runDistance;
     poseHumanoid(rig, [
       ["Idle", u * 6, 1 - walk],
-      ["Walking", (distance / STRIDE) * clipDuration(rig, "Walking"), walk],
+      ["Walking", (walkDistance / STRIDE) * clipDuration(rig, "Walking"), Math.max(0, walk - run)],
+      ["Running", (runDistance / RUN_STRIDE) * clipDuration(rig, "Running"), run],
     ]);
     rig.root.rotation.set(0, Math.PI / 2, 0);
     if (body.current) {
@@ -117,6 +125,12 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
     const track = smoothstep(0.02, 0.3, u);
     cam.lerp(tmp.set(distance + 3.3, 1.7, 4.6), track);
     look.lerp(tmp.set(distance + 0.2, 1.15, 0), track);
+    // Sprint finale: swing to a front-on hero shot — camera ahead of the robot
+    // on its heading, tracking at a fixed lead distance so it holds centred
+    // and growing as it sprints straight at camera through the stage end.
+    const frontShot = smoothstep(RUN_START - 0.04, RUN_START + 0.12, u);
+    cam.lerp(tmp.set(distance + 3.4, 1.0, 0), frontShot);
+    look.lerp(tmp.set(distance, 1.0, 0), frontShot);
     camera.position.copy(cam);
     camera.lookAt(look);
     cinematicLens(camera, 42 - track * 7);
