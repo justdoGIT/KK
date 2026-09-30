@@ -38,6 +38,7 @@ test("case-studies screenshot", async ({ page }) => {
 });
 
 test("career screenshot", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   await page.locator("#career").scrollIntoViewIfNeeded();

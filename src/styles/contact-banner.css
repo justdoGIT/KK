@@ -1,68 +1,114 @@
-/* Contact banner as a solid cuboid: the contact card is the front face, a lit
-   top face gives it depth, and the lounge canvas (astronaut) sits over the
-   top face. The mover carries the pop-up and the landing sag. */
-
+/* One continuous contact landing zone: sticky reveal, top deck, and front card. */
 .contact-banner {
-  --cuboid-depth: clamp(64px, 7vw, 96px);
+  --cuboid-depth: clamp(48px, 6.5vw, 78px);
+  --contact-scale: 0.82;
   position: relative;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-top: clamp(3rem, 8vw, 5rem);
+  height: 190vh;
+  margin: -1rem auto 0;
 }
 
-/* The eye sits a fixed height above the banner, looking down onto its top
-   face. The slab tips on its top edge, so that edge (where the astronaut
-   lies) projects to the same place whatever the card's height. */
+.contact-banner-stage {
+  position: sticky;
+  top: 0;
+  display: grid;
+  align-items: start;
+  width: 100%;
+  height: 100vh;
+  padding: clamp(5rem, 10vh, 8rem) 1.25rem clamp(2rem, 6vh, 4rem);
+  overflow: clip;
+}
+
 .contact-banner-mover {
   position: relative;
+  width: min(88vw, 1040px);
+  margin: clamp(11rem, 21vh, 13rem) auto 0;
   perspective: 1600px;
-  perspective-origin: 50% -420px;
-  transform-origin: 50% 100%;
-  will-change: transform, opacity;
+  perspective-origin: 50% -45%;
+  transform-origin: 50% 0%;
+  will-change: transform;
 }
 
 .contact-cuboid {
   position: relative;
   z-index: 1;
-  transform-style: preserve-3d;
   transform: rotateX(-5deg);
+  transform-style: preserve-3d;
   transform-origin: 50% 0%;
+  filter: drop-shadow(0 38px 54px rgba(0, 0, 0, 0.48));
 }
 
-/* Front face keeps the card's look; it now reads as the slab's face. */
-.contact-cuboid > .contact-frame-wrapper {
-  box-shadow:
-    0 40px 90px rgba(0, 0, 0, 0.65),
-    0 0 60px rgba(56, 189, 248, 0.08),
-    inset 0 1px 0 rgba(125, 211, 252, 0.45);
-}
-
-/* Top face: hinged on the front's top edge and folded back into the page. */
 .contact-cuboid-top {
   position: absolute;
-  top: 0;
+  z-index: 3;
+  top: calc(-1 * var(--cuboid-depth));
   left: 0;
-  right: 0;
+  width: 100%;
   height: var(--cuboid-depth);
-  border: 1px solid rgba(56, 189, 248, 0.32);
-  border-radius: 24px 24px 6px 6px;
+  border: 1px solid rgba(125, 211, 252, 0.52);
+  border-bottom-color: rgba(56, 189, 248, 0.85);
+  border-radius: 22px 22px 0 0;
   background:
-    linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.16) 50%, transparent),
-    linear-gradient(180deg, rgba(30, 58, 95, 0.95) 0%, rgba(12, 20, 36, 0.98) 100%);
-  box-shadow: inset 0 2px 0 rgba(125, 211, 252, 0.55);
-  transform-origin: 50% 0%;
-  transform: rotateX(-90deg);
+    linear-gradient(180deg, rgba(147, 164, 255, 0.38), rgba(56, 189, 248, 0.1)),
+    linear-gradient(90deg, #132441, #1e3a5f 48%, #111d38);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.38),
+    0 -16px 48px rgba(56, 189, 248, 0.18);
+  transform: rotateX(68deg);
+  transform-origin: 50% 100%;
   pointer-events: none;
 }
 
-/* Transparent WebGL overlay whose bottom edge dips into the top face. */
+/* The card itself is the cuboid's only front face. */
+.contact-cuboid > .contact-frame-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(2.4rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3.5rem);
+  border-radius: 0 0 22px 22px;
+  transform: translateZ(1px);
+}
+
+.contact-journey-heading {
+  position: absolute;
+  z-index: 4;
+  top: clamp(2.4rem, 7vh, 5rem);
+  left: 70%;
+  width: min(42vw, 620px);
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(2.4rem, 4.5vw, 4.4rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  text-align: left;
+  text-wrap: balance;
+  background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 44%, #38bdf8 72%, #93a4ff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 10px 34px rgba(56, 189, 248, 0.24));
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+
+.contact-banner--animated .contact-journey-heading {
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* Canvas deck line lands inside the projected top face, not above the card. */
 .contact-lounge {
   position: absolute;
-  left: 0;
+  z-index: 4;
   right: 0;
-  bottom: calc(100% - 44px);
-  z-index: 2;
-  height: min(62vh, 560px);
+  bottom: calc(100% - 116px);
+  left: 0;
+  height: min(58vh, 520px);
   pointer-events: none;
 }
 
@@ -73,9 +119,44 @@
 
 @media (max-width: 768px) {
   .contact-banner {
-    --cuboid-depth: 56px;
+    --cuboid-depth: 46px;
+    --contact-scale: 0.9;
+    height: 180vh;
   }
-  .contact-cuboid-top {
-    border-radius: 16px 16px 6px 6px;
+
+  .contact-banner-stage {
+    padding-inline: 0.75rem;
+  }
+
+  .contact-banner-mover {
+    width: min(92vw, 1040px);
+    margin-top: 12rem;
+  }
+
+  .contact-journey-heading {
+    left: 50%;
+    width: 92vw;
+    font-size: clamp(2.3rem, 11vw, 3.5rem);
+    text-align: center;
+  }
+
+  .contact-cuboid > .contact-frame-wrapper {
+    padding: 2.25rem 1.25rem;
+  }
+
+  .contact-lounge {
+    height: min(52vh, 440px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-banner {
+    height: auto;
+  }
+
+  .contact-banner-stage {
+    position: relative;
+    height: auto;
+    min-height: 75vh;
   }
 }

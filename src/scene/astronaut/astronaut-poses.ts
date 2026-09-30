@@ -1,4 +1,5 @@
-import { ARRIVE_AT, IMPACT_AT, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import type { ContactPoseMode } from "../../components/ui/contact/banner-timeline.ts";
+import { IMPACT_AT, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
 import { BONES, type AstronautInstance, type BoneName } from "./astronaut-rig.ts";
 
 /**
@@ -117,8 +118,8 @@ export const LOUNGE_ROOT: Euler3 = [-0.14, 0, -1.271];
 const LOUNGE = raw({
   spine: [0.06, 0, 0.06],
   chest: [0.04, 0, 0.06],
-  neck: [-0.057, -0.083, -0.538],
-  head: [-0.124, -0.063, -0.486],
+  neck: [-0.18, -0.06, -0.42],
+  head: [-0.26, -0.04, -0.34],
   armL: [1.255, 0.49, 0.268],
   forearmL: [2.509, 0.608, -1.689],
   handL: [-0.018, -0.028, -0.381],
@@ -131,6 +132,36 @@ const LOUNGE = raw({
   thighR: [-0.78, -1.054, -0.034],
   shinR: [1.177, -0.071, 0.174],
   footR: [0.022, 0.429, 0.052],
+});
+
+/** Seated on the front edge with both legs hanging over the banner face. */
+const SIT = raw({
+  spine: [0.24, 0, 0],
+  chest: [0.06, 0, 0],
+  head: [0.08, -0.14, 0],
+  // Preserve the historical seated body/legs, but use the calibrated glove
+  // chain so the palm—not the back of the hand—faces the viewer.
+  armL: WAVE.armL,
+  forearmL: WAVE.forearmL,
+  handL: WAVE.handL,
+  armR: [0, 0.1, 1.18],
+  forearmR: [0, 0.3, 0],
+  thighL: [-1.3, 0, 0.14],
+  shinL: [1.5, 0, 0],
+  footL: [0.3, 0, 0],
+  thighR: [-1.3, 0, -0.14],
+  shinR: [1.5, 0, 0],
+  footR: [0.3, 0, 0],
+});
+
+/** Seated acknowledgement after a GitHub/LinkedIn click: palm-forward wave. */
+const WAIT = raw({
+  ...SIT,
+  armL: WAVE.armL,
+  forearmL: WAVE.forearmL,
+  handL: WAVE.handL,
+  armR: [-0.28, 0.35, 1.05],
+  forearmR: [0.55, 0.3, -0.2],
 });
 
 /** Keyframes on the frameBreak ratio: crouch → jump → kick (contact at IMPACT_AT) → shield. */
@@ -201,9 +232,9 @@ export function samplePose(t: number, time: number, out: PoseBuffer): void {
   } else if (drop > 0 && wait === 0) {
     blend(out, SHIELD, LAND, smoothstep(0.35, 1, drop));
   } else if (wait > 0) {
-    blend(out, LAND, WAVE, smoothstep(0, ARRIVE_AT, wait));
-    wave(out, Math.sin(time * 5.2) * smoothstep(ARRIVE_AT * 0.6, ARRIVE_AT, wait));
-    out.head[1] += Math.sin(time * 2.1) * 0.05;
+    // Continue the post-shatter fall out of this stage. The next canvas picks
+    // up the same upright silhouette above the contact banner's landing deck.
+    blend(out, LAND, FREEFALL, smoothstep(0, 0.35, wait));
   } else if (runUp > 0 || white > 0.6) {
     blend(out, FREEFALL, STAND, smoothstep(0.6, 1, white));
     run(out, runUp * Math.PI * 7, smoothstep(0, 0.15, runUp) * (1 - smoothstep(0.85, 1, runUp)));
@@ -230,13 +261,61 @@ function wave(out: PoseBuffer, s: number): void {
   swingBone(out, "handL", extreme.handL, Math.abs(s));
 }
 
-/** Reclining pose on the contact banner with a slow breath, head nod and toe tap. */
-export function sampleLoungePose(time: number, out: PoseBuffer): void {
+/** Contact-banner pose selected by scroll, inactivity, or CTA interaction. */
+export function sampleContactPose(
+  mode: ContactPoseMode,
+  time: number,
+  fall: number,
+  out: PoseBuffer,
+): void {
+  if (mode === "landing") {
+    blend(out, FREEFALL, LAND, smoothstep(0.55, 1, fall));
+    return;
+  }
+  if (mode === "stand") {
+    blend(out, STAND, STAND, 0);
+    out.head[0] -= 0.18;
+    out.head[1] += Math.sin(time * 0.8) * 0.04;
+    return;
+  }
+  if (mode === "sit") {
+    blend(out, SIT, SIT, 0);
+    wave(out, Math.sin(time * 5.2));
+    out.head[1] += Math.sin(time * 2.1) * 0.05;
+    return;
+  }
+  if (mode === "dance") {
+    blend(out, STAND, STAND, 0);
+    const beat = Math.sin(time * 5.4);
+    const counter = Math.sin(time * 5.4 + Math.PI);
+    out.spine[2] += beat * 0.18;
+    out.chest[2] -= beat * 0.14;
+    out.head[0] -= 0.2;
+    out.head[2] -= beat * 0.12;
+    out.armL[2] += 0.9 + beat * 0.35;
+    out.armR[2] -= 0.9 + counter * 0.35;
+    out.forearmL[1] -= 0.8 + counter * 0.3;
+    out.forearmR[1] += 0.8 + beat * 0.3;
+    out.thighL[0] -= Math.max(0, beat) * 0.28;
+    out.thighR[0] -= Math.max(0, counter) * 0.28;
+    out.shinL[0] += Math.max(0, beat) * 0.4;
+    out.shinR[0] += Math.max(0, counter) * 0.4;
+    return;
+  }
+  if (mode === "wait") {
+    blend(out, WAIT, WAIT, 0);
+    wave(out, Math.sin(time * 4.2));
+    out.head[0] -= 0.1;
+    out.head[1] += Math.sin(time * 1.4) * 0.08;
+    return;
+  }
+
   blend(out, LOUNGE, LOUNGE, 0);
   const breath = Math.sin(time * 1.6);
   out.chest[0] += breath * 0.025;
   out.spine[0] += breath * 0.015;
-  out.head[2] += Math.sin(time * 0.7) * 0.04;
+  out.head[0] -= 0.1;
+  out.head[2] += Math.sin(time * 0.7) * 0.035;
   out.footR[0] += Math.max(0, Math.sin(time * 2.4)) * 0.22;
 }
 

@@ -1,5 +1,4 @@
 import {
-  ARRIVE_AT,
   IMPACT_AT,
   PHASE_SPANS,
   backInOut,
@@ -59,7 +58,6 @@ const Z: readonly Key[] = [
   { phase: "frameBreak", f: IMPACT_AT, v: -0.05 },
   { phase: "frameBreak", f: 1, v: 1.1 },
   { phase: "drop", f: 1, v: 0.45 },
-  { phase: "wait", f: ARRIVE_AT, v: 2.2 },
 ];
 const ROT_Y: readonly Key[] = [
   { phase: "cardShow", f: 0, v: 0.7 },
@@ -67,7 +65,6 @@ const ROT_Y: readonly Key[] = [
   { phase: "frameBreak", f: 0.26, v: 0 },
   { phase: "frameBreak", f: IMPACT_AT, v: 0.45 },
   { phase: "frameBreak", f: 0.75, v: 0.1 },
-  { phase: "wait", f: ARRIVE_AT, v: -0.06 },
 ];
 const ROT_X: readonly Key[] = [
   { phase: "cardShow", f: 0, v: 0 },
@@ -80,25 +77,11 @@ const ROT_X: readonly Key[] = [
 
 export type RootPose = { x: number; y: number; z: number; scale: number; rx: number; ry: number; rz: number };
 
-/**
- * Close-up framing once the astronaut flies up to the camera (depth 2.2, so
- * ~2.4 units of stage height). Landscape stages park him left of centre so the
- * heading owns the right half; portrait stages centre him above the heading.
- */
-function arrivalFrame(aspect: number): { x: number; y: number; scale: number; ry: number } {
-  const portrait = smoothstep(1.0, 0.85, aspect);
-  return {
-    x: -0.62 * (1 - portrait),
-    y: -0.1 + 0.22 * portrait,
-    scale: 1.02 - 0.3 * portrait,
-    // A slight turn toward the heading on wide stages.
-    ry: 0.16 * (1 - portrait),
-  };
-}
 
 /**
- * Hero root transform at progress `t`. `time` (s) only drives the tunnel tumble
- * and idle bob; `aspect` (stage width / height) frames the close-up wave.
+ * Hero root transform at progress `t`. `time` (s) only drives the tunnel
+ * tumble; the wait phase drops the astronaut completely out of this canvas so
+ * the contact scene can continue the landing without a close-up duplicate.
  */
 export function heroRoot(t: number, time: number, aspect: number, out: RootPose): RootPose {
   const tunnel = phaseRatio(t, "blackTunnel");
@@ -106,17 +89,16 @@ export function heroRoot(t: number, time: number, aspect: number, out: RootPose)
   const tumble = smoothstep(0, 0.25, tunnel) * settle;
   const drop = phaseRatio(t, "drop");
   const wait = phaseRatio(t, "wait");
-  const arrive = smoothstep(0, ARRIVE_AT, wait);
-  const frame = arrivalFrame(aspect);
+  const leave = smoothstep(0, 0.42, wait);
   const drift = Math.sin(time * 0.9) * 0.35 * tumble + Math.sin(time * 0.37 + 1.3) * 0.12 * tumble;
   const flight = keyed(t, Y) + Math.cos(time * 0.7) * 0.22 * tumble - 0.4 * backInOut(drop);
-  const bob = Math.sin(time * 1.4) * 0.03 * arrive;
-  out.scale = keyed(t, SCALE) + (frame.scale - keyed(t, SCALE)) * arrive;
-  out.x = drift + frame.x * arrive;
-  out.y = flight + (frame.y - flight) * arrive + bob;
+  const exitDistance = 3.8 + smoothstep(0.85, 1, aspect) * 0.35;
+  out.scale = keyed(t, SCALE);
+  out.x = drift;
+  out.y = flight - exitDistance * leave;
   out.z = keyed(t, Z);
   out.rx = keyed(t, ROT_X) + Math.sin(time * 0.61) * 0.7 * tumble;
-  out.ry = keyed(t, ROT_Y) + Math.sin(time * 0.43 + 0.8) * 0.9 * tumble + frame.ry * arrive;
+  out.ry = keyed(t, ROT_Y) + Math.sin(time * 0.43 + 0.8) * 0.9 * tumble;
   out.rz = Math.sin(time * 0.52 + 2.1) * 1.05 * tumble;
   return out;
 }
