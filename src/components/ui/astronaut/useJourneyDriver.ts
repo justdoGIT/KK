@@ -56,8 +56,9 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   if (!root || !mover || !heading || !stage) return;
 
   // ── 1. DOM READS (before any writes to avoid forced layout) ─────────────
-  const base = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
+  const cssScale = Number.parseFloat(getComputedStyle(root).getPropertyValue("--contact-scale")) || 1;
   const moverOffsetWidth = mover.offsetWidth;
+  const moverOffsetHeight = mover.offsetHeight;
   const moverOffsetTop = mover.offsetTop;
   // Use cached rects from the previous frame for the stage/card measurements
   // (one frame stale is imperceptible and avoids a forced layout mid-paint).
@@ -83,6 +84,16 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   const isSettled = progress >= ZOOM_OUT_END;
   const sinceLanding = Math.max(0, (progress - LAND_AT) * 3);
   const frame = bannerState(progress, sinceLanding);
+  // `mover.offsetHeight` is the card's unscaled layout height (CSS transforms
+  // don't affect it), so this shrinks the settled scale just enough to keep
+  // the card's bottom edge inside the pinned 100vh stage instead of being
+  // clipped by `.contact-banner`'s `overflow:clip` — the CSS breakpoints
+  // alone only covered height < 700px, leaving the common 700-950px laptop
+  // range free to overflow.
+  const fitScale = moverOffsetHeight > 0
+    ? Math.max(0.55, Math.min(1, (stageBox.height - moverOffsetTop - 24) / moverOffsetHeight))
+    : 1;
+  const base = Math.min(cssScale, fitScale);
   const baseDeckWidth = Math.max(1, moverOffsetWidth * base);
   const closeUpZoom = Math.max(1, (height * LANDING_BODY) / BODY_RATIO / baseDeckWidth);
   const zoom = 1 + (closeUpZoom - 1) * frame.closeUp;
