@@ -106,7 +106,11 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   root.dataset.astronautMode = finale.mode;
   root.style.opacity = reveal.toFixed(3);
   root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
-  root.style.pointerEvents = isSettled ? "auto" : "none";
+  // Pointer events unlock as soon as the card visually reads as attached
+  // (attach≈1), not only once the slower zoom-out fully settles — otherwise
+  // the button looks clickable for ~8% of scroll before hover actually works.
+  const interactive = attach >= 0.98;
+  root.style.pointerEvents = interactive ? "auto" : "none";
   if (isSettled) {
     root.dataset.finaleSettled = "true";
     mover.dataset.settled = "true";
