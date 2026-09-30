@@ -160,9 +160,11 @@ export function Offers(): JSX.Element {
           kicker="Client Engagement Models"
           variant="scatter"
           subtitle="High-impact, deterministic engineering engagements designed to de-risk hardware, accelerate time-to-market, and establish rock-solid production platforms."
-        >
-          How We Can <span className="heading-highlight-theme">Collaborate</span>
-        </LusionKineticHeading>
+          parts={[
+            { text: "How We Can " },
+            { text: "Collaborate", kinetic: true, theme: true },
+          ]}
+        />
       </div>
 
       <div ref={gridRef} className={`offers-grid ${enhanced ? "is-scroll-reveal" : ""}`}>

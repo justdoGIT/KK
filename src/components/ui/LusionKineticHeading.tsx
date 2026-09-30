@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 
+type HeadingPart = { text: string; kinetic?: boolean; theme?: boolean };
+
 type LusionKineticHeadingProps = {
   text?: string;
   children?: ReactNode;
+  /** Mixed static + animated segments, e.g. plain lead-in words plus one kinetic highlighted word. Takes priority over `text`/`children`. */
+  parts?: HeadingPart[];
   as?: "h1" | "h2" | "h3" | "span" | "div";
   className?: string;
   kicker?: string;
@@ -31,6 +35,7 @@ function letterStyle(variant: "scatter" | "cascade", order: number): CSSProperti
 export function LusionKineticHeading({
   text,
   children,
+  parts,
   as: Component = "h2",
   className = "",
   kicker,
@@ -63,24 +68,53 @@ export function LusionKineticHeading({
 
   const words = (text ?? "").split(" ");
 
-  // Helper to process text with kinetic effects
-  const processTextNode = (word: string, wIdx: number) => {
-    const first = words.slice(0, wIdx).join("").length;
-    return (
-      <span key={wIdx} className="kinetic-word-mask" aria-hidden="true">
-        <span
-          className="kinetic-word-inner"
-          style={{ transitionDelay: `${wIdx * 0.045}s` }}
-        >
-          {variant === "rise" ? word : [...word].map((char, index) => (
-            <span key={index} className="kinetic-letter" style={letterStyle(variant, first + index)}>{char}</span>
-          ))}&nbsp;
-        </span>
+  // Renders one animated word: letters split for scatter/cascade, whole word for rise.
+  // `theme` swaps the gradient fill for a solid themed color+glow on each letter —
+  // combining background-clip:text with the cascade's 3D rotateX transform corrupts
+  // the first glyph in Chromium, so themed letters never use the gradient clip.
+  const processTextNode = (word: string, key: number, letterOffset: number, theme?: boolean) => (
+    <span key={key} className="kinetic-word-mask" aria-hidden="true">
+      <span className="kinetic-word-inner" style={{ transitionDelay: `${key * 0.045}s` }}>
+        {variant === "rise" ? word : [...word].map((char, index) => (
+          <span
+            key={index}
+            className={theme ? "kinetic-letter kinetic-letter-theme" : "kinetic-letter"}
+            style={letterStyle(variant as "scatter" | "cascade", letterOffset + index)}
+          >
+            {char}
+          </span>
+        ))}&nbsp;
       </span>
-    );
-  };
+    </span>
+  );
 
-  const titleContent = children ? children : words.map((word, wIdx) => processTextNode(word, wIdx));
+  let titleContent: ReactNode;
+  let ariaLabel = text ?? "";
+
+  if (parts && parts.length > 0) {
+    ariaLabel = parts.map((part) => part.text).join("");
+    let letterOffset = 0;
+    let kineticWordIdx = 0;
+    titleContent = parts.map((part, pIdx) => {
+      if (!part.kinetic) {
+        return (
+          <span key={`static-${pIdx}`} className="kinetic-word-static">
+            {part.text}
+          </span>
+        );
+      }
+      return part.text.split(" ").filter((w) => w.length > 0).map((word) => {
+        const node = processTextNode(word, kineticWordIdx, letterOffset, part.theme);
+        letterOffset += word.length;
+        kineticWordIdx += 1;
+        return node;
+      });
+    });
+  } else if (children) {
+    titleContent = children;
+  } else {
+    titleContent = words.map((word, wIdx) => processTextNode(word, wIdx, words.slice(0, wIdx).join("").length));
+  }
 
   return (
     <div
@@ -94,7 +128,7 @@ export function LusionKineticHeading({
         </div>
       )}
 
-      <Component className="lusion-kinetic-title" aria-label={text || ""}>
+      <Component className="lusion-kinetic-title" aria-label={ariaLabel}>
         {titleContent}
       </Component>
 

@@ -12,17 +12,6 @@
   padding-left: 0;
 }
 
-/* Heading word highlight for theme color emphasis */
-.heading-highlight-theme {
-  background: linear-gradient(135deg, #38bdf8 0%, #00f0ff 40%, #7dd3fc 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
-  font-weight: inherit;
-  display: inline;
-}
 /* === Scroll-Driven Cinematic Journey: Split-screen left text / right canvas === */
 .journey-scroll-section {
   position: relative;
@@ -3528,6 +3517,31 @@ main::before {
   background: none;
   -webkit-text-fill-color: currentColor;
 }
+/* Static lead-in text alongside an animated word (e.g. "How We Can " before
+   a kinetic "Collaborate"): never animates, pre-wrap guards the trailing
+   space from flex-item whitespace trimming between it and the next sibling. */
+.kinetic-word-static {
+  display: inline;
+  white-space: pre-wrap;
+  color: inherit;
+}
+/* Themed cascade/scatter letters: solid color + glow instead of the gradient
+   clip, since background-clip:text combined with the cascade's 3D rotateX
+   corrupts the first glyph in Chromium (see .kinetic-cascade .kinetic-letter). */
+.kinetic-letter-theme {
+  color: #38bdf8;
+}
+.is-kinetic.kinetic-cascade .kinetic-letter-theme,
+.is-revealed.kinetic-cascade .kinetic-letter-theme {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.7), 0 0 22px rgba(56, 189, 248, 0.4);
+}
+.is-kinetic.kinetic-scatter .kinetic-letter-theme,
+.is-revealed.kinetic-scatter .kinetic-letter-theme {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.7), 0 0 22px rgba(56, 189, 248, 0.4);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lusion-kinetic-heading-wrap .kinetic-word-inner,
   .lusion-kinetic-heading-wrap .kinetic-letter,
