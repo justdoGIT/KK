@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX } from "react";
 import { skillCategories } from "../../content/skills.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import {
   clamp01,
@@ -60,6 +61,7 @@ export function SkillDomainsReveal(): JSX.Element {
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const revealedCountRef = useRef(0);
+  useGuidedScroll(sectionRef, pinned, 0.88, 300);
 
   const visible = selected === ALL
     ? skillCategories

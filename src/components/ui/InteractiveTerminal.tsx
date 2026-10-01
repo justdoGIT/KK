@@ -1,4 +1,6 @@
 import { useState, useRef, type CSSProperties, type JSX } from "react";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 
@@ -115,6 +117,7 @@ const INITIAL_REVEAL_STYLE: CSSProperties = {
 };
 
 export function InteractiveTerminal(): JSX.Element {
+  const enhanced = useMotionMode() === "enhanced";
   const [activeCmdIdx, setActiveCmdIdx] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -128,6 +131,7 @@ export function InteractiveTerminal(): JSX.Element {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const manualOverrideRef = useRef(false);
   const manualTimerRef = useRef<number | null>(null);
+  useGuidedScroll(sectionRef, enhanced, 0.94, 300);
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 

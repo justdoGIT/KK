@@ -11,6 +11,7 @@ import {
 import { CardFrontContent } from "./CaseStudyCardContent.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
@@ -43,6 +44,7 @@ export function CaseStudies(): JSX.Element {
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef   = useRef<HTMLDivElement>(null);
+  useGuidedScroll(sectionRef, animated, 0.76, 320);
   // Computed targetX per card: card 0 left edge = heading left edge. A ref,
   // not state — read every scroll frame by the imperative driver below, so a
   // stage resize never has to wait for a React render to reach the cards.

@@ -2,6 +2,7 @@ import { useRef, useState, type JSX } from "react";
 import { SiliconFleetCanvas } from "../../scene/journey/SiliconFleetCanvas.tsx";
 import { boardLifecycle } from "../../content/board-lifecycle.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
@@ -11,6 +12,7 @@ export function StoryJourney(): JSX.Element {
   const section = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const enhanced = useMotionMode() === "enhanced";
+  useGuidedScroll(section, enhanced, 0.94, 280);
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
   useScrollFrame(() => {

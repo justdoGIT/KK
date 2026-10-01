@@ -3,6 +3,7 @@ import { services, type Service } from "../../content/services.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { throwFrame, throwPose, throwProgressFor } from "../../motion/throw-deck.ts";
@@ -80,6 +81,7 @@ export function Services(): JSX.Element {
   const [activeCard, setActiveCard] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  useGuidedScroll(sectionRef, throwMode, 0.94, 300);
 
   // Stacked layout: the most visible card is the active tab.
   useEffect(() => {
