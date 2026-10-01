@@ -60,10 +60,7 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   const moverOffsetWidth = mover.offsetWidth;
   const moverOffsetHeight = mover.offsetHeight;
   const moverOffsetTop = mover.offsetTop;
-  // Use cached rects from the previous frame for the stage/card measurements
-  // (one frame stale is imperceptible and avoids a forced layout mid-paint).
   const stageBox = stage.getBoundingClientRect();
-  const card = mover.getBoundingClientRect();
 
   // ── 2. COMPUTE ──────────────────────────────────────────────────────────
   const progress = phaseRatio(t, "wait");
@@ -104,13 +101,28 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   const translatedY = frame.offset + shiftY;
   const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
 
-  // Update finale anchor data (card metrics from pre-write rects are one frame stale; acceptable)
-  finale.cardLeft = card.left - stageBox.left;
-  finale.cardTop = card.top - stageBox.top;
-  finale.cardWidth = card.width;
-  finale.footX = finale.cardLeft + card.width * STAND_AT;
+  // Card rect for THIS frame, derived analytically from the same scale/
+  // shift values driving `mover.style.transform` below, instead of reading
+  // `mover.getBoundingClientRect()` — that rect reflects last frame's
+  // transform (one paint behind), and during active scroll that lag was
+  // visible as a gap between the 3D landing deck (placed from this data)
+  // and the actually-rendered card edge. `.contact-banner-mover`'s
+  // transform-origin is 50% 0% (top-center, see contact-banner.css), and
+  // it's horizontally centred by `margin: auto` inside `.contact-banner-
+  // stage`'s symmetric side padding, so its pre-transform left edge is
+  // just (stage width - mover width) / 2 regardless of that padding.
+  const left0 = (stageBox.width - moverOffsetWidth) / 2;
+  const cardLeft = left0 + (moverOffsetWidth * (1 - scale)) / 2 + shiftX;
+  const cardTop = moverOffsetTop + translatedY;
+  const cardWidth = moverOffsetWidth * scale;
+
+  // Update finale anchor data from the analytic rect above.
+  finale.cardLeft = cardLeft;
+  finale.cardTop = cardTop;
+  finale.cardWidth = cardWidth;
+  finale.footX = finale.cardLeft + cardWidth * STAND_AT;
   const headroom = Math.max(40, finale.cardTop - 16) / 1.1;
-  finale.bodyHeight = Math.min(card.width * BODY_RATIO, height * LANDING_BODY, headroom);
+  finale.bodyHeight = Math.min(cardWidth * BODY_RATIO, height * LANDING_BODY, headroom);
 
   // ── 3. DOM WRITES ───────────────────────────────────────────────────────
   root.dataset.finaleProgress = progress.toFixed(3);
