@@ -3,6 +3,7 @@ import { Quaternion, Vector3 } from "three";
 import { applyPose, createPoseBuffer } from "../scene/astronaut/astronaut-poses.ts";
 import { sampleContactPose } from "../scene/astronaut/contact-poses.ts";
 import { instantiateAstronaut, type AstronautInstance, type BoneName } from "../scene/astronaut/astronaut-rig.ts";
+import { RECLINE_ROLL } from "../scene/astronaut/deck-contact.ts";
 
 // Glove axes in the NASA bind pose (measured on the mesh): fingers along the
 // arm, palm facing down (-Y), thumb forward (+Z).
@@ -56,5 +57,22 @@ describe("astronaut poses", () => {
     expect(Math.abs(head.x - hips.x)).toBeLessThan(head.y - hips.y);
     expect(leftKnee.y).toBeLessThan(hips.y);
     expect(rightKnee.y).toBeLessThan(hips.y);
+  });
+
+  it("props the reclining helmet on the lower hand and elbow", () => {
+    const astronaut = instantiateAstronaut({ parts: [] });
+    const pose = createPoseBuffer();
+    sampleContactPose("lie", 0, 1, pose);
+    applyPose(astronaut, pose);
+    astronaut.root.rotation.z = RECLINE_ROLL;
+    astronaut.root.updateMatrixWorld(true);
+
+    const head = position(astronaut, "head");
+    const elbow = position(astronaut, "forearmL");
+    const hand = position(astronaut, "handL");
+
+    expect(hand.distanceTo(head)).toBeLessThan(0.3);
+    expect(hand.y - elbow.y).toBeGreaterThan(0.1);
+    expect(Math.abs(hand.z - head.z)).toBeLessThan(0.18);
   });
 });

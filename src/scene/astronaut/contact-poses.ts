@@ -52,16 +52,16 @@ const SIT = raw({
 });
 
 /**
- * Reclining on the left side, propped on the left elbow with the forearm flat
- * on the plate, top leg drawn forward over the straight lower leg, top hand
- * resting on the hip. Solved from world limb directions for the deck roll
- * `RECLINE_ROLL`, so elbow and hip both carry the body on the plate.
+ * Reclining on the left side with the torso propped on the left elbow and the
+ * left glove tucked beneath the helmet. The forearm rises from the deck to
+ * carry the head; the top leg folds over the straight lower leg while the
+ * right hand rests on the hip.
  */
 const RECLINE = raw({
   head: [0.12, 0.014, 0.231],
-  armL: [-0.048, -0.175, -0.431],
-  forearmL: [0.255, -0.976, 1.138],
-  handL: [-0.015, -0.073, -0.023],
+  armL: [0.594, -1.999, -0.309],
+  forearmL: [-0.785, -2, 0.176],
+  handL: [-1.521, -2.802, -2.739],
   armR: [-0.145, 0.113, 1.718],
   forearmR: [-0.064, 0.072, -0.612],
   handR: [-0.061, 0.193, 0.217],

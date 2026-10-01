@@ -29,8 +29,8 @@ const SEAT_X = -0.2;
 const HANG_INSET = 0.07;
 /** Gloves rise this far above the lip while gripping it (rig units). */
 const GRIP = 0.035;
-/** Reclining on the left side, head toward +x, facing the camera, shoulders propped up. */
-export const RECLINE_ROLL = -Math.PI / 2 + 0.56;
+/** Reclining on the left side, head toward +x, facing the camera. */
+export const RECLINE_ROLL = -1.2;
 /** Depth behind the front face over which transitional depenetration ramps in (rig units). */
 const ENTRY_RAMP = 0.08;
 
