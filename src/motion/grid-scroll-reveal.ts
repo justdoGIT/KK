@@ -17,13 +17,12 @@ function settle(el: HTMLElement): void {
   el.style.setProperty("--r", "1");
   el.style.opacity = "";
   el.style.transform = "";
-  el.style.filter = "";
   el.classList.add("is-open");
 }
 
 /**
  * Scroll-linked, bidirectional reveal for the cards of a CSS grid. Each card
- * gets `--r` (0..1) for CSS-driven inner staging plus an inline opacity /
+ * gets `--r` (0..1) for CSS-driven inner staging plus an inline opacity and
  * transform built by `transform(inv, index)`; at rest the inline styles are
  * cleared and `.is-open` is set so hover rules apply untouched. Returns
  * nothing; `onFrame(openedCount, meanProgress)` reports progress.

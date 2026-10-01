@@ -111,7 +111,6 @@ function clamp01(n: number): number {
 // there is no unstyled flash between first paint and first frame.
 const INITIAL_REVEAL_STYLE: CSSProperties = {
   opacity: 0.1,
-  filter: "blur(4.00px)",
   transform: "perspective(1200px) translate3d(-120.0px, 90.0px, -40.0px) scale(0.420) rotateX(14.00deg) rotateY(-9.00deg)",
   clipPath: "inset(0% 20.0% 25.0% 0% round 0.0px)",
 };
@@ -135,9 +134,9 @@ export function InteractiveTerminal(): JSX.Element {
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 
-  // Scroll-linked reveal (opacity/filter/transform/clipPath) is a continuous
-  // per-frame value written straight to the wrapper's style — it never needs
-  // a React commit. Only the terminal script's text content (typed command,
+  // Scroll-linked reveal (opacity/transform/clipPath) is a continuous per-frame
+  // value written straight to the wrapper's style — it never needs a React
+  // commit. Only the terminal script's text content (typed command,
   // visible output lines, active tab) is state, and only changes at the
   // discrete steps the script advances through.
   useScrollFrame(() => {
@@ -155,12 +154,10 @@ export function InteractiveTerminal(): JSX.Element {
       const invReveal = 1 - popProgress;
       if (popProgress >= 0.999) {
         wrapper.style.opacity = "1";
-        wrapper.style.filter = "none";
         wrapper.style.transform = "none";
         wrapper.style.clipPath = "none";
       } else {
         wrapper.style.opacity = (0.1 + popProgress * 0.9).toFixed(3);
-        wrapper.style.filter = invReveal > 0.05 ? `blur(${(invReveal * 4).toFixed(2)}px)` : "none";
         wrapper.style.transform = `perspective(1200px) translate3d(${(invReveal * -120).toFixed(1)}px, ${(invReveal * 90).toFixed(1)}px, ${(invReveal * -40).toFixed(1)}px) scale(${(0.42 + popProgress * 0.58).toFixed(3)}) rotateX(${(invReveal * 14).toFixed(2)}deg) rotateY(${(invReveal * -9).toFixed(2)}deg)`;
         wrapper.style.clipPath = `inset(0% ${(invReveal * 20).toFixed(1)}% ${(invReveal * 25).toFixed(1)}% 0% round ${(16 * popProgress).toFixed(1)}px)`;
       }
