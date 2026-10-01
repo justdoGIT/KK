@@ -1,5 +1,5 @@
 import { CapsuleGeometry, CylinderGeometry, Group, SphereGeometry, TorusGeometry } from "three";
-import { part, roundedBox, type ChibiPalette } from "./humanoid-surfaces.ts";
+import { part, type ChibiPalette } from "./humanoid-surfaces.ts";
 
 export type ChibiArm = { upper: Group; elbow: Group; forearm: Group; hand: Group };
 export type ChibiLeg = { hip: Group; thigh: Group; knee: Group; shin: Group; boot: Group };
@@ -7,148 +7,120 @@ export const UPPER_ARM_LENGTH = 0.24;
 export const FOREARM_LENGTH = 0.235;
 export const THIGH_LENGTH = 0.23;
 export const SHIN_LENGTH = 0.28;
-export const BOOT_SOLE_HEIGHT = 0.08;
 
-/** Limb sections point along +Y, from proximal joint to distal joint; +Z is the armor face. */
+/** A ring around a limb's +Y axis. */
+function band(radius: number, tube: number, y: number, material: ChibiPalette["accent"]) {
+  const mesh = part(new TorusGeometry(radius, tube, 12, 40), material);
+  mesh.rotation.x = Math.PI / 2;
+  mesh.position.y = y;
+  return mesh;
+}
+
+/** A softly flattened sphere: rounded armor plates and pads. */
+function pad(radius: number, scale: readonly [number, number, number], at: readonly [number, number, number], material: ChibiPalette["accent"]) {
+  const mesh = part(new SphereGeometry(radius, 32, 20), material);
+  mesh.scale.set(...scale);
+  mesh.position.set(...at);
+  return mesh;
+}
+
+/** Limb sections point along +Y from proximal to distal joint; +Z is the armor face. */
 export function createChibiArm(p: ChibiPalette): ChibiArm {
   const upper = new Group();
-  const socket = part(new SphereGeometry(0.096, 24, 18), p.rubber);
-  const sleeve = part(new CapsuleGeometry(0.091, 0.09, 8, 28), p.shell);
+  const sleeve = part(new CapsuleGeometry(0.088, 0.09, 10, 32), p.shell);
   sleeve.position.y = 0.12;
-  const shoulder = part(new SphereGeometry(0.132, 32, 24), p.shell);
-  shoulder.position.y = 0.03;
-  shoulder.scale.set(1, 0.9, 0.92);
-  const shoulderTrim = part(new TorusGeometry(0.106, 0.013, 10, 32), p.accent);
-  shoulderTrim.rotation.x = Math.PI / 2;
-  shoulderTrim.position.y = 0.092;
-  upper.add(socket, sleeve, shoulder, shoulderTrim);
+  upper.add(
+    part(new SphereGeometry(0.096, 32, 20), p.rubber),
+    sleeve,
+    pad(0.132, [1, 0.88, 0.94], [0, 0.03, 0], p.shell),
+    band(0.104, 0.016, 0.095, p.accent),
+  );
 
   const elbow = new Group();
-  elbow.add(part(new SphereGeometry(0.083, 24, 18), p.rubber));
-  const pivot = part(new CylinderGeometry(0.047, 0.047, 0.175, 24), p.silver);
+  const pivot = part(new CylinderGeometry(0.046, 0.046, 0.17, 28), p.silver);
   pivot.rotation.z = Math.PI / 2;
-  elbow.add(pivot);
+  elbow.add(part(new SphereGeometry(0.082, 32, 20), p.rubber), pivot);
 
   const forearm = new Group();
-  const vambrace = part(new CapsuleGeometry(0.094, 0.075, 8, 28), p.shell);
+  const vambrace = part(new CapsuleGeometry(0.092, 0.075, 10, 32), p.shell);
   vambrace.position.y = 0.113;
-  vambrace.scale.z = 0.9;
-  const elbowBand = part(new TorusGeometry(0.081, 0.014, 10, 28), p.accent);
-  elbowBand.rotation.x = Math.PI / 2;
-  elbowBand.position.y = 0.038;
-  const wristBand = part(new TorusGeometry(0.075, 0.014, 10, 28), p.cyan);
-  wristBand.rotation.x = Math.PI / 2;
-  wristBand.position.y = 0.206;
-  const panel = part(roundedBox(0.107, 0.13, 0.028, 0.018), p.shell);
-  panel.position.set(0, 0.118, 0.077);
-  const stripe = part(roundedBox(0.018, 0.093, 0.012, 0.004), p.accent);
-  stripe.position.set(-0.023, 0.117, 0.097);
-  forearm.add(vambrace, elbowBand, wristBand, panel, stripe);
-  const slotGeometry = roundedBox(0.024, 0.008, 0.01, 0.003);
-  for (let i = 0; i < 3; i++) {
-    const slot = part(slotGeometry, p.dark);
-    slot.position.set(0.024, 0.143 + i * 0.012, 0.097);
-    forearm.add(slot);
-  }
+  vambrace.scale.z = 0.92;
+  const stripe = part(new CapsuleGeometry(0.009, 0.075, 6, 12), p.cyan);
+  stripe.position.set(0.028, 0.125, 0.088);
+  forearm.add(
+    vambrace,
+    pad(0.07, [1, 1.15, 0.5], [-0.012, 0.115, 0.06], p.accent),
+    stripe,
+    band(0.082, 0.015, 0.038, p.accent),
+    band(0.074, 0.014, 0.205, p.cyan),
+  );
 
+  // Black glove: rounded palm, curled capsule fingers, and an opposed thumb.
   const hand = new Group();
   hand.name = "ChibiRobotHand";
-  const cuff = part(new TorusGeometry(0.069, 0.013, 10, 28), p.accent);
-  cuff.rotation.x = Math.PI / 2;
-  const palm = part(roundedBox(0.125, 0.106, 0.081, 0.025), p.rubber);
-  palm.position.y = 0.06;
-  const handPlate = part(roundedBox(0.106, 0.07, 0.027, 0.015), p.shell);
-  handPlate.position.set(0, 0.045, 0.044);
-  hand.add(cuff, palm, handPlate);
-  const knuckleGeometry = new SphereGeometry(0.017, 16, 12);
-  const fingerGeometry = roundedBox(0.025, 0.042, 0.032, 0.009);
-  const tipGeometry = roundedBox(0.024, 0.031, 0.032, 0.011);
-  for (let i = 0; i < 4; i++) {
-    const x = (i - 1.5) * 0.03;
-    const offset = Math.abs(i - 1.5) * 0.006;
-    const knuckle = part(knuckleGeometry, p.dark);
-    knuckle.position.set(x, 0.105 - offset, 0.017);
-    const finger = part(fingerGeometry, p.dark);
-    finger.position.set(x, 0.13 - offset, 0.014);
-    finger.rotation.x = -0.2;
-    const tip = part(tipGeometry, p.rubber);
-    tip.position.set(x, 0.157 - offset, -0.003);
-    tip.rotation.x = -0.65;
-    hand.add(knuckle, finger, tip);
+  hand.add(band(0.068, 0.014, 0, p.accent), pad(0.064, [1.05, 0.95, 0.72], [0, 0.062, 0], p.rubber));
+  const finger = new CapsuleGeometry(0.0165, 0.045, 6, 14);
+  for (let i = 0; i < 4; i += 1) {
+    const digit = part(finger, p.rubber);
+    digit.position.set((i - 1.5) * 0.031, 0.128 - Math.abs(i - 1.5) * 0.006, 0.012);
+    digit.rotation.x = -0.4;
+    hand.add(digit);
   }
-  const thumb = part(roundedBox(0.031, 0.067, 0.039, 0.013), p.dark);
-  thumb.position.set(0.074, 0.069, 0.011);
-  thumb.rotation.z = -0.55;
-  const thumbTip = part(tipGeometry, p.rubber);
-  thumbTip.position.set(0.091, 0.099, -0.003);
-  thumbTip.rotation.x = -0.5;
-  hand.add(thumb, thumbTip);
+  const thumb = part(new CapsuleGeometry(0.019, 0.04, 6, 14), p.rubber);
+  thumb.position.set(0.068, 0.07, 0.02);
+  thumb.rotation.set(-0.3, 0, -0.75);
+  hand.add(thumb);
   return { upper, elbow, forearm, hand };
 }
 
-/** Closed leg shells and flat treaded soles, with separate knee and ankle articulation. */
+/** Rounded leg shells, orange knee and shin guards, and a soft boot on a flat dark sole. */
 export function createChibiLeg(p: ChibiPalette): ChibiLeg {
   const hip = new Group();
-  const hipJoint = part(new SphereGeometry(0.124, 28, 20), p.rubber);
-  hipJoint.scale.set(1, 0.87, 0.87);
-  hip.add(hipJoint);
+  hip.add(pad(0.124, [1, 0.87, 0.87], [0, 0, 0], p.rubber));
 
   const thigh = new Group();
-  const thighShell = part(new CapsuleGeometry(0.123, 0.055, 8, 28), p.shell);
+  const thighShell = part(new CapsuleGeometry(0.12, 0.055, 10, 32), p.shell);
   thighShell.position.y = 0.104;
   thighShell.scale.z = 0.94;
-  const thighBand = part(new TorusGeometry(0.112, 0.012, 10, 28), p.accent);
-  thighBand.rotation.x = Math.PI / 2;
-  thighBand.position.y = 0.17;
-  thigh.add(thighShell, thighBand);
+  thigh.add(thighShell, band(0.112, 0.014, 0.17, p.accent));
 
   const knee = new Group();
-  knee.add(part(new SphereGeometry(0.098, 24, 18), p.rubber));
-  const kneePlate = part(roundedBox(0.174, 0.125, 0.085, 0.038), p.shell);
-  kneePlate.position.z = 0.055;
-  const kneeLight = part(roundedBox(0.148, 0.032, 0.025, 0.01), p.cyan);
-  kneeLight.position.set(0, 0.03, 0.103);
-  knee.add(kneePlate, kneeLight);
+  const kneeLight = part(new CapsuleGeometry(0.01, 0.06, 6, 12), p.cyan);
+  kneeLight.rotation.z = Math.PI / 2;
+  kneeLight.position.set(0, 0.012, 0.115);
+  knee.add(part(new SphereGeometry(0.097, 32, 20), p.rubber), pad(0.088, [1.05, 0.92, 0.62], [0, 0, 0.062], p.accent), kneeLight);
 
   const shin = new Group();
-  const shinShell = part(new CapsuleGeometry(0.112, 0.09, 8, 28), p.shell);
+  const shinShell = part(new CapsuleGeometry(0.11, 0.09, 10, 32), p.shell);
   shinShell.position.y = 0.134;
   shinShell.scale.z = 0.94;
-  const greave = part(roundedBox(0.194, 0.178, 0.087, 0.035), p.accent);
-  greave.position.set(0, 0.15, 0.082);
-  const shinRim = part(roundedBox(0.199, 0.038, 0.065, 0.013), p.cyan);
-  shinRim.position.set(0, 0.065, 0.098);
-  const ankleLamp = part(roundedBox(0.102, 0.022, 0.018, 0.008), p.cyan);
-  ankleLamp.position.set(0, 0.211, 0.132);
-  shin.add(shinShell, greave, shinRim, ankleLamp);
+  shin.add(shinShell, pad(0.1, [0.95, 1.25, 0.55], [0, 0.155, 0.06], p.accent));
+  const stripe = new CapsuleGeometry(0.009, 0.07, 6, 12);
+  for (const y of [0.11, 0.19]) {
+    const light = part(stripe, p.cyan);
+    light.rotation.z = Math.PI / 2;
+    light.position.set(0, y, 0.115);
+    shin.add(light);
+  }
 
   const boot = new Group();
   boot.name = "ChibiRobotBoot";
-  const sole = part(roundedBox(0.282, 0.058, 0.372, 0.023), p.rubber);
-  sole.position.set(0, -0.045, 0.076);
-  const welt = part(roundedBox(0.273, 0.021, 0.353, 0.012), p.silver);
-  welt.position.set(0, -0.013, 0.076);
-  const shoe = part(roundedBox(0.253, 0.123, 0.316, 0.045), p.shell);
-  shoe.position.set(0, 0.019, 0.066);
-  const toe = part(roundedBox(0.208, 0.066, 0.122, 0.024), p.accent);
-  toe.position.set(0, 0.028, 0.186);
-  const ankle = part(new CylinderGeometry(0.083, 0.1, 0.135, 28), p.accent);
-  ankle.position.set(0, 0.108, -0.014);
-  const ankleSeal = part(new TorusGeometry(0.082, 0.012, 10, 28), p.rubber);
-  ankleSeal.rotation.x = Math.PI / 2;
-  ankleSeal.position.set(0, 0.174, -0.014);
-  boot.add(sole, welt, shoe, toe, ankle, ankleSeal);
-  const strapGeometry = roundedBox(0.155, 0.022, 0.036, 0.008);
-  for (const z of [0.061, 0.106]) {
-    const strap = part(strapGeometry, p.accent);
-    strap.position.set(0, 0.081, z);
-    boot.add(strap);
-  }
-  const treadGeometry = roundedBox(0.245, 0.012, 0.026, 0.004);
-  for (let i = 0; i < 6; i++) {
-    const tread = part(treadGeometry, p.dark);
-    tread.position.set(0, -0.074, -0.067 + i * 0.058);
-    boot.add(tread);
-  }
+  const upperBoot = part(new CapsuleGeometry(0.1, 0.17, 12, 32), p.shell);
+  upperBoot.rotation.x = Math.PI / 2;
+  upperBoot.scale.set(1.25, 1, 0.62);
+  upperBoot.position.set(0, 0.025, 0.07);
+  const sole = part(new CapsuleGeometry(0.1, 0.19, 10, 32), p.rubber);
+  sole.rotation.x = Math.PI / 2;
+  sole.scale.set(1.32, 1, 0.24);
+  sole.position.set(0, -0.045, 0.07);
+  const ankle = part(new CylinderGeometry(0.083, 0.1, 0.135, 32), p.accent);
+  ankle.position.set(0, 0.105, -0.014);
+  boot.add(
+    upperBoot,
+    sole,
+    pad(0.1, [1.22, 0.62, 0.9], [0, 0.02, 0.165], p.accent),
+    ankle,
+    band(0.082, 0.012, 0.172, p.rubber),
+  );
   return { hip, thigh, knee, shin, boot };
 }
