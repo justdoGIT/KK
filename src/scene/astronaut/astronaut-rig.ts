@@ -67,9 +67,15 @@ const LEG_R: BoneName[] = ["hips", "thighR", "shinR", "footR"];
 const HEAD: BoneName[] = ["chest", "neck", "head"];
 const TORSO: BoneName[] = ["hips", "spine", "chest", "neck"];
 
-function region(x: number, y: number): BoneName[] {
-  if (y > 8 && x > 12.5) return ARM_L;
-  if (y > 8 && x < -12.5) return ARM_R;
+/**
+ * The life-support backpack reaches past the shoulders behind the back plane
+ * (z < -5); it rides the torso, otherwise raised arms drag its corners out
+ * into stretched flaps.
+ */
+function region(x: number, y: number, z: number): BoneName[] {
+  const arm = y > 8 && z > -5;
+  if (arm && x > 12.5) return ARM_L;
+  if (arm && x < -12.5) return ARM_R;
   if (y > 23) return HEAD;
   if (y < -5) return x >= 0 ? LEG_L : LEG_R;
   return TORSO;
@@ -90,7 +96,7 @@ function skin(geometry: BufferGeometry, scale: number): void {
   const p = new Vector3();
   for (let i = 0; i < pos.count; i += 1) {
     p.fromBufferAttribute(pos, i).divideScalar(scale);
-    const candidates = region(p.x, p.y)
+    const candidates = region(p.x, p.y, p.z)
       .map((name) => ({ bone: BONES.indexOf(name), d: segmentDistance(p, JOINTS[name].at, JOINTS[name].tip) }))
       .sort((a, b) => a.d - b.d)
       .slice(0, 2);
@@ -144,7 +150,91 @@ function visorMaterial(): MeshPhysicalMaterial {
   });
 }
 
-export type AstronautRigData = { parts: { geometry: BufferGeometry; material: MeshPhysicalMaterial }[] };
+/**
+ * Suit support points: for every bone, the vertices it dominates that reach
+ * furthest along each sampled direction. Each keeps its two skin bones and
+ * weights with its bind position local to each bone (bones bind unrotated at
+ * their joints), so a pose places it exactly as the GPU skins it. Deck
+ * contact rests on these instead of guessing limb thickness.
+ */
+export type AstronautHull = {
+  /** Dominant bone index per point. */
+  bones: Uint8Array;
+  /** Two skin bone indices per point. */
+  pairs: Uint8Array;
+  /** Two skin weights per point. */
+  weights: Float32Array;
+  /** Bind position local to each skin bone: 6 floats per point. */
+  local: Float32Array;
+};
+
+export type AstronautRigData = {
+  parts: { geometry: BufferGeometry; material: MeshPhysicalMaterial }[];
+  hull: AstronautHull;
+};
+
+/** Directions sampled per bone (Fibonacci sphere): ~0.01 rig-unit support error on limbs. */
+const HULL_DIRECTIONS = 48;
+
+function buildHull(geometries: readonly BufferGeometry[]): AstronautHull {
+  const directions: number[] = [];
+  for (let i = 0; i < HULL_DIRECTIONS; i += 1) {
+    const y = 1 - (2 * (i + 0.5)) / HULL_DIRECTIONS;
+    const radius = Math.sqrt(1 - y * y);
+    const phi = i * Math.PI * (3 - Math.sqrt(5));
+    directions.push(Math.cos(phi) * radius, y, Math.sin(phi) * radius);
+  }
+  const slots = BONES.length * HULL_DIRECTIONS;
+  const score = new Float32Array(slots).fill(-Infinity);
+  const best = new Float32Array(slots * 7);
+  for (const geometry of geometries) {
+    const position = geometry.getAttribute("position");
+    const index = geometry.getAttribute("skinIndex");
+    const weight = geometry.getAttribute("skinWeight");
+    for (let i = 0; i < position.count; i += 1) {
+      const bone = weight.getX(i) >= weight.getY(i) ? index.getX(i) : index.getY(i);
+      const x = position.getX(i);
+      const y = position.getY(i);
+      const z = position.getZ(i);
+      for (let d = 0; d < HULL_DIRECTIONS; d += 1) {
+        const slot = bone * HULL_DIRECTIONS + d;
+        const s = x * directions[d * 3] + y * directions[d * 3 + 1] + z * directions[d * 3 + 2];
+        if (s <= score[slot]) continue;
+        score[slot] = s;
+        best.set([x, y, z, index.getX(i), index.getY(i), weight.getX(i), weight.getY(i)], slot * 7);
+      }
+    }
+  }
+  const unit = ASTRONAUT_HEIGHT / MESH_HEIGHT;
+  const bones: number[] = [];
+  const pairs: number[] = [];
+  const weights: number[] = [];
+  const local: number[] = [];
+  for (let bone = 0; bone < BONES.length; bone += 1) {
+    const seen = new Set<string>();
+    for (let d = 0; d < HULL_DIRECTIONS; d += 1) {
+      const slot = bone * HULL_DIRECTIONS + d;
+      if (score[slot] === -Infinity) continue;
+      const [x, y, z, b0, b1, w0, w1] = best.subarray(slot * 7, slot * 7 + 7);
+      const key = `${x},${y},${z}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      bones.push(bone);
+      pairs.push(b0, b1);
+      weights.push(w0, w1);
+      for (const skinBone of [b0, b1]) {
+        const at = JOINTS[BONES[skinBone]].at;
+        local.push(x - at[0] * unit, y - at[1] * unit, z - at[2] * unit);
+      }
+    }
+  }
+  return {
+    bones: Uint8Array.from(bones),
+    pairs: Uint8Array.from(pairs),
+    weights: Float32Array.from(weights),
+    local: Float32Array.from(local),
+  };
+}
 
 /**
  * Widens integer-quantized attributes to plain float before a matrix bake. The
@@ -187,13 +277,13 @@ export function buildAstronautRig(scene: Object3D): AstronautRigData {
     const material = source.name === VISOR_MATERIAL ? visorMaterial() : suitMaterial(source);
     parts.push({ geometry, material });
   });
-  return { parts };
+  return { parts, hull: buildHull(parts.map((part) => part.geometry)) };
 }
 
 export type AstronautInstance = { root: Group; bones: Record<BoneName, Bone> };
 
 /** A posable astronaut: own skeleton, shared skinned geometry. */
-export function instantiateAstronaut(data: AstronautRigData, override?: Material): AstronautInstance {
+export function instantiateAstronaut(data: Pick<AstronautRigData, "parts">, override?: Material): AstronautInstance {
   const unit = ASTRONAUT_HEIGHT / MESH_HEIGHT;
   const bones = {} as Record<BoneName, Bone>;
   for (const name of BONES) {

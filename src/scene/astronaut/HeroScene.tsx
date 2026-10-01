@@ -24,15 +24,11 @@ import {
   impactEnvelope,
   type RootPose,
 } from "./hero-motion.ts";
+import { clearDeck, createPosedHull, hullFloor, placeHull, updatePosedHull, type PosedHull } from "./deck-contact.ts";
+import { createDeckShadows, disposeDeckShadows, placeDeckShadows } from "./deck-shadows.ts";
 import { GlassShards } from "./GlassShards.tsx";
 import type { JourneyClockRef } from "./journey-clock.ts";
-import {
-  createLandingPanel,
-  disposeLandingPanel,
-  landingAnchor,
-  localSoleY,
-  placeLandingPanel,
-} from "./landing-panel.ts";
+import { createLandingPanel, disposeLandingPanel, landingAnchor, placeLandingPanel } from "./landing-panel.ts";
 
 const CLONES = 4;
 const TRAIL_STEP = 7;
@@ -48,6 +44,9 @@ type FrameBuffers = {
   impact: Vector3;
   scratch: Vector3;
   cursor: number;
+  hull: PosedHull;
+  /** World positions of `hull` for this frame's placed root. */
+  world: Float32Array;
 };
 
 function applyRoot(group: Group, pose: RootPose, scaleMul = 1): void {
@@ -121,6 +120,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
   );
   const panel = useMemo(() => createLandingPanel(), []);
   useEffect(() => () => disposeLandingPanel(panel), [panel]);
+  const shadows = useMemo(() => createDeckShadows(), []);
+  useEffect(() => () => disposeDeckShadows(shadows), [shadows]);
 
   useEffect(
     () => () => {
@@ -144,6 +145,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       impact: new Vector3(),
       scratch: new Vector3(),
       cursor: 0,
+      hull: createPosedHull(rig.hull),
+      world: new Float32Array(rig.hull.bones.length * 3),
     };
     const buf = buffers.current;
     const { t, finale, width, height } = clock.current;
@@ -167,15 +170,18 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     }
     if (transition < 1) blendPose(buf.transitionFromPose, buf.pose, transition);
     applyPose(hero, buf.pose);
-    // Boot height depends only on the pose, so measure it before moving the root.
+    // Contact depends only on the pose, so measure the suit before moving the root.
     hero.root.updateWorldMatrix(true, true);
-    const sole = localSoleY(hero, buf.scratch);
+    updatePosedHull(hero, rig.hull, buf.hull);
+    const sole = hullFloor(buf.hull);
     const anchor = landingAnchor(finale, state.camera, width, height);
 
     buf.cursor = (buf.cursor + 1) % HISTORY;
     const root = heroRoot(t, time, buf.history[buf.cursor]);
-    contactRoot(anchor, finale.mode, sole, fall, time, root);
+    contactRoot(anchor, finale.mode, buf.hull, fall, time, root);
     if (transition < 1) blendRoot(buf.transitionFromRoot, root, transition);
+    placeHull(buf.hull, root, buf.world);
+    if (anchor && fall >= 1) clearDeck(anchor, buf.world, root);
     applyRoot(hero.root, root);
 
     const cloneAlpha = cloneWeight(t);
@@ -202,7 +208,9 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     hero.bones.footL.getWorldPosition(buf.impact).project(state.camera);
     impactRef.current.x = Math.max(0.05, Math.min(0.95, (buf.impact.x + 1) * 0.5));
     impactRef.current.y = Math.max(0.05, Math.min(0.95, (buf.impact.y + 1) * 0.5));
-    placeLandingPanel(panel, anchor, hero, fall, smoothstep(0, 0.04, finale.progress), buf.scratch);
+    const shown = smoothstep(0, 0.04, finale.progress);
+    placeLandingPanel(panel, anchor, hero, sole, fall, shown, buf.scratch);
+    placeDeckShadows(shadows, anchor, buf.world, root.scale, shown * fall);
 
     const rim = rimRef.current;
     if (rim) {
@@ -216,6 +224,8 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     <>
       <primitive object={hero.root} />
       <primitive object={panel.mesh} />
+      <primitive object={shadows.contact} />
+      <primitive object={shadows.card} />
       {ghosts.map((ghost, index) => (
         <primitive key={index} object={ghost.root} />
       ))}

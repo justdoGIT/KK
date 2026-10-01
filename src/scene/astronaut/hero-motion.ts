@@ -7,7 +7,8 @@ import {
   type PhaseId,
 } from "../../components/ui/astronaut/journey-timeline.ts";
 import type { ContactPoseMode } from "../../components/ui/contact/banner-timeline.ts";
-import { restOnPanel, type LandingAnchor } from "./landing-panel.ts";
+import { restOnDeck, type DeckRest, type PosedHull } from "./deck-contact.ts";
+import type { LandingAnchor } from "./landing-panel.ts";
 
 // Root transform of the hero astronaut (world units; camera at z=6, 35° FOV,
 // so the stage is ~3.8 units tall and the glass screen lies on z = 0).
@@ -102,47 +103,32 @@ export function heroRoot(t: number, time: number, out: RootPose): RootPose {
   return out;
 }
 
+const rest: DeckRest = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+
 /**
  * Carries the hero root from its drop-ending pose onto the landing panel as
  * `fall` goes 0..1. Once landed the root tracks the card-anchored panel every
- * frame, so the astronaut, panel, and card zoom out together. `localSole` is
- * the current pose's lowest boot sole in rig units, so any standing pose
- * (landing crouch, wave, dance) keeps its boots on the panel top.
+ * frame, so the astronaut, panel, and card zoom out together. `hull` is the
+ * current pose's suit surface, so every mode rests on the deck's real faces.
  */
 export function contactRoot(
   anchor: LandingAnchor | null,
   mode: ContactPoseMode,
-  localSole: number,
+  hull: PosedHull,
   fall: number,
   time: number,
   out: RootPose,
 ): RootPose {
   if (fall <= 0 || !anchor) return out;
-  const rest = restOnPanel(anchor, mode, localSole, time);
+  restOnDeck(anchor, mode, hull, time, rest);
   const sway = Math.sin(time * 0.6) * 0.015;
-  out.x += (anchor.x + rest.xOffset + sway - out.x) * fall;
+  out.x += (anchor.x + rest.x + sway - out.x) * fall;
   out.y += (rest.y - out.y) * fall;
   out.z += (rest.z - out.z) * fall;
   out.scale += (anchor.scale - out.scale) * fall;
-  out.rx *= 1 - fall;
-  out.rz *= 1 - fall;
-  if (mode === "walkPlank") {
-    const dir = Math.cos(time * 0.8);
-    const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
-    out.ry = targetRy * fall;
-  } else if (mode === "moonwalk") {
-    const dir = Math.cos(time * 1.5);
-    const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
-    out.ry = targetRy * fall;
-  } else if (mode === "dance") {
-    out.ry = Math.sin(time * 3.1) * 0.18 * fall;
-  } else if (mode === "wallClimb") {
-    // Gripping the top edge: face the wall (billboard), back to the viewer,
-    // same as a person hanging off a ledge they're holding onto.
-    out.ry = Math.PI * fall;
-  } else {
-    out.ry *= 1 - fall;
-  }
+  out.rx += (rest.rx - out.rx) * fall;
+  out.ry += (rest.ry - out.ry) * fall;
+  out.rz += (rest.rz - out.rz) * fall;
   return out;
 }
 

@@ -28,7 +28,9 @@
 .contact-banner-mover {
   position: relative;
   width: min(92vw, 1200px);
-  margin: clamp(13rem, 32vh, 16rem) auto 0;
+  /* The driver measures the heading and sets --contact-heading-clear to its
+     bottom edge plus a gap, so the card can never slide over the heading. */
+  margin: max(var(--contact-heading-clear, 0px), clamp(13rem, 32vh, 16rem)) auto 0;
   transform-origin: 50% 0%;
   will-change: transform, opacity;
 }
@@ -54,14 +56,15 @@
 .contact-journey-heading {
   position: absolute;
   z-index: 4;
-  top: clamp(2.4rem, 7vh, 5rem);
+  /* Below the sticky 3.5rem nav bar. */
+  top: calc(3.5rem + clamp(0.5rem, 2.5vh, 1.5rem));
   left: 70%;
   width: min(42vw, 620px);
   margin: 0;
   padding-bottom: 0.18em;
   padding-right: 0.1em;
   font-family: var(--font-sans);
-  font-size: clamp(2.4rem, 4.5vw, 4.4rem);
+  font-size: clamp(2.2rem, min(4.5vw, 7.6vh), 4.4rem);
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: -0.045em;
@@ -122,11 +125,11 @@
 
   .contact-banner-mover {
     width: min(96vw, 1200px);
-    margin-top: 12rem;
+    margin-top: max(var(--contact-heading-clear, 0px), 12rem);
   }
 
   .contact-journey-heading {
-    top: 2rem;
+    top: calc(3.5rem + 0.75rem);
     left: 50%;
     width: 92vw;
     font-size: clamp(2.2rem, 10vw, 3.4rem);
@@ -144,7 +147,7 @@
   }
 
   .contact-banner-mover {
-    margin-top: 9rem;
+    margin-top: max(var(--contact-heading-clear, 0px), 9rem);
   }
 }
 

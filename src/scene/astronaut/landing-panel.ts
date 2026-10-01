@@ -10,25 +10,19 @@ import {
   type Camera,
   type Vector3,
 } from "three";
-import type { ContactPoseMode } from "../../components/ui/contact/banner-timeline.ts";
 import { ASTRONAUT_HEIGHT, type AstronautInstance } from "./astronaut-rig.ts";
 import { stageUnitAt, type FinaleClock } from "./journey-clock.ts";
 
-// 3D Billboard / Hoarding Landing Deck under the astronaut's boots.
-// Appears under him as he lands, maintains fixed billboard scale at zoom-out,
-// and connects flush onto the contact card's top edge to form a continuous
-// 3D billboard hoarding structure.
+// 3D billboard ledge under the astronaut's boots. It appears under him as he
+// lands, keeps a fixed billboard scale at zoom-out, and sits flush on the
+// contact card's top edge. Every face reuses the card's dark-glass palette
+// (navy slate, cyan lip light, near-black occlusion) and skips tone mapping,
+// so the ledge renders the same sRGB colors as the CSS card beneath it.
 
 const THICKNESS = 0.07;
 const DEPTH = 0.55;
 /** Share of the panel depth in front of his boots, so the deck reads ahead of him. */
 const AHEAD = 0.72;
-/** Rig units from the ankle joint down to the boot sole. */
-const SOLE_BELOW_ANKLE = 0.1;
-/** Seated hips meet the deck while the torso stays above and legs hang below. */
-const SEAT_HEIGHT = -0.18;
-const LIE_HEIGHT = 0.12;
-const SEAT_X = -0.2;
 
 export type LandingAnchor = {
   /** Astronaut x, panel top y, and scale once landed (world units). */
@@ -74,125 +68,74 @@ export function landingAnchor(
   };
 }
 
-/** Root y/z resting the astronaut on the panel for all modes: standing, seated, lying, climbing, walking. */
-export function restOnPanel(
-  anchor: LandingAnchor,
-  mode: ContactPoseMode,
-  localSoleY: number,
-  time = 0,
-): { xOffset: number; y: number; z: number } {
-  if (mode === "sit" || mode === "wait") {
-    return { xOffset: anchor.width * SEAT_X, y: anchor.top + SEAT_HEIGHT * anchor.scale, z: 0 };
-  }
-  if (mode === "lie") {
-    return { xOffset: 0, y: anchor.top + LIE_HEIGHT * anchor.scale, z: 0 };
-  }
-  if (mode === "walkPlank") {
-    // Walking across the plank catwalk back and forth
-    const walkX = Math.sin(time * 0.8) * (anchor.width * 0.38);
-    return { xOffset: walkX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
-  }
-  if (mode === "dance") {
-    const danceX = Math.sin(time * 3.1) * (anchor.width * 0.06);
-    const bounce = Math.abs(Math.sin(time * 6.2)) * 0.035 * anchor.scale;
-    return { xOffset: danceX, y: anchor.top - localSoleY * anchor.scale + bounce, z: 0 };
-  }
-  if (mode === "moonwalk") {
-    const slideX = Math.sin(time * 1.5) * (anchor.width * 0.25);
-    return { xOffset: slideX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
-  }
-  if (mode === "jumpWave") {
-    // Up and down jumping on the deck
-    const jumpY = Math.abs(Math.sin(time * 5.0)) * 0.15 * anchor.scale;
-    return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale + jumpY, z: 0 };
-  }
-  if (mode === "wallClimb") {
-    // Both hands straight holding billboard top edge with legs in front of the billboard
-    const cornerX = anchor.width * 0.4;
-    const sway = Math.sin(time * 2.2) * 0.02 * anchor.scale;
-    return { xOffset: cornerX + sway, y: anchor.top - 1.18 * anchor.scale, z: anchor.frontZ + 0.14 * anchor.scale };
-  }
-  return { xOffset: 0, y: anchor.top - localSoleY * anchor.scale, z: 0 };
-}
-
-/** Lowest boot sole in root-local rig units for the pose currently on the skeleton. */
-export function localSoleY(hero: AstronautInstance, scratch: Vector3): number {
-  const left = hero.root.worldToLocal(hero.bones.footL.getWorldPosition(scratch)).y;
-  const right = hero.root.worldToLocal(hero.bones.footR.getWorldPosition(scratch)).y;
-  return Math.min(left, right) - SOLE_BELOW_ANKLE;
-}
-
-/** Billboard front face texture: light steel-blue gradient + cyan glow + metallic edge rim. */
-function billboardFrontTexture(): CanvasTexture {
+function paintedTexture(width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void): CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 64;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (ctx) {
-    // Lit steel-blue front rim: the brightest face of the deck (light comes
-    // from above), easing only slightly darker toward its bottom edge.
-    const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bg.addColorStop(0, "#3f75b0");
-    bg.addColorStop(0.5, "#33639a");
-    bg.addColorStop(1, "#2a5487");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (ctx) paint(ctx);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  // The top face is seen at grazing angles; the renderer clamps to its maximum.
+  texture.anisotropy = 8;
+  return texture;
+}
 
-    // Top-center cyan glow aura matching card theme
-    const glow = ctx.createRadialGradient(canvas.width / 2, 0, 2, canvas.width / 2, 0, canvas.width * 0.5);
-    glow.addColorStop(0, "rgba(56, 189, 248, 0.4)");
-    glow.addColorStop(0.4, "rgba(56, 189, 248, 0.15)");
-    glow.addColorStop(1, "rgba(56, 189, 248, 0)");
+/** Front lip: the card's top slate, a cyan light line on the upper edge, and the card's side vignette. */
+function frontTexture(): CanvasTexture {
+  return paintedTexture(1024, 64, (ctx) => {
+    const face = ctx.createLinearGradient(0, 0, 0, 64);
+    face.addColorStop(0, "#1d3a5a");
+    face.addColorStop(0.6, "#17304d");
+    face.addColorStop(1, "#142a43");
+    ctx.fillStyle = face;
+    ctx.fillRect(0, 0, 1024, 64);
+    const glow = ctx.createLinearGradient(0, 0, 1024, 0);
+    glow.addColorStop(0.2, "rgba(56, 189, 248, 0)");
+    glow.addColorStop(0.5, "rgba(56, 189, 248, 0.14)");
+    glow.addColorStop(0.8, "rgba(56, 189, 248, 0)");
     ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Top edge metallic cyan highlight rim
-    ctx.fillStyle = "rgba(125, 211, 252, 0.85)";
-    ctx.fillRect(0, 0, canvas.width, 3);
-
-    // Bottom rim border connecting flush to lower card
-    ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
-    ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
-  }
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  return texture;
+    ctx.fillRect(0, 0, 1024, 64);
+    const sides = ctx.createLinearGradient(0, 0, 1024, 0);
+    sides.addColorStop(0, "rgba(3, 10, 23, 0.72)");
+    sides.addColorStop(0.08, "rgba(3, 10, 23, 0)");
+    sides.addColorStop(0.92, "rgba(3, 10, 23, 0)");
+    sides.addColorStop(1, "rgba(3, 10, 23, 0.72)");
+    ctx.fillStyle = sides;
+    ctx.fillRect(0, 0, 1024, 64);
+    ctx.fillStyle = "rgba(125, 211, 252, 0.7)";
+    ctx.fillRect(0, 0, 1024, 3);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.fillRect(0, 3, 1024, 2);
+  });
 }
 
-/** Billboard top platform texture: industrial anti-slip deck grid. */
-function billboardTopTexture(): CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.fillStyle = "#3f75b0";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Industrial grid pattern on platform surface matching card theme
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.18)";
-    ctx.lineWidth = 1.5;
-    const step = 32;
-    for (let x = 0; x <= canvas.width; x += step) {
+/** Top deck plate: navy slate darkening toward the back, a faint cyan grid, and a lit front lip. */
+function topTexture(): CanvasTexture {
+  return paintedTexture(512, 256, (ctx) => {
+    // Canvas y runs back (top rows) to front (bottom rows) on the +Y face.
+    const plate = ctx.createLinearGradient(0, 0, 0, 256);
+    plate.addColorStop(0, "#0b1829");
+    plate.addColorStop(1, "#16304d");
+    ctx.fillStyle = plate;
+    ctx.fillRect(0, 0, 512, 256);
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.07)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= 512; x += 32) {
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, 256);
       ctx.stroke();
     }
-    for (let y = 0; y <= canvas.height; y += step) {
+    for (let y = 0; y <= 256; y += 32) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(512, y + 0.5);
       ctx.stroke();
     }
-
-    // Front lip glowing landing strip
-    ctx.fillStyle = "rgba(56, 189, 248, 0.6)";
-    ctx.fillRect(0, canvas.height - 6, canvas.width, 6);
-  }
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  return texture;
+    ctx.fillStyle = "rgba(125, 211, 252, 0.55)";
+    ctx.fillRect(0, 252, 512, 4);
+  });
 }
 
 export type LandingPanel = {
@@ -200,27 +143,27 @@ export type LandingPanel = {
   edges: LineSegments<EdgesGeometry, LineBasicMaterial>;
 };
 
-/** 3D billboard hoarding deck with industrial frame outline and card-matched shaders. */
+/** 3D billboard ledge in the card's palette; unlit so it matches the DOM card exactly. */
 export function createLandingPanel(): LandingPanel {
-  // Side shadows for 3D depth effect
-  const sideShadow = new MeshBasicMaterial({ color: "#030609", transparent: true });
-  const sideLight = new MeshBasicMaterial({ color: "#16263d", transparent: true });
-  const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
-  // The settled deck sits above the camera's eye line, so this underside is
-  // the broad flat band seen beneath the front rim. It faces away from the
-  // light, so it stays a step darker than the rim (but clearly blue, not
-  // black) — that contrast is what makes the deck read as a 3D slab.
-  const bottom = new MeshBasicMaterial({ color: "#1d3d66", transparent: true });
-  const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
+  const face = (color: string, map: CanvasTexture | null = null): MeshBasicMaterial =>
+    new MeshBasicMaterial({ color, map, transparent: true, toneMapped: false });
   // BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back).
-  // Right shadow, left light (shadows on both sides for 3D effect), top, bottom, front, back.
-  // Unit cube: `placeLandingPanel` sets mesh.scale to the exact card width/
-  // thickness/depth per axis, so the box must start at 1:1:1 or every axis
-  // inherits a stray multiplier instead of matching the card precisely.
-  const mesh = new Mesh(new BoxGeometry(1, 1, 1), [sideShadow, sideLight, top, bottom, front, sideShadow]);
+  // The settled ledge sits above the camera's eye line, so the underside shows
+  // as a band below the lip: near-black navy, it reads as the ledge's shadow.
+  const materials = [
+    face("#08121f"),
+    face("#0c1a2c"),
+    face("#ffffff", topTexture()),
+    face("#060d18"),
+    face("#ffffff", frontTexture()),
+    face("#050b15"),
+  ];
+  // Unit cube: `placeLandingPanel` sets mesh.scale to the exact card width,
+  // thickness, and depth per axis.
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), materials);
   const edges = new LineSegments(
     new EdgesGeometry(mesh.geometry),
-    new LineBasicMaterial({ color: "#38bdf8", transparent: true }),
+    new LineBasicMaterial({ color: "#7dd3fc", transparent: true, toneMapped: false }),
   );
   mesh.add(edges);
   mesh.visible = false;
@@ -229,7 +172,7 @@ export function createLandingPanel(): LandingPanel {
 
 export function disposeLandingPanel(panel: LandingPanel): void {
   panel.mesh.geometry.dispose();
-  for (const material of new Set(panel.mesh.material)) {
+  for (const material of panel.mesh.material) {
     material.map?.dispose();
     material.dispose();
   }
@@ -239,12 +182,14 @@ export function disposeLandingPanel(panel: LandingPanel): void {
 
 /**
  * Places the panel for this frame. Before touchdown it rides under his current
- * boots at his current scale; `fall` carries it onto the card-anchored placement.
+ * boots (`soleY`, root-local rig units) at his current scale; `fall` carries it
+ * onto the card-anchored placement.
  */
 export function placeLandingPanel(
   panel: LandingPanel,
   anchor: LandingAnchor | null,
   hero: AstronautInstance,
+  soleY: number,
   fall: number,
   shown: number,
   scratch: Vector3,
@@ -254,7 +199,7 @@ export function placeLandingPanel(
   if (!anchor || !mesh.visible) return;
   const k = hero.root.scale.x / anchor.scale;
   const lerp = (from: number, to: number): number => from + (to - from) * fall;
-  const soleTop = hero.root.localToWorld(scratch.set(0, localSoleY(hero, scratch), 0)).y;
+  const soleTop = hero.root.localToWorld(scratch.set(0, soleY, 0)).y;
   const size = lerp(k, 1);
   const thickness = anchor.thickness * size;
   const depth = anchor.depth * size;
@@ -264,5 +209,5 @@ export function placeLandingPanel(
   mesh.scale.set(anchor.width * size, thickness, depth);
   mesh.position.set(x, top - thickness / 2, front - depth / 2);
   for (const material of mesh.material) material.opacity = shown;
-  panel.edges.material.opacity = shown * 0.75;
+  panel.edges.material.opacity = shown * 0.28;
 }

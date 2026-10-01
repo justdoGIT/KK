@@ -51,42 +51,48 @@ const SIT = raw({
   footR: [0.3, 0, 0],
 });
 
-/** Lying down relaxed flat on the billboard platform deck. */
-const LIE_DOWN = raw({
-  spine: [-0.05, 0, 0],
-  chest: [0, 0, 0],
-  head: [-0.18, 0.15, 0],
-  armL: [0.45, 0.2, -1.3],
-  forearmL: [0, -0.85, 0],
-  handL: [0, 0, 0],
-  armR: [0.45, -0.2, 1.3],
-  forearmR: [0, 0.85, 0],
-  handR: [0, 0, 0],
-  thighL: [0.05, 0, 0.15],
-  shinL: [0.15, 0, 0],
-  footL: [0.25, 0, 0],
-  thighR: [0.05, 0, -0.15],
-  shinR: [0.15, 0, 0],
-  footR: [0.25, 0, 0],
+/**
+ * Reclining on the left side, propped on the left elbow with the forearm flat
+ * on the plate, top leg drawn forward over the straight lower leg, top hand
+ * resting on the hip. Solved from world limb directions for the deck roll
+ * `RECLINE_ROLL`, so elbow and hip both carry the body on the plate.
+ */
+const RECLINE = raw({
+  head: [0.12, 0.014, 0.231],
+  armL: [-0.048, -0.175, -0.431],
+  forearmL: [0.255, -0.976, 1.138],
+  handL: [-0.015, -0.073, -0.023],
+  armR: [-0.145, 0.113, 1.718],
+  forearmR: [-0.064, 0.072, -0.612],
+  handR: [-0.061, 0.193, 0.217],
+  thighL: [-0.052, -0.023, -0.55],
+  shinL: [0.03, 0, 0.006],
+  footL: [-0.13, 0.306, 0.125],
+  thighR: [-0.806, -0.046, 0.162],
+  shinR: [1.444, -0.222, -0.28],
+  footR: [-0.59, 0.117, 0.083],
 });
 
-/** Hanging from the billboard edge with both hands gripping the top. */
+/**
+ * Hanging from the lip facing the billboard: arms reach up and slightly
+ * forward to the edge, gloves curled over it, knees bent with the boots
+ * braced back toward the card face. Solved from world limb directions with
+ * the root turned to face the card.
+ */
 const WALL_HANG = raw({
-  spine: [0.12, -0.35, 0],
-  chest: [0.08, -0.28, 0],
-  head: [-0.12, -0.22, 0.08],
-  armL: [0.05, 0.25, 1.48],
-  forearmL: [-0.05, -0.1, 0.08],
-  handL: [-0.25, 0.05, 0.1],
-  armR: [0.05, -0.25, -1.48],
-  forearmR: [-0.05, 0.1, -0.08],
-  handR: [-0.25, -0.05, -0.1],
-  thighL: [-0.62, -0.45, 0.28],
-  shinL: [0.55, -0.18, 0.15],
-  footL: [0.32, 0.12, 0.18],
-  thighR: [-0.58, -0.42, -0.28],
-  shinR: [0.52, -0.15, -0.15],
-  footR: [0.32, 0.12, -0.18],
+  head: [0.252, 0, 0],
+  armL: [0.234, -0.318, 1.365],
+  forearmL: [-0.027, 0.1, 0.306],
+  handL: [-0.298, -0.744, -0.341],
+  armR: [0.234, 0.318, -1.365],
+  forearmR: [-0.027, -0.1, -0.306],
+  handR: [-0.298, 0.744, 0.341],
+  thighL: [-0.188, -0.004, 0.068],
+  shinL: [0.41, 0, -0.03],
+  footL: [-0.188, -0.025, -0.011],
+  thighR: [-0.118, 0.001, -0.069],
+  shinR: [0.258, -0.001, 0.033],
+  footR: [-0.105, 0.022, 0.009],
 });
 
 /** Seated acknowledgement after a GitHub or LinkedIn hover. */
@@ -153,11 +159,13 @@ export function sampleContactPose(
     return;
   }
   if (mode === "lie") {
-    blend(out, LIE_DOWN, LIE_DOWN, 0);
+    blend(out, RECLINE, RECLINE, 0);
     const breathe = Math.sin(time * 1.8);
-    out.chest[0] += breathe * 0.04;
-    out.spine[0] += breathe * 0.02;
-    out.head[1] += Math.sin(time * 0.7) * 0.08;
+    out.chest[0] += breathe * 0.03;
+    out.spine[0] += breathe * 0.015;
+    out.head[1] += Math.sin(time * 0.7) * 0.1;
+    // The drawn-up top leg idly rocks at the knee.
+    out.shinR[0] += Math.sin(time * 1.3) * 0.08;
     return;
   }
   if (mode === "walkPlank") {
