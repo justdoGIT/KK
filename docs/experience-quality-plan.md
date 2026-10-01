@@ -1,11 +1,12 @@
 # Experience Quality Plan: Motion, Rendering, and Site Fixes
 
-Status: Workstreams 1, 2, and 4 complete; Workstream 3 complete except 3.7
-and 3.11 (deferred, see below). This plan comes from two audits run on the
-live site and its code: a 3D render-pipeline audit and a scroll/animation
-audit with live Playwright passes at 1280×800, 1440×900, 1568×782, and
-390×844. It also covers the user-reported contact-finale and career-humanoid
-defects. Each item lists its evidence, the change, and how it is validated.
+Status: Workstreams 1, 2, 4, and the reliability follow-up are complete;
+Workstream 3 is complete except 3.7 and 3.11 (deferred, see below). This plan
+comes from two audits run on the live site and its code: a 3D render-pipeline
+audit and a scroll/animation audit with live Playwright passes at 1280×800,
+1440×900, 1568×782, and 390×844. It also covers the user-reported
+contact-finale, career-humanoid, loading, scroll-pacing, and flicker defects.
+Each item lists its evidence, the change, and how it is validated.
 
 ## Goals
 
@@ -57,7 +58,7 @@ replaces:
 
 | # | Issue (evidence) | Change | Validation |
 | - | ---------------- | ------ | ---------- |
-| 1.1 | The seated and reclining astronaut sank through the deck slab (2,419 and 1,842 suit vertices inside the slab, measured live) | A suit support hull (each bone's outermost vertices) is re-posed every frame. Every contact mode rests on, overhangs, or hangs in front of the slab from the real suit surface. Mode blends are lifted clear with a ramp so nothing pops | Real-rig unit test: no vertex inside or under the slab in any mode or time. Live CPU-skinned measurement in the browser |
+| 1.1 | The seated and reclining astronaut sank through the deck slab (2,419 and 1,842 suit vertices inside the slab, measured live) | A suit support hull (each bone's outermost vertices) is re-posed every frame. Every contact mode rests on, overhangs, or hangs in front of the slab from the real suit surface. During mode blends, shallow incursions move back in front of the lip and deeper points lift the rigid body clear | Real-rig unit test: no vertex inside or under the slab in any mode or time. Live CPU-skinned measurement in the browser |
 | 1.2 | Wall hang covered the card copy, back lighting looked flat, and the shoulders tore into flaps | Hang near the deck's right end, in front of the face. Pose solved from world limb directions. Backpack vertices excluded from arm skinning. Soft drop shadow on the card | Unit test bounds the hang to the right end and in front of the face. Screenshot |
 | 1.3 | Deck colors (bright tone-mapped blue) did not match the navy card theme | Unlit, untone-mapped faces in the card palette. Underside reads as the ledge's shadow. Contact shadow on the plate | Pixel sample matches the card's CSS colors |
 | 1.4 | Seated or standing helmet slid under the sticky nav bar | Body height budget subtracts the measured nav bottom | Screenshot at 1280×800 and 1568×782 |
@@ -113,6 +114,18 @@ lathe profiles to match the reference:
 - rounded boots with dark soles
 
 The existing animation-skeleton binding and the grounded-sole invariants stay.
+
+## Workstream 5 — Reliability, pacing, and reuse follow-up
+
+| # | Issue | Change | Validation |
+| - | ----- | ------ | ---------- |
+| 5.1 | The reclining astronaut's head had no visible support | Re-posed the left arm into an elbow-and-hand head support while preserving the rig's deck-contact invariants | Skeletal pose regression plus browser screenshot |
+| 5.2 | Delayed scene chunks or WebGL startup exposed a small black viewport | The real static astronaut artwork is visible immediately and remains until both journey canvases paint. Canvas error boundaries and `webglcontextlost`/`webglcontextrestored` handling restore the cover and remount only after a successful frame | Delayed-chunk and forced-context-loss browser scenarios |
+| 5.3 | The finale panel or astronaut could disappear after context interruption | Both journey canvases report first paint independently; the cover is removed only when both are ready and is restored on either failure | Forced context-loss browser scenario plus screenshot |
+| 5.4 | Long pinned stories required manual micro-scrolling to see authored motion | A shared intent-driven guide advances Case Studies, Story Journey, Career, Skills, Services, and Terminal at a constant pace after downward wheel/touch intent. Reverse input, keyboard, pointer input, section exit, or completion cancels it immediately | Unit tests for direction, restart, and cancellation; browser progression check |
+| 5.5 | Filter blur on continuously moving terminal and skill-card layers caused repeated rasterization and visible flashes | Removed scroll-time blur writes and filter transitions; retained authored opacity and transform motion | Full-page recorded audit plus settled CSS inspection |
+| 5.6 | Settled case-study nodes inherited a flying flipper's inline rotation, producing mirrored text; remounting initially lost their fan positions | Keyed the flat and 3D DOM shapes separately, then restored each landing transform in a layout effect and on resize | Browser CSS/geometry check: four upright cards at distinct fan positions |
+| 5.7 | Scene, motion, model, license, and fallback dependencies were implicit and difficult to transplant | Added a validated catalog, deterministic checksum exporter, virtual-catalog Vite plugin, MCP stdio tools, and a reusable implementation skill under `reuse/immersive-kit/` | Catalog validation, transitive export smoke, Vite plugin test, and MCP protocol test |
 
 ## Validation
 

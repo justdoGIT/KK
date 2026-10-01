@@ -95,6 +95,20 @@ const overDeck = (v: Vector3): boolean =>
   v.x > DECK.panelX - DECK.width / 2 && v.x < DECK.panelX + DECK.width / 2 && v.z > BACK && v.z < DECK.frontZ;
 
 describe("astronaut contact with the landing deck", () => {
+  it("keeps near-lip transition points out of the slab", () => {
+    const root = { x: 0, y: 0, z: 0, scale: DECK.scale, rx: 0, ry: 0, rz: 0 };
+    const world = new Float32Array([
+      DECK.panelX,
+      DECK.top - 0.02,
+      DECK.frontZ - 0.001,
+    ]);
+
+    clearDeck(DECK, world, root);
+
+    const stillInside = world[2] > BACK && world[2] < DECK.frontZ && world[1] < DECK.top;
+    expect(stillInside).toBe(false);
+  });
+
   it.each(MODES)("keeps the %s suit out of and above the deck slab", (mode) => {
     for (const time of TIMES) {
       const sunk = placedSuit(mode, time).filter((v) => overDeck(v) && v.y < DECK.top - TOLERANCE);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type JSX, type CSSProperties } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, type JSX, type CSSProperties } from "react";
 import {
   getApprovedCaseStudies,
   type CaseStudyDetail,
@@ -11,6 +11,7 @@ import {
 import { CardFrontContent } from "./CaseStudyCardContent.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
@@ -43,6 +44,7 @@ export function CaseStudies(): JSX.Element {
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef   = useRef<HTMLDivElement>(null);
+  useGuidedScroll(sectionRef, animated, 0.76, 320);
   // Computed targetX per card: card 0 left edge = heading left edge. A ref,
   // not state — read every scroll frame by the imperative driver below, so a
   // stage resize never has to wait for a React render to reach the cards.
@@ -82,6 +84,21 @@ export function CaseStudies(): JSX.Element {
     settledRef.current = settledMask;
   }, [settledMask]);
 
+  // A settled card is remounted with a flat DOM shape. Restore the landing
+  // transform before paint because the scroll callback wrote it to the
+  // now-unmounted flying node.
+  useLayoutEffect(() => {
+    settledMask.forEach((isSettled, idx) => {
+      if (!isSettled) return;
+      const card = cardRefs.current[idx];
+      if (!card) return;
+      const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
+      card.style.transform = animated
+        ? `translate(${Math.round(targetXsRef.current[idx] ?? 0)}px, ${Math.round(cfg.targetY)}px)`
+        : "none";
+    });
+  }, [animated, settledMask]);
+
   // Align card 0's left edge with the heading's left edge.
   // Cards are positioned via translate3d(X,…) where X is offset from stage center.
   // card_i center from stage left  = CARD_OFFSETS[i] + CARD_W/2
@@ -105,12 +122,19 @@ export function CaseStudies(): JSX.Element {
       ];
       const half = w / 2;
       targetXsRef.current = offsets.map((off) => off + cardW / 2 - half);
+      if (animated) {
+        targetXsRef.current.forEach((x, idx) => {
+          if (!settledRef.current[idx]) return;
+          const card = cardRefs.current[idx];
+          if (card) card.style.transform = `translate(${Math.round(x)}px, ${Math.round(CARD_CONFIGS[idx]?.targetY ?? 0)}px)`;
+        });
+      }
     };
     compute();
     const ro = new ResizeObserver(compute);
     if (stageRef.current) ro.observe(stageRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [animated]);
 
   useScrollFrame(() => {
     const section = sectionRef.current;
@@ -120,7 +144,10 @@ export function CaseStudies(): JSX.Element {
     const scrollProgress = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
 
     if (headingWobbleRef.current) {
-      headingWobbleRef.current.style.transform = `translateY(${Math.sin(scrollProgress * Math.PI * 4) * 12}px)`;
+      const exit = Math.max(0, Math.min(1, (scrollProgress - 0.42) / 0.2));
+      const wobble = Math.sin(scrollProgress * Math.PI * 4) * 12;
+      headingWobbleRef.current.style.transform = `translateY(${Math.round(wobble - exit * 24)}px)`;
+      headingWobbleRef.current.style.opacity = String(1 - exit);
     }
     stackBtnRef.current?.classList.toggle("active", scrollProgress < 0.3);
     fanBtnRef.current?.classList.toggle("active", scrollProgress >= 0.3);
@@ -260,7 +287,16 @@ export function CaseStudies(): JSX.Element {
               if (isSettled) {
                 return (
                   <div
-                    key={study.record.slug}
+                    // Keyed separately from the unsettled branch below: they
+                    // render incompatible DOM shapes (this is a flat static
+                    // card, the other a 3D flipper with two faces). Sharing
+                    // one key let React reuse the flipper's DOM node for
+                    // this card, inheriting the imperatively-set
+                    // `rotateY(...)` inline transform the driver wrote on
+                    // it mid-flight — React only clears style it owns via
+                    // the `style` prop, never a ref's direct DOM writes —
+                    // which froze the card mirrored once settled.
+                    key={`${study.record.slug}-settled`}
                     ref={(el) => { cardRefs.current[idx] = el; }}
                     className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
                     data-front-visible="true"
@@ -283,7 +319,7 @@ export function CaseStudies(): JSX.Element {
 
               return (
                 <div
-                  key={study.record.slug}
+                  key={`${study.record.slug}-flying`}
                   ref={(el) => { cardRefs.current[idx] = el; }}
                   className="lusion-card-isolated-cell"
                   data-front-visible="false"

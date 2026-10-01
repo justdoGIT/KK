@@ -1,7 +1,8 @@
 import { useEffect, useState, type RefObject } from "react";
 import type { JourneyClock } from "../../../scene/astronaut/journey-clock.ts";
 import { onFrame } from "../../../motion/frame.ts";
-import { getLenis, haltScroll, scrollToY } from "../../../motion/smooth-scroll.ts";
+import { useGuidedScroll } from "../../../motion/guided-scroll.ts";
+import { getLenis } from "../../../motion/smooth-scroll.ts";
 import { paintJourney, type JourneyLayout } from "./journey-paint.ts";
 import { clamp01, phaseRatio } from "./journey-timeline.ts";
 
@@ -22,8 +23,7 @@ export type JourneyElements = {
   clock: RefObject<JourneyClock>;
 };
 
-/** Slow scroll cruise: start window, destination, and speed in px per second. */
-const CRUISE_ARM = 0.28;
+/** The authored tunnel cruise stops before the glass-break finale. */
 const CRUISE_TARGET = 0.62;
 const CRUISE_SPEED = 240;
 /** Gap between the heading's bottom edge and the card's top edge (px). */
@@ -69,12 +69,15 @@ function measure(els: JourneyElements, layout: JourneyLayout): void {
 export function useJourneyDriver(els: JourneyElements): { near: boolean; active: boolean } {
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
+  useGuidedScroll(els.section, near, CRUISE_TARGET, CRUISE_SPEED);
 
   useEffect(() => {
     const section = els.section.current;
     if (!section) return;
-    const nearObserver = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
-      rootMargin: "100% 0px 100% 0px",
+    const nearObserver = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setNear(true);
+    }, {
+      rootMargin: "250% 0px 250% 0px",
     });
     const activeObserver = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { threshold: 0 });
     nearObserver.observe(section);
@@ -101,10 +104,6 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       navBottom: 0,
     };
     let dirty = true;
-    let cruising = false;
-    let cruised = false;
-    let armed = false;
-    let touchY: number | null = null;
     let target = 0;
     let painted = -1;
 
@@ -117,30 +116,6 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
     }
     window.addEventListener("resize", invalidate);
 
-    const cancelCruise = () => {
-      armed = false;
-      if (!cruising) return;
-      cruising = false;
-      haltScroll();
-    };
-    const onWheel = (event: WheelEvent) => {
-      if (event.deltaY < 0) cancelCruise();
-      else if (event.deltaY > 0) armed = true;
-    };
-    const onTouchStart = (event: TouchEvent) => {
-      cancelCruise();
-      touchY = event.touches[0]?.clientY ?? null;
-    };
-    const onTouchMove = (event: TouchEvent) => {
-      const y = event.touches[0]?.clientY ?? null;
-      if (y !== null && touchY !== null && y < touchY) armed = true;
-      touchY = y;
-    };
-    window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("keydown", cancelCruise);
-
     const stopRead = onFrame("read", () => {
       if (dirty) {
         measure(els, layout);
@@ -149,22 +124,6 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       }
       const scrolled = (getLenis()?.scroll ?? window.scrollY) - layout.sectionTop;
       target = layout.scrollable > 0 ? clamp01(scrolled / layout.scrollable) : 0;
-      // Slow scroll scrub: once the pinned card is on screen and the reader has
-      // shown downward intent, the story cruises through the tunnel on its own,
-      // at a constant speed through the one smooth-scroll owner. A reverse
-      // wheel, touch, or key hands control straight back.
-      if (target < 0.005) cruised = false;
-      if (armed && scrolled >= 0 && target < CRUISE_ARM && !cruising && !cruised) {
-        cruising = true;
-        scrollToY(layout.sectionTop + CRUISE_TARGET * layout.scrollable, {
-          duration: ((CRUISE_TARGET - target) * layout.scrollable) / CRUISE_SPEED,
-          easing: (x) => x,
-          onComplete: () => {
-            cruising = false;
-            cruised = true;
-          },
-        });
-      }
     });
     const stopWrite = onFrame("write", (time) => {
       const clock = els.clock.current;
@@ -181,11 +140,6 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       stopWrite();
       resizeObserver.disconnect();
       window.removeEventListener("resize", invalidate);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("keydown", cancelCruise);
-      if (cruising) haltScroll();
     };
   }, [near, els]);
 

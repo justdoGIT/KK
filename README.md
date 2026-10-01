@@ -7,11 +7,12 @@ Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Leni
 ## Quick start
 
 ```bash
-npm ci          # install exact pinned deps
-npm run dev     # dev server
-npm run build   # production build
-npm test        # unit tests
-npm run validate:publication  # publication provenance check
+npm ci                         # install exact pinned deps
+npm run dev                    # development server
+npm run build                  # production build
+npm test                       # unit tests
+npm run validate:publication   # publication provenance check
+node scripts/immersive-kit.mjs validate
 ```
 
 The development server omits the production CSP so Vite can inject styles
@@ -30,11 +31,33 @@ and production restrictions on network connections and injected styles.
 
 ## Architecture
 
-- **Semantic HTML first**: all content is usable without WebGL, smooth scroll, or JavaScript scene chunks.
-- **Publication provenance**: strict evidence/claim/approval schema with prohibited-term scanning, claim hashing, and negative validation fixtures.
-- **Progressive enhancement**: persistent R3F canvas, Lenis/GSAP smooth scroll, and magnetic cursor are opt-in enhancements gated by `prefers-reduced-motion` and WebGL capability.
-- **Adaptive quality**: 2-second rolling FPS sampler degrades postprocessing quality when frame times exceed thresholds.
-- **Code splitting**: initial shell ~68KB gzipped; scene vendors (240KB) and motion (50KB) are lazy-loaded.
+- **Semantic HTML first**: all content remains usable without WebGL, smooth
+  scroll, or JavaScript scene chunks.
+- **Publication provenance**: strict evidence/claim/approval schema with
+  prohibited-term scanning, claim hashing, and negative validation fixtures.
+- **Progressive enhancement**: persistent R3F canvases, Lenis smooth scroll,
+  guided pinned-section playback, and the magnetic cursor are gated by motion
+  preference, viewport proximity, and WebGL capability.
+- **Rendering continuity**: immediate SVG scene covers remain until both
+  journey canvases paint; WebGL context loss restores the cover and remounts
+  the affected canvas.
+- **Shared frame scheduler**: ordered `scroll → read → write → render` phases
+  keep DOM and WebGL motion synchronized and stop when no work remains.
+- **Adaptive quality**: Drei performance monitoring reduces DPR from 2 to
+  1.25, then 1 after sustained frame-time pressure.
+- **Reusable immersive kit**: `reuse/immersive-kit/catalog.json` describes
+  transitive rendering, motion, astronaut, and tooling bundles. The CLI
+  validates or exports deterministic bundles with checksums; the included
+  Vite plugin, MCP stdio server, and implementation skill consume the same
+  catalog. See `reuse/immersive-kit/README.md`.
+
+Useful kit commands:
+
+```bash
+node scripts/immersive-kit.mjs list
+node scripts/immersive-kit.mjs export \
+  --bundle astronaut-journey,tooling --out ../immersive-export
+```
 
 ## Publication identity
 
@@ -43,9 +66,11 @@ The personal agent harness case study uses a strict public identity contract:
 - No source links, repository names, or commit identifiers are rendered
 - Prohibited-term scanner catches variants in HTML, JSON, hrefs, and filenames
 
-## Design document
+## Design documents
 
-See `docs/portfolio-design.md` for the full architecture, PR plan, and provenance matrix.
+- `docs/portfolio-design.md`: architecture, PR plan, and provenance matrix.
+- `docs/experience-quality-plan.md`: motion, rendering, reliability, and
+  browser-verification decisions.
 
 ## License
 

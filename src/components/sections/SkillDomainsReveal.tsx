@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX } from "react";
 import { skillCategories } from "../../content/skills.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import {
   clamp01,
@@ -24,7 +25,6 @@ function applyCardReveal(el: HTMLDivElement, t: number, index: number): void {
   if (t >= 0.999) {
     el.style.opacity = "";
     el.style.transform = "";
-    el.style.filter = "";
     el.classList.add("is-open");
     return;
   }
@@ -36,14 +36,12 @@ function applyCardReveal(el: HTMLDivElement, t: number, index: number): void {
     `perspective(1100px) translate3d(0, ${(inv * 90).toFixed(1)}px, ${(-inv * 160).toFixed(1)}px) ` +
     `rotateX(${(-inv * 38).toFixed(2)}deg) rotateY(${(swing * inv * 10).toFixed(2)}deg) ` +
     `scale(${(0.82 + 0.18 * t).toFixed(3)})`;
-  el.style.filter = inv > 0.02 ? `blur(${(inv * 10).toFixed(2)}px)` : "none";
 }
 
 function clearCardReveal(el: HTMLDivElement): void {
   el.style.removeProperty("--r");
   el.style.opacity = "";
   el.style.transform = "";
-  el.style.filter = "";
   el.classList.add("is-open");
 }
 
@@ -60,6 +58,7 @@ export function SkillDomainsReveal(): JSX.Element {
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const revealedCountRef = useRef(0);
+  useGuidedScroll(sectionRef, pinned, 0.88, 300);
 
   const visible = selected === ALL
     ? skillCategories

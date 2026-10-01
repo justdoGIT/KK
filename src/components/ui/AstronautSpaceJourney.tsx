@@ -1,10 +1,10 @@
-import { Suspense, lazy, useMemo, useRef } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, JSX, PointerEvent, ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { checkWebGL } from "../../scene/useCapability.ts";
 import type { JourneyClock } from "../../scene/astronaut/journey-clock.ts";
 import { createFinaleClock } from "../../scene/astronaut/journey-clock.ts";
-import { SpaceBackdrop, AstronautFigure } from "./AstronautArtwork.tsx";
+import { AstronautStandbyArtwork } from "./AstronautArtwork.tsx";
 import { JOURNEY_VIEWPORTS } from "./astronaut/journey-timeline.ts";
 import { useJourneyDriver, type JourneyElements } from "./astronaut/useJourneyDriver.ts";
 import type { ContactInteraction } from "./contact/banner-timeline.ts";
@@ -13,11 +13,12 @@ import type { ContactInteraction } from "./contact/banner-timeline.ts";
 // and foreground astronaut. The shared clock keeps the DOM and R3F layers in
 // lockstep through the finale.
 
+const loadJourneyCanvases = () => import("../../scene/astronaut/JourneyCanvases.tsx");
 const WorldCanvas = lazy(() =>
-  import("../../scene/astronaut/JourneyCanvases.tsx").then((m) => ({ default: m.WorldCanvas })),
+  loadJourneyCanvases().then((m) => ({ default: m.WorldCanvas })),
 );
 const HeroCanvas = lazy(() =>
-  import("../../scene/astronaut/JourneyCanvases.tsx").then((m) => ({ default: m.HeroCanvas })),
+  loadJourneyCanvases().then((m) => ({ default: m.HeroCanvas })),
 );
 
 const TITLE_LINES = ["Step into a new orbit", "and let your", "silicon run wild"];
@@ -45,6 +46,14 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   const contactHeading = useRef<HTMLHeadingElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1, finale: createFinaleClock() });
+  const [worldReady, setWorldReady] = useState(false);
+  const [heroReady, setHeroReady] = useState(false);
+
+  // Fetch and parse the canvas module and astronaut GLB before the user reaches
+  // the pinned sequence. Both lazy canvases share this single module promise.
+  useEffect(() => {
+    void loadJourneyCanvases();
+  }, []);
 
   const els = useMemo<JourneyElements>(
     () => ({
@@ -104,7 +113,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
         <div ref={world} className="aj-layer aj-world" aria-hidden="true">
           {near ? (
             <Suspense fallback={null}>
-              <WorldCanvas clock={clock} active={active} />
+              <WorldCanvas clock={clock} active={active} onAvailabilityChange={setWorldReady} />
             </Suspense>
           ) : null}
         </div>
@@ -117,9 +126,10 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
         <div ref={hero} className="aj-layer aj-hero" aria-hidden="true">
           {near ? (
             <Suspense fallback={null}>
-              <HeroCanvas clock={clock} active={active} />
+              <HeroCanvas clock={clock} active={active} onAvailabilityChange={setHeroReady} />
             </Suspense>
           ) : null}
+          <AstronautStandbyArtwork idPrefix="journey-standby" visible={!worldReady || !heroReady} />
         </div>
         {children ? (
           <div
@@ -164,8 +174,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
 function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
   return (
     <div className="aj-fallback">
-      <SpaceBackdrop idPrefix="fallback" />
-      <AstronautFigure isWaving={true} />
+      <AstronautStandbyArtwork idPrefix="fallback" />
       {children ? (
         <div className="contact-banner contact-banner--static">
           <h2 className="contact-journey-heading">Let’s <span className="contact-heading-innovate">innovate</span> together</h2>

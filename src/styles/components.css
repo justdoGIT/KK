@@ -588,7 +588,7 @@
 }
 .process-track.is-scroll-reveal .process-step-card:not(.is-open) {
   opacity: 0;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 .process-step-card.is-open {
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
@@ -756,7 +756,7 @@
 }
 .offers-grid.is-scroll-reveal .offer-card:not(.is-open) {
   opacity: 0;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 .offer-card.is-open {
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
@@ -1676,7 +1676,7 @@ main::before {
 .lusion-deck-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 2rem;
 }
 .lusion-section-pill {
@@ -1710,6 +1710,7 @@ main::before {
   border-radius: 9999px;
   border: 1px solid rgba(56, 189, 248, 0.25);
   backdrop-filter: blur(8px);
+  margin-top: 2rem;
 }
 .lusion-scrub-btn {
   display: inline-flex;
@@ -2499,7 +2500,7 @@ main::before {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  will-change: opacity, filter;
+  will-change: transform, opacity, clip-path;
 }
 .interactive-terminal-wrapper .terminal-window {
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
@@ -2890,7 +2891,7 @@ main::before {
 }
 .skill-domains-pinned .skill-card-reveal:not(.is-open) {
   opacity: 0;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 .skills-categories-grid.is-single {
   grid-template-columns: minmax(0, 460px);

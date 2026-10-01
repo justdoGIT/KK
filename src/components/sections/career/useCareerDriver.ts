@@ -5,6 +5,7 @@ import { createPose, poseAt, runProgress, sharedMaze } from "../../../scene/care
 import { createSensorFrame, senseInto } from "../../../scene/career/wall-follower/depth-sensor.ts";
 import { createHud, motorCommand, type Hud } from "../../../scene/career/wall-follower/hud-draw.ts";
 import { onFrame } from "../../../motion/frame.ts";
+import { useGuidedScroll } from "../../../motion/guided-scroll.ts";
 import type { HudRefs } from "./WallFollowerHud.tsx";
 
 export type CareerElements = {
@@ -30,6 +31,7 @@ export function useCareerDriver(els: CareerElements, enabled: boolean): CareerDr
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
   const [stage, setStage] = useState(0);
+  useGuidedScroll(els.section, enabled, 0.94, 300);
 
   useEffect(() => {
     const section = els.section.current;

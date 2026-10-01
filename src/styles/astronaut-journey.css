@@ -173,6 +173,27 @@
 .aj-fallback-art {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  background: #03050d;
+  transition: opacity 240ms ease, visibility 0s;
+  pointer-events: none;
+}
+
+.aj-fallback-art[data-visible="false"] {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 240ms ease, visibility 0s linear 240ms;
+}
+
+.aj-fallback-art .space-backdrop-svg,
+.aj-fallback-astronaut {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "name": "embedded-immersive-kit",
+  "description": "Reusable React Three Fiber scenes, scroll choreography, procedural artifacts, licensed models, and integration tooling.",
+  "peerDependencies": {
+    "@react-three/drei": "10.7.8",
+    "@react-three/fiber": "9.7.0",
+    "@react-three/postprocessing": "3.1.1",
+    "lenis": "1.3.26",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.186.0"
+  },
+  "bundles": [
+    {
+      "id": "rendering-core",
+      "title": "Rendering Core",
+      "description": "Adaptive DPR, first-frame readiness, context recovery, scheduler rendering, lighting, procedural textures, and reusable hardware meshes.",
+      "requires": [],
+      "entrypoints": [
+        "src/scene/AdaptiveDpr.tsx",
+        "src/scene/CanvasAvailability.tsx",
+        "src/scene/SceneEnvironment.tsx",
+        "src/scene/SchedulerFrames.tsx"
+      ],
+      "sourcePaths": [
+        "src/scene/AdaptiveDpr.tsx",
+        "src/scene/CanvasAvailability.tsx",
+        "src/scene/SceneEnvironment.tsx",
+        "src/scene/SchedulerFrames.tsx",
+        "src/scene/useCapability.ts",
+        "src/scene/textures.ts",
+        "src/scene/textures",
+        "src/scene/components"
+      ],
+      "stylePaths": [],
+      "assetPaths": [],
+      "licensePaths": []
+    },
+    {
+      "id": "motion-core",
+      "title": "Motion Core",
+      "description": "One ordered frame scheduler, Lenis ownership, guided sections, scroll reads and writes, throws, reveals, and input cancellation.",
+      "requires": [],
+      "entrypoints": [
+        "src/motion/frame.ts",
+        "src/motion/smooth-scroll.ts",
+        "src/motion/scroll-frame.ts",
+        "src/motion/guided-scroll.ts"
+      ],
+      "sourcePaths": ["src/motion"],
+      "stylePaths": [],
+      "assetPaths": [],
+      "licensePaths": []
+    },
+    {
+      "id": "silicon-fleet",
+      "title": "Silicon-to-Fleet Journey",
+      "description": "Pinned lifecycle narrative with board bring-up, stack, fleet, local environment lighting, and a CSS fallback.",
+      "requires": ["rendering-core", "motion-core"],
+      "entrypoints": [
+        "src/components/sections/StoryJourney.tsx",
+        "src/scene/journey/SiliconFleetCanvas.tsx"
+      ],
+      "sourcePaths": [
+        "src/scene/journey",
+        "src/components/sections/StoryJourney.tsx",
+        "src/components/ui/LusionKineticHeading.tsx",
+        "src/content/board-lifecycle.ts"
+      ],
+      "stylePaths": ["src/styles/board-lifecycle.css", "src/styles/components.css"],
+      "assetPaths": [],
+      "licensePaths": []
+    },
+    {
+      "id": "career-robots",
+      "title": "Career Robot Journey",
+      "description": "Five-stage robot evolution with model rigs, procedural humanoid, morphing, terrain, sensor HUD, and postprocessing.",
+      "requires": ["rendering-core", "motion-core"],
+      "entrypoints": [
+        "src/components/sections/CareerTimeline.tsx",
+        "src/scene/career/CareerJourneyCanvas.tsx"
+      ],
+      "sourcePaths": [
+        "src/scene/career",
+        "src/scene/robots",
+        "src/components/sections/CareerTimeline.tsx",
+        "src/components/sections/career",
+        "src/components/ui/LusionKineticHeading.tsx",
+        "src/content/career.ts"
+      ],
+      "stylePaths": ["src/styles/career-journey.css", "src/styles/components.css"],
+      "assetPaths": [
+        "public/models/robots",
+        "public/models/characters/robot-expressive.glb"
+      ],
+      "licensePaths": ["public/models/CREDITS.md"]
+    },
+    {
+      "id": "astronaut-journey",
+      "title": "Astronaut Contact Journey",
+      "description": "Split-canvas glass break, tunnels, astronaut rig and poses, landing panel, deck contact, standby artwork, and finale interactions.",
+      "requires": ["rendering-core", "motion-core"],
+      "entrypoints": [
+        "src/components/ui/AstronautSpaceJourney.tsx",
+        "src/scene/astronaut/JourneyCanvases.tsx"
+      ],
+      "sourcePaths": [
+        "src/scene/astronaut",
+        "src/components/ui/AstronautSpaceJourney.tsx",
+        "src/components/ui/AstronautArtwork.tsx",
+        "src/components/ui/astronaut",
+        "src/components/ui/contact",
+        "src/components/sections/ContactCTA.tsx",
+        "src/content/contact.ts"
+      ],
+      "stylePaths": [
+        "src/styles/astronaut-journey.css",
+        "src/styles/contact-banner.css",
+        "src/styles/components.css"
+      ],
+      "assetPaths": ["public/models/characters/nasa-astronaut.glb"],
+      "licensePaths": ["public/models/CREDITS.md"]
+    },
+    {
+      "id": "hero-artifacts",
+      "title": "Interactive Hero Artifacts",
+      "description": "Floating embedded hardware field, fluid ripple plane, pointer mapping, lighting, and viewport-gated hero canvas.",
+      "requires": ["rendering-core", "motion-core"],
+      "entrypoints": ["src/scene/SceneEntry.tsx"],
+      "sourcePaths": [
+        "src/scene/SceneEntry.tsx",
+        "src/scene/SceneCanvas.tsx",
+        "src/scene/FloatingField.tsx",
+        "src/scene/FluidRipplePlane.tsx",
+        "src/scene/RippleCanvas.ts",
+        "src/components/sections/Hero.tsx",
+        "src/content/contact.ts"
+      ],
+      "stylePaths": ["src/styles/index.css", "src/styles/components.css"],
+      "assetPaths": [],
+      "licensePaths": []
+    },
+    {
+      "id": "scroll-stories",
+      "title": "Scroll Story Designs",
+      "description": "Card throws, case-study fan-out, process and offer reveals, skill-domain choreography, and the interactive terminal.",
+      "requires": ["motion-core"],
+      "entrypoints": [
+        "src/components/sections/CaseStudies.tsx",
+        "src/components/sections/Services.tsx",
+        "src/components/ui/InteractiveTerminal.tsx"
+      ],
+      "sourcePaths": [
+        "src/components/sections/CaseStudies.tsx",
+        "src/components/sections/CaseStudyCardContent.tsx",
+        "src/components/sections/Services.tsx",
+        "src/components/sections/Offers.tsx",
+        "src/components/sections/ProcessTimeline.tsx",
+        "src/components/sections/SkillDomainsReveal.tsx",
+        "src/components/sections/SkillCategoryCard.tsx",
+        "src/components/ui/ArchitectureModal.tsx",
+        "src/components/ui/CardBackArtwork.tsx",
+        "src/components/ui/CategoryIllustrations.tsx",
+        "src/components/ui/InteractiveTerminal.tsx",
+        "src/components/ui/LusionKineticHeading.tsx",
+        "src/content/case-studies.ts",
+        "src/content/services.ts",
+        "src/content/skills.ts",
+        "src/content/contact.ts"
+      ],
+      "stylePaths": [
+        "src/styles/components.css",
+        "src/styles/product-deck.css",
+        "src/styles/services-throw.css"
+      ],
+      "assetPaths": [],
+      "licensePaths": []
+    },
+    {
+      "id": "tooling",
+      "title": "Reuse Tooling",
+      "description": "Validated catalog, deterministic exporter, virtual-catalog Vite plugin, MCP tools, and implementation skill.",
+      "requires": [],
+      "entrypoints": [
+        "scripts/immersive-kit.mjs",
+        "reuse/immersive-kit/vite-plugin.mjs",
+        "reuse/immersive-kit/mcp-server.mjs"
+      ],
+      "sourcePaths": [
+        "scripts/immersive-kit.mjs",
+        "reuse/immersive-kit/catalog.json",
+        "reuse/immersive-kit/catalog.mjs",
+        "reuse/immersive-kit/vite-plugin.mjs",
+        "reuse/immersive-kit/mcp-server.mjs",
+        "reuse/immersive-kit/README.md",
+        "reuse/immersive-kit/skills"
+      ],
+      "stylePaths": [],
+      "assetPaths": [],
+      "licensePaths": []
+    }
+  ]
+}

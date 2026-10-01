@@ -119,3 +119,27 @@ export function AstronautFigure({ isWaving }: { isWaving: boolean }): JSX.Elemen
     </g>
   );
 }
+
+type AstronautStandbyArtworkProps = {
+  idPrefix: string;
+  visible?: boolean;
+};
+
+/** Immediate SVG cover shown until the matching WebGL scene paints a frame. */
+export function AstronautStandbyArtwork({
+  idPrefix,
+  visible = true,
+}: AstronautStandbyArtworkProps): JSX.Element {
+  return (
+    <div
+      className="aj-fallback-art"
+      data-visible={visible ? "true" : "false"}
+      aria-hidden="true"
+    >
+      <SpaceBackdrop idPrefix={idPrefix} />
+      <svg className="aj-fallback-astronaut" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid slice">
+        <AstronautFigure isWaving={true} />
+      </svg>
+    </div>
+  );
+}
