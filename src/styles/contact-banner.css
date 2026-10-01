@@ -50,9 +50,6 @@
 .contact-banner--animated .contact-card > .contact-frame-wrapper {
   border-radius: 0 0 24px 24px;
 }
-.contact-banner--animated .contact-card > .contact-frame-wrapper::before {
-  border-radius: 0 0 30px 30px;
-}
 
 .contact-journey-heading {
   position: absolute;

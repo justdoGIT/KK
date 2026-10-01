@@ -120,18 +120,18 @@ export function localSoleY(hero: AstronautInstance, scratch: Vector3): number {
   return Math.min(left, right) - SOLE_BELOW_ANKLE;
 }
 
-/** Billboard front face texture: exact dark card gradient + cyan glow + metallic edge rim. */
+/** Billboard front face texture: light steel-blue gradient + cyan glow + metallic edge rim. */
 function billboardFrontTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    // Card exact void theme gradient: #090d16 -> #0d1728
+    // Light steel-blue gradient so the deck reads as a lit billboard surface
     const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bg.addColorStop(0, "#0d1728");
-    bg.addColorStop(0.5, "#0a1120");
-    bg.addColorStop(1, "#090d16");
+    bg.addColorStop(0, "#1e3a5f");
+    bg.addColorStop(0.5, "#17304f");
+    bg.addColorStop(1, "#122540");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -163,7 +163,7 @@ function billboardTopTexture(): CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#0d1728";
+    ctx.fillStyle = "#1e3a5f";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Industrial grid pattern on platform surface matching card theme
@@ -203,7 +203,9 @@ export function createLandingPanel(): LandingPanel {
   const sideShadow = new MeshBasicMaterial({ color: "#030609", transparent: true });
   const sideLight = new MeshBasicMaterial({ color: "#16263d", transparent: true });
   const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
-  const bottom = new MeshBasicMaterial({ color: "#04070d", transparent: true });
+  // The settled deck sits above the camera's eye line, so this underside is
+  // the broad flat band viewers actually see beneath the front rim.
+  const bottom = new MeshBasicMaterial({ color: "#2a4f7a", transparent: true });
   const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
   // BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back).
   // Right shadow, left light (shadows on both sides for 3D effect), top, bottom, front, back.
