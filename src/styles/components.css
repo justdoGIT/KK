@@ -3045,25 +3045,25 @@ main::before {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid var(--color-surface-border);
   border-radius: 24px;
   padding: 4rem 3.5rem;
-  /* Lit from above (where the landing deck sits): the face is brightest at
-     the top and falls off downward, with darkened side margins so it reads
-     as a board with depth rather than a flat fill. */
+  /* Match the site's dark-glass cards: a restrained cyan top glow over a
+     near-black slate face. The vignette darkens all four edges while leaving
+     the content field readable. */
   background:
-    linear-gradient(90deg, rgba(2, 6, 14, 0.5) 0%, transparent 10%, transparent 90%, rgba(2, 6, 14, 0.5) 100%),
-    radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.16) 0%, transparent 60%),
-    linear-gradient(180deg, #172c4d 0%, #0f1d35 45%, #090f1d 100%);
-  /* Billboard bevel: lit top/left edge, recessed dark bottom/right edge,
-     plus a long soft shadow lifting it off the page like a standing sign. */
+    radial-gradient(ellipse at 50% 45%, transparent 36%, rgba(2, 6, 14, 0.38) 76%, rgba(2, 6, 14, 0.82) 100%),
+    radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.84) 58%, rgba(9, 13, 22, 0.98) 100%);
+  backdrop-filter: blur(12px);
+  /* Recess the face with stronger side/bottom occlusion, then lift the whole
+     card with the same soft black shadow used by the surrounding card grid. */
   box-shadow:
-    inset 0 2px 0 rgba(147, 197, 253, 0.45),
-    inset 2px 0 0 rgba(147, 197, 253, 0.12),
-    inset 0 -3px 0 rgba(2, 6, 14, 0.9),
-    inset -2px 0 0 rgba(2, 6, 14, 0.6),
-    0 25px 70px rgba(0, 0, 0, 0.6),
-    0 60px 120px -40px rgba(8, 15, 28, 0.85);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 18px 0 28px -22px rgba(0, 0, 0, 0.95),
+    inset -18px 0 28px -22px rgba(0, 0, 0, 0.95),
+    inset 0 -20px 30px -20px rgba(0, 0, 0, 0.92),
+    0 20px 50px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(56, 189, 248, 0.08);
   text-align: center;
 }
 /* Billboard side faces sit inside the card silhouette. Each starts at full
@@ -3075,22 +3075,22 @@ main::before {
   position: absolute;
   top: 0;
   bottom: 24px;
-  width: 30px;
+  width: 34px;
   pointer-events: none;
 }
 .contact-frame-wrapper::before {
   left: 0;
   clip-path: polygon(0 0, 100% 0, 0 100%);
   background:
-    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 100%),
-    linear-gradient(90deg, #03070d 0%, #0c1a2e 55%, #1c3557 100%);
+    linear-gradient(180deg, rgba(3, 7, 13, 0.35) 0%, rgba(0, 0, 0, 0.82) 100%),
+    linear-gradient(90deg, #010307 0%, #07101d 58%, #142942 100%);
 }
 .contact-frame-wrapper::after {
   right: 0;
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   background:
-    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 100%),
-    linear-gradient(270deg, #03070d 0%, #0c1a2e 55%, #1c3557 100%);
+    linear-gradient(180deg, rgba(3, 7, 13, 0.35) 0%, rgba(0, 0, 0, 0.82) 100%),
+    linear-gradient(270deg, #010307 0%, #07101d 58%, #142942 100%);
 }
 @media (max-width: 768px) {
   .contact-frame-wrapper::before,
