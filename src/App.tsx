@@ -16,12 +16,12 @@ import { SystemsGallery } from "./components/sections/SystemsGallery.tsx";
 import { ProcessTimeline } from "./components/sections/ProcessTimeline.tsx";
 import { MotionModeProvider } from "./motion/motion-mode.tsx";
 import { Reveal } from "./motion/Reveal.tsx";
-import { useLenisGsap } from "./motion/lenis-gsap.ts";
+import { useSmoothScroll } from "./motion/smooth-scroll.ts";
 import { MagneticCursor } from "./motion/MagneticCursor.tsx";
 import { SceneEntry } from "./scene/SceneEntry.tsx";
 
 function AppContent(): JSX.Element {
-  useLenisGsap();
+  useSmoothScroll();
 
   return (
     <div className="app-shell">

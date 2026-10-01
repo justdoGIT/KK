@@ -37,7 +37,7 @@ export default defineConfig({
             if (id.includes("@react-three/postprocessing")) {
               return "postprocessing";
             }
-            if (id.includes("gsap") || id.includes("lenis")) {
+            if (id.includes("lenis")) {
               return "motion";
             }
           }
