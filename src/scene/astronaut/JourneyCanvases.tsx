@@ -1,12 +1,15 @@
 import { Suspense, type JSX } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import { Color, Fog, NeutralToneMapping } from "three";
 import { phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import { SchedulerFrames } from "../SchedulerFrames.tsx";
+import { CanvasAvailability } from "../CanvasAvailability.tsx";
 import { isMobile } from "../useCapability.ts";
 import { HeroScene } from "./HeroScene.tsx";
 import { WorldSpace } from "./WorldSpace.tsx";
 import { WorldTunnels } from "./WorldTunnels.tsx";
+import { modelUrl } from "../robots/model-assets.ts";
 import type { JourneyClockRef } from "./journey-clock.ts";
 
 // Two canvases, mirroring Lusion's split between the masked tunnel scene and
@@ -18,11 +21,19 @@ import type { JourneyClockRef } from "./journey-clock.ts";
 
 const CAMERA = { position: [0, 0, 6] as [number, number, number], fov: 35, near: 0.1, far: 80 };
 
-type CanvasProps = { clock: JourneyClockRef; active: boolean };
+type CanvasProps = {
+  clock: JourneyClockRef;
+  active: boolean;
+  onAvailabilityChange: (available: boolean) => void;
+};
 
 const SPACE = new Color("#03050d");
 const BLACK = new Color("#000000");
 const CORRIDOR = new Color("#2a39c9");
+
+// Module prefetch begins before the section is near; warm drei's parsed GLTF
+// cache at the same time so Suspense does not expose an empty black canvas.
+useGLTF.preload(modelUrl("astronaut"), false, true);
 
 function WorldAtmosphere({ clock }: { clock: JourneyClockRef }): null {
   useFrame(({ scene }) => {
@@ -53,7 +64,7 @@ function dpr(): [number, number] {
 
 const RESIZE = { offsetSize: true } as const;
 
-export function WorldCanvas({ clock, active }: CanvasProps): JSX.Element {
+export function WorldCanvas({ clock, active, onAvailabilityChange }: CanvasProps): JSX.Element {
   return (
     <Canvas
       className="aj-canvas"
@@ -68,13 +79,14 @@ export function WorldCanvas({ clock, active }: CanvasProps): JSX.Element {
       <Suspense fallback={null}>
         <WorldSpace clock={clock} />
         <WorldTunnels clock={clock} />
+        <CanvasAvailability onChange={onAvailabilityChange} />
       </Suspense>
     </Canvas>
   );
 }
 
 /** Neutral tone mapping keeps the white suit and the cyan accents bright and on-hue. */
-export function HeroCanvas({ clock, active }: CanvasProps): JSX.Element {
+export function HeroCanvas({ clock, active, onAvailabilityChange }: CanvasProps): JSX.Element {
   return (
     <Canvas
       className="aj-canvas"
@@ -87,6 +99,7 @@ export function HeroCanvas({ clock, active }: CanvasProps): JSX.Element {
       <SchedulerFrames active={active} />
       <Suspense fallback={null}>
         <HeroScene clock={clock} />
+        <CanvasAvailability onChange={onAvailabilityChange} />
       </Suspense>
     </Canvas>
   );

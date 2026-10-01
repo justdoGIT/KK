@@ -73,8 +73,10 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
   useEffect(() => {
     const section = els.section.current;
     if (!section) return;
-    const nearObserver = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
-      rootMargin: "100% 0px 100% 0px",
+    const nearObserver = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setNear(true);
+    }, {
+      rootMargin: "250% 0px 250% 0px",
     });
     const activeObserver = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { threshold: 0 });
     nearObserver.observe(section);
