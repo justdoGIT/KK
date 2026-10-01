@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import {
   clamp01,
   easeOutCubic,
@@ -24,9 +24,9 @@ function settle(el: HTMLElement): void {
 /**
  * Scroll-linked, bidirectional reveal for the cards of a CSS grid. Each card
  * gets `--r` (0..1) for CSS-driven inner staging plus an inline opacity /
- * transform / blur built by `transform(inv, index)`; at rest the inline
- * styles are cleared and `.is-open` is set so hover rules apply untouched.
- * Returns nothing; `onFrame(openedCount, meanProgress)` reports progress.
+ * transform built by `transform(inv, index)`; at rest the inline styles are
+ * cleared and `.is-open` is set so hover rules apply untouched. Returns
+ * nothing; `onFrame(openedCount, meanProgress)` reports progress.
  */
 export function useGridScrollReveal(
   gridRef: RefObject<HTMLElement | null>,
@@ -36,10 +36,25 @@ export function useGridScrollReveal(
   onFrame?: (opened: number, mean: number) => void,
   settleAt = 0.5,
 ): void {
+  // Column count only changes on layout shifts (resize, font load), not on
+  // every scroll tick — cached here instead of recomputed per card per frame.
+  const colsRef = useRef(1);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      colsRef.current = gridColumnCount(grid);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(grid);
+    return () => ro.disconnect();
+  }, [gridRef]);
+
   useScrollFrame(() => {
     const grid = gridRef.current;
     if (!grid) return;
-    const cols = gridColumnCount(grid);
+    const cols = colsRef.current;
     const items = itemRefs.current;
     const span = 1 + (cols - 1) * COLUMN_STAGGER;
     let opened = 0;
@@ -63,9 +78,6 @@ export function useGridScrollReveal(
       el.style.setProperty("--r", t.toFixed(3));
       el.style.opacity = t.toFixed(3);
       el.style.transform = transform(inv, i);
-      // Blur is the most expensive filter; only apply above threshold to avoid
-      // forcing a repaint stacking context on nearly-settled cards.
-      el.style.filter = inv > 0.12 ? `blur(${(inv * 6).toFixed(2)}px)` : "none";
     });
     onFrame?.(opened, count ? sum / count : 1);
   }, enabled);

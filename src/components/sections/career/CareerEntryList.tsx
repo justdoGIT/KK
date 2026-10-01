@@ -2,6 +2,7 @@ import { useEffect, useRef, type JSX } from "react";
 import type { CareerClockRef } from "../../../scene/career/career-clock.ts";
 import { smoothstep } from "../../../scene/career/career-timeline.ts";
 import type { CareerEntry } from "../../../content/career.ts";
+import { onFrame } from "../../../motion/frame.ts";
 import { Disclosure } from "../../ui/Disclosure.tsx";
 
 type CareerEntryListProps = {
@@ -14,6 +15,11 @@ type CareerEntryListProps = {
   onOpenChange: (id: string, open: boolean) => void;
 };
 
+// Below this gap (px) the scrub is considered converged; once resting, reads
+// are skipped entirely until the clock moves again (no per-frame
+// getBoundingClientRect once the active entry is already in place).
+const CONVERGE_EPSILON = 0.5;
+
 /** Left column: every role stays in the DOM; the active role scrolls into the viewport and expands. */
 export function CareerEntryList({ entries, activeId, openId, clock, animated, onOpenChange }: CareerEntryListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
@@ -21,9 +27,11 @@ export function CareerEntryList({ entries, activeId, openId, clock, animated, on
 
   useEffect(() => {
     if (!animated) return;
-    let frame = 0;
-    const scrub = () => {
-      frame = requestAnimationFrame(scrub);
+    let resting = false;
+    let lastLocal = -1;
+    return onFrame("read", () => {
+      if (resting && clock.current.local === lastLocal) return;
+      lastLocal = clock.current.local;
       const list = listRef.current;
       const active = activeRef.current;
       if (!list || !active) return;
@@ -34,10 +42,12 @@ export function CareerEntryList({ entries, activeId, openId, clock, animated, on
         overflow > 0
           ? itemTop - 8 + overflow * smoothstep(0.15, 0.92, clock.current.local)
           : itemTop - (viewport - active.offsetHeight) * 0.5;
-      list.scrollTop += (Math.max(0, target) - list.scrollTop) * 0.14;
-    };
-    frame = requestAnimationFrame(scrub);
-    return () => cancelAnimationFrame(frame);
+      const next = Math.max(0, target);
+      const gap = next - list.scrollTop;
+      resting = Math.abs(gap) < CONVERGE_EPSILON;
+      if (resting) return;
+      list.scrollTop += gap * 0.14;
+    });
   }, [activeId, clock, animated]);
 
   return (

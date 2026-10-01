@@ -1,4 +1,4 @@
-import { useRef, useMemo, type JSX } from "react";
+import { useRef, useMemo, useEffect, type JSX } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { AiTensorProcessor } from "../components/AiTensorProcessor.tsx";
@@ -28,14 +28,14 @@ const ARMY_NODES: ArmyNode[] = [
 export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
   const groupRef = useRef<THREE.Group>(null);
   const constellationRef = useRef<THREE.Group>(null);
+  // Hoisted out of useFrame: `.lerp()` only reads this target, never retains
+  // it, so one shared scratch vector replaces a `new Vector3()` every frame.
+  const scaleTarget = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const targetScale = active ? 1.0 : 0.001;
-    groupRef.current.scale.lerp(
-      new THREE.Vector3(targetScale, targetScale, targetScale),
-      delta * 4.0,
-    );
+    groupRef.current.scale.lerp(scaleTarget.set(targetScale, targetScale, targetScale), delta * 4.0);
 
     if (!active || !constellationRef.current) return;
     const time = state.clock.getElapsedTime();
@@ -43,6 +43,7 @@ export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
     constellationRef.current.rotation.x = Math.sin(time * 0.08) * 0.06;
   });
 
+  // Adjacency pairs (stable: ARMY_NODES never changes).
   const meshLines = useMemo(() => {
     const lines: [number, number][] = [];
     for (let i = 0; i < ARMY_NODES.length; i++) {
@@ -59,6 +60,32 @@ export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
     }
     return lines;
   }, []);
+
+  // Built once: a fresh `new THREE.Line(new BufferGeometry(), new LineBasicMaterial())`
+  // per pair on every render (this component re-renders whenever `active`
+  // flips) allocated new GPU geometry/material each time with nothing
+  // disposing the previous one — the resources leaked for the life of the
+  // page. Memoized and disposed on unmount instead.
+  const fleetLines = useMemo(
+    () =>
+      meshLines.map(([fromIdx, toIdx]) => {
+        const p1 = new THREE.Vector3(...ARMY_NODES[fromIdx].pos);
+        const p2 = new THREE.Vector3(...ARMY_NODES[toIdx].pos);
+        const geometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+        const material = new THREE.LineBasicMaterial({ color: "#38bdf8", transparent: true, opacity: 0.4 });
+        return new THREE.Line(geometry, material);
+      }),
+    [meshLines],
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const line of fleetLines) {
+        line.geometry.dispose();
+        (line.material as THREE.Material).dispose();
+      }
+    };
+  }, [fleetLines]);
 
   return (
     <group ref={groupRef} visible={active}>
@@ -92,28 +119,9 @@ export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
         ))}
 
         {/* Telemetry Interconnect Mesh Lines */}
-        {meshLines.map(([fromIdx, toIdx], idx) => {
-          const p1 = new THREE.Vector3(...ARMY_NODES[fromIdx].pos);
-          const p2 = new THREE.Vector3(...ARMY_NODES[toIdx].pos);
-          const points = [p1, p2];
-          const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-
-          return (
-            <primitive
-              key={idx}
-              object={
-                new THREE.Line(
-                  lineGeo,
-                  new THREE.LineBasicMaterial({
-                    color: "#38bdf8",
-                    transparent: true,
-                    opacity: 0.4,
-                  }),
-                )
-              }
-            />
-          );
-        })}
+        {fleetLines.map((line, idx) => (
+          <primitive key={idx} object={line} />
+        ))}
       </group>
     </group>
   );

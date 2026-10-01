@@ -136,6 +136,7 @@ export function FloatingField(): JSX.Element {
 
   const pointerPos = useRef(new THREE.Vector2(0, 0));
   const pointerWorld = useRef(new THREE.Vector3(0, 0, 0));
+  const mouseTarget = useRef(new THREE.Vector2(0, 0));
   const mouseWindow = useRef({ x: 0, y: 0, active: false });
 
   useEffect(() => {
@@ -152,7 +153,7 @@ export function FloatingField(): JSX.Element {
     const time = state.clock.getElapsedTime();
     const clampedDelta = Math.min(0.1, delta);
     const targetPtr = mouseWindow.current.active
-      ? new THREE.Vector2(mouseWindow.current.x, mouseWindow.current.y)
+      ? mouseTarget.current.set(mouseWindow.current.x, mouseWindow.current.y)
       : state.pointer;
 
     // Map pointer coordinates to 3D interaction plane
@@ -180,11 +181,15 @@ export function FloatingField(): JSX.Element {
         cfg.basePos[2] +
         Math.sin(time * cfg.bobSpeed * 0.6 + cfg.phase * 0.8) * (cfg.bobAmp * 0.3);
 
-      const targetPos = new THREE.Vector3(idleX, idleY, idleZ);
+      // Plain numbers, not a Vector3: this target is only ever read/added to
+      // in this scope, so a per-item-per-frame allocation bought nothing.
+      let targetX = idleX;
+      let targetY = idleY;
+      let targetZ = idleZ;
 
       // 2. Interactive Cursor Repulsion & Ripple Impulse
-      const dx = targetPos.x - pointerWorld.current.x;
-      const dy = targetPos.y - pointerWorld.current.y;
+      const dx = targetX - pointerWorld.current.x;
+      const dy = targetY - pointerWorld.current.y;
       const distSq = dx * dx + dy * dy;
       const influenceRadius = 2.4;
 
@@ -194,9 +199,9 @@ export function FloatingField(): JSX.Element {
         const pushForce = factor * 0.8;
 
         // Push outwards and lift along z
-        targetPos.x += (dx / dist) * pushForce;
-        targetPos.y += (dy / dist) * pushForce;
-        targetPos.z += factor * 0.4;
+        targetX += (dx / dist) * pushForce;
+        targetY += (dy / dist) * pushForce;
+        targetZ += factor * 0.4;
 
         // Dynamic tilt torque from cursor interaction
         dyn.rotVel.x += (dy / dist) * factor * 0.8 * clampedDelta;
@@ -206,9 +211,9 @@ export function FloatingField(): JSX.Element {
       // 3. Spring-damper physics for position
       const springStiffness = 14.0;
       const springDamping = 4.5;
-      const forceX = (targetPos.x - dyn.pos.x) * springStiffness - dyn.vel.x * springDamping;
-      const forceY = (targetPos.y - dyn.pos.y) * springStiffness - dyn.vel.y * springDamping;
-      const forceZ = (targetPos.z - dyn.pos.z) * springStiffness - dyn.vel.z * springDamping;
+      const forceX = (targetX - dyn.pos.x) * springStiffness - dyn.vel.x * springDamping;
+      const forceY = (targetY - dyn.pos.y) * springStiffness - dyn.vel.y * springDamping;
+      const forceZ = (targetZ - dyn.pos.z) * springStiffness - dyn.vel.z * springDamping;
 
       dyn.vel.x += forceX * clampedDelta;
       dyn.vel.y += forceY * clampedDelta;

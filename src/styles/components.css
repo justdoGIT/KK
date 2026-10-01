@@ -130,9 +130,11 @@
   gap: 0.12rem;
   padding: 0.45rem 0.85rem;
   border-radius: 8px;
-  background: rgba(6, 9, 16, 0.8);
+  /* No backdrop-filter: sits over the silicon-fleet WebGL canvas, which
+     renders continuously while near viewport; a denser flat background
+     keeps the same readable tile without a per-frame backdrop resample. */
+  background: rgba(6, 9, 16, 0.92);
   border: 1px solid rgba(56, 189, 248, 0.18);
-  backdrop-filter: blur(8px);
 }
 .jm-label {
   font-family: var(--font-mono);
@@ -794,12 +796,19 @@
   60% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
   100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
 }
-.offer-card-featured.is-open {
+.offer-card-featured.is-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  box-shadow: 0 0 32px rgba(56, 189, 248, 0.28);
+  opacity: 0;
   animation: offer-featured-glow 3.2s ease-in-out infinite;
+  pointer-events: none;
 }
 @keyframes offer-featured-glow {
-  0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 rgba(56, 189, 248, 0); }
-  50% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 32px rgba(56, 189, 248, 0.28); }
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 .offer-card-featured {
   border-color: rgba(56, 189, 248, 0.45);
@@ -1021,7 +1030,6 @@
   left: 0;
   z-index: 9999;
   pointer-events: none;
-  mix-blend-mode: difference;
   margin-left: -8px;
   margin-top: -8px;
 }
@@ -1029,7 +1037,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: rgba(248, 250, 252, 0.85);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
 }
 
 /* Ambient editorial treatment */
@@ -1324,16 +1333,18 @@ main::before {
 }
 .service-card-deck-item {
   position: sticky;
-  background: radial-gradient(
-    circle at 85% 20%,
-    rgba(56, 189, 248, 0.06) 0%,
-    rgba(15, 23, 42, 0.85) 60%,
-    rgba(10, 15, 26, 0.96) 100%
-  );
+  /* No backdrop-filter: in throw mode this card's own transform animates
+     every scroll frame, which would force the browser to resample the
+     backdrop blur each frame too. The accent tint now sits on top of a
+     near-opaque solid base (not blended into it), so the 85%/20% hotspot
+     that used to rely on blur to hide whatever rendered behind it stays
+     opaque without the per-frame cost. */
+  background:
+    radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.14) 0%, transparent 55%),
+    rgba(12, 17, 29, 0.97);
   border: 1px solid var(--color-surface-border);
   border-radius: 20px;
   padding: 2.5rem 2.8rem;
-  backdrop-filter: blur(12px);
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -1341,10 +1352,10 @@ main::before {
 }
 /* Stacked (non-throw) layout has no per-frame --covered value; hide a
    covered card's own content outright so its text doesn't bleed through
-   the sliver of glass peeking above the focused card. */
-.services-deck-container .service-card-deck-item > * {
-  transition: opacity 0.3s ease;
-}
+   the sliver of glass peeking above the focused card. No transition here:
+   a crossfade let two sticky, near-overlapping cards both render partially
+   visible text for up to 300ms while scrolling (seen as "double text" /
+   half-faded text mid-screen) — the swap is a hard cut instead. */
 .services-deck-container .service-card-deck-item:not(.card-focused) > * {
   opacity: 0;
 }
@@ -2161,11 +2172,11 @@ main::before {
   height: 105px;
 }
 .arch-animated-wire {
-  animation: wire-flow 1.5s linear infinite;
+  animation: wire-flow 1.5s ease-in-out infinite;
 }
 @keyframes wire-flow {
-  from { stroke-dashoffset: 24; }
-  to { stroke-dashoffset: 0; }
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 /* Architecture Lightbox Modal */

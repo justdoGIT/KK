@@ -83,13 +83,18 @@ const RippleShaderMaterial = {
   `,
 };
 
+// Continuous breathing pulses stop once the pointer has been still this long,
+// letting the sim (and its texture uploads) go fully idle.
+const IDLE_AFTER_MS = 1200;
+
 export function FluidRipplePlane(): JSX.Element {
-  const { size } = useThree();
+  const { size, gl } = useThree();
   const simRef = useRef<RippleCanvas | null>(null);
   const textureRef = useRef<THREE.CanvasTexture | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const lastPointer = useRef({ x: 0, y: 0 });
-  const mouseWindow = useRef({ x: 0, y: 0, active: true });
+  const mousePointer = useRef({ x: 0, y: 0, active: false });
+  const lastMoveTime = useRef(0);
 
   useEffect(() => {
     const sim = new RippleCanvas(256, 256);
@@ -106,9 +111,14 @@ export function FluidRipplePlane(): JSX.Element {
     }
 
     const onMove = (e: PointerEvent) => {
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
-      const ny = -(e.clientY / window.innerHeight) * 2 + 1;
-      mouseWindow.current = { x: nx, y: ny, active: true };
+      // Map through the canvas's own rect, not the window: the canvas may
+      // not fill the viewport exactly (letterboxing, nested layouts).
+      const rect = gl.domElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      mousePointer.current = { x: nx, y: ny, active: true };
+      lastMoveTime.current = performance.now();
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -120,7 +130,7 @@ export function FluidRipplePlane(): JSX.Element {
       simRef.current = null;
       textureRef.current = null;
     };
-  }, []);
+  }, [gl]);
 
   useFrame((state) => {
     const sim = simRef.current;
@@ -128,7 +138,8 @@ export function FluidRipplePlane(): JSX.Element {
     if (!sim) return;
 
     const time = state.clock.getElapsedTime();
-    const ptr = mouseWindow.current.active ? mouseWindow.current : state.pointer;
+    const recentlyActive = performance.now() - lastMoveTime.current < IDLE_AFTER_MS;
+    const ptr = mousePointer.current.active ? mousePointer.current : state.pointer;
 
     // Track mouse velocity and inject ripples into simulation
     const dx = ptr.x - lastPointer.current.x;
@@ -139,8 +150,12 @@ export function FluidRipplePlane(): JSX.Element {
       sim.addPointerMove(ptr.x, ptr.y, Math.min(2.4, speed * 20));
     }
 
-    // Continuous pulse so ripple never finishes while hovering over heading or scene
-    sim.addContinuousPulse(ptr.x, ptr.y, 0.65);
+    // Continuous pulse so ripple never finishes while hovering — but only
+    // while the pointer has moved recently; otherwise the sim goes idle
+    // instead of pulsing and re-uploading its texture forever.
+    if (recentlyActive) {
+      sim.addContinuousPulse(ptr.x, ptr.y, 0.65);
+    }
 
     lastPointer.current = { x: ptr.x, y: ptr.y };
 

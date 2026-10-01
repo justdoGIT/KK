@@ -16,12 +16,16 @@ export type RipplePoint = {
 export class RippleCanvas {
   public canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private ripples: RipplePoint[] = [];
   public textureNeedsUpdate = false;
+  private ripples: RipplePoint[] = [];
   private lastX = -1;
   private lastY = -1;
   private lastTime = 0;
   private lastPulseTime = 0;
+  // True once the canvas has settled to its neutral, undisplaced state with
+  // no live ripples; skips redrawing and re-uploading an already-neutral
+  // texture every frame while the cursor is away.
+  private idle = true;
 
   constructor(public width = 256, public height = 256) {
     if (typeof document !== "undefined") {
@@ -100,12 +104,21 @@ export class RippleCanvas {
 
   public update(): boolean {
     if (!this.ctx || !this.canvas) return false;
+    if (this.ripples.length === 0) {
+      // Already neutral from a prior idle call: nothing to redraw or upload.
+      if (this.idle) return false;
+      // One last fade-to-neutral pass, then go idle until the next ripple.
+      this.ctx.fillStyle = "rgba(128, 128, 128, 0.08)";
+      this.ctx.fillRect(0, 0, this.width, this.height);
+      this.idle = true;
+      this.textureNeedsUpdate = true;
+      return true;
+    }
+    this.idle = false;
 
     // Neutral gray background represents zero displacement in normal map
     this.ctx.fillStyle = "rgba(128, 128, 128, 0.08)";
     this.ctx.fillRect(0, 0, this.width, this.height);
-
-    if (this.ripples.length === 0) return false;
 
     for (let i = this.ripples.length - 1; i >= 0; i--) {
       const r = this.ripples[i];

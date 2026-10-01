@@ -63,14 +63,16 @@ describe("scroll choreography", () => {
     const anchor = landingAnchor(finale, camera, 1000, 800);
     expect(anchor).not.toBeNull();
     if (!anchor) return;
+    // One support point at the boot soles, 0.9 rig units below the root.
+    const soles = { bones: Uint8Array.of(0), points: Float32Array.of(0, -0.9, 0) };
 
-    const untouched = contactRoot(anchor, "stand", -0.9, 0, 0, { ...before });
+    const untouched = contactRoot(anchor, "stand", soles, 0, 0, { ...before });
     expect(untouched).toEqual(before);
 
-    const landed = contactRoot(anchor, "stand", -0.9, 1, 0, createRootPose());
+    const landed = contactRoot(anchor, "stand", soles, 1, 0, createRootPose());
     expect(landed.scale).toBeCloseTo(anchor.scale, 6);
     expect(landed.x).toBeCloseTo(anchor.x, 6);
-    expect(Number.isFinite(landed.y)).toBe(true);
+    expect(landed.y - 0.9 * anchor.scale).toBeCloseTo(anchor.top, 6);
     expect(Number.isFinite(landed.z)).toBe(true);
   });
 });

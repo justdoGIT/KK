@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { onFrame } from "./frame.ts";
 
 export function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
@@ -28,9 +29,13 @@ export function gridColumnCount(el: Element): number {
 }
 
 /**
- * Runs `apply` once per animation frame while the page scrolls or resizes.
- * Scroll events can fire several times per frame; coalescing to one style
- * write per frame keeps scroll-linked transforms from strobing.
+ * Runs `apply` once per scheduler frame while the page scrolls or resizes.
+ * Scroll events can fire several times per frame; coalescing to one `write`-
+ * phase call per frame — on the same scheduler tick as every other driver,
+ * right after Lenis advances in `scroll` — keeps scroll-linked transforms
+ * from strobing and guarantees `apply` reads the same scroll position every
+ * other layer painted from this frame, instead of the extra frame of lag a
+ * privately-scheduled `requestAnimationFrame` added.
  */
 export function useScrollFrame(apply: () => void, enabled = true): void {
   const applyRef = useRef(apply);
@@ -40,21 +45,21 @@ export function useScrollFrame(apply: () => void, enabled = true): void {
 
   useEffect(() => {
     if (!enabled) return;
-    let rafId = 0;
+    let pending = true; // run once immediately on mount/enable
     const schedule = () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        applyRef.current();
-      });
+      pending = true;
     };
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    applyRef.current();
+    const stop = onFrame("write", () => {
+      if (!pending) return;
+      pending = false;
+      applyRef.current();
+    });
     return () => {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
-      cancelAnimationFrame(rafId);
+      stop();
     };
   }, [enabled]);
 }

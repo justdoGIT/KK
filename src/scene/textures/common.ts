@@ -14,5 +14,7 @@ export function createFallbackTexture(color: string = "#1e293b"): THREE.Texture 
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, 16, 16);
   }
-  return new THREE.CanvasTexture(canvas);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }

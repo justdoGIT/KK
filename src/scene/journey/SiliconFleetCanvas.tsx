@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, type JSX } from "react";
+import { Suspense, lazy, useEffect, useRef, useState, type JSX } from "react";
 import { checkWebGL } from "../useCapability.ts";
 import { boardLifecycle } from "../../content/board-lifecycle.ts";
 
@@ -25,17 +25,32 @@ export function SiliconFleetCanvas({
   currentStage,
 }: SiliconFleetCanvasProps): JSX.Element {
   const [webglSupported] = useState(() => checkWebGL());
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Mounted only once this section is near the viewport: this canvas's own
+  // WebGL context and render loop otherwise ran for the whole page, even
+  // while scrolled many screens away.
+  const [near, setNear] = useState(false);
 
-  if (!webglSupported) {
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+      rootMargin: "100% 0px",
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  if (!webglSupported || !near) {
     return (
-      <div className="sand-canvas-container" aria-hidden="true">
+      <div ref={containerRef} className="sand-canvas-container" aria-hidden="true">
         <CSSJourneyFallback currentStage={currentStage} />
       </div>
     );
   }
 
   return (
-    <div className="sand-canvas-container" aria-hidden="true">
+    <div ref={containerRef} className="sand-canvas-container" aria-hidden="true">
       <Suspense fallback={<CSSJourneyFallback currentStage={currentStage} />}>
         <CanvasImpl currentStage={currentStage} />
       </Suspense>

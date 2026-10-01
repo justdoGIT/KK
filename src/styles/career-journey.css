@@ -239,8 +239,10 @@
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(56, 189, 248, 0.25);
-  background: rgba(2, 4, 10, 0.78);
-  backdrop-filter: blur(6px);
+  /* No backdrop-filter: sits directly over the career-journey WebGL canvas,
+     which renders every frame while this stage is active. A denser flat
+     background keeps the panel readable without a per-frame resample. */
+  background: rgba(2, 4, 10, 0.92);
 }
 
 .career-hud-panel figcaption {

@@ -13,12 +13,26 @@ export type MotorCommand = { left: number; right: number; mode: string };
 
 export type Hud = {
   draw: (frame: SensorFrame, pose: Pose, u: number, now: number) => void;
+  dispose: () => void;
 };
 
-function fit(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
+type Dims = { w: number; h: number };
+
+/** Caches a canvas's CSS size via ResizeObserver so draw calls never read layout. */
+function observeSize(canvas: HTMLCanvasElement): { dims: Dims; stop: () => void } {
+  const dims: Dims = { w: canvas.clientWidth, h: canvas.clientHeight };
+  const ro = new ResizeObserver(([entry]) => {
+    dims.w = entry.contentRect.width;
+    dims.h = entry.contentRect.height;
+  });
+  ro.observe(canvas);
+  return { dims, stop: () => ro.disconnect() };
+}
+
+function fit(canvas: HTMLCanvasElement, dims: Dims): CanvasRenderingContext2D | null {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-  const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  const w = Math.max(1, Math.round(dims.w * dpr));
+  const h = Math.max(1, Math.round(dims.h * dpr));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
@@ -59,6 +73,9 @@ export function motorCommand(pose: Pose, frame: SensorFrame): MotorCommand {
 }
 
 export function createHud(canvases: HudCanvases, maze: Maze): Hud {
+  const depthSize = observeSize(canvases.depth);
+  const correctionSize = observeSize(canvases.correction);
+  const topSize = observeSize(canvases.top);
   const pixels = document.createElement("canvas");
   pixels.width = DEPTH_COLS;
   pixels.height = DEPTH_ROWS;
@@ -72,10 +89,10 @@ export function createHud(canvases: HudCanvases, maze: Maze): Hud {
   }
 
   function drawDepth(frame: SensorFrame): void {
-    const ctx = fit(canvases.depth);
+    const ctx = fit(canvases.depth, depthSize.dims);
     if (!ctx || !pixelCtx || !image) return;
-    const w = canvases.depth.clientWidth;
-    const h = canvases.depth.clientHeight;
+    const w = depthSize.dims.w;
+    const h = depthSize.dims.h;
     for (let i = 0; i < DEPTH_COLS * DEPTH_ROWS; i += 1) {
       const [r, g, b] = heat(frame.depth[i], frame.surface[i]);
       image.data[i * 4] = r;
@@ -102,10 +119,10 @@ export function createHud(canvases: HudCanvases, maze: Maze): Hud {
   }
 
   function drawCorrection(frame: SensorFrame, swing: number): void {
-    const ctx = fit(canvases.correction);
+    const ctx = fit(canvases.correction, correctionSize.dims);
     if (!ctx) return;
-    const w = canvases.correction.clientWidth;
-    const h = canvases.correction.clientHeight;
+    const w = correctionSize.dims.w;
+    const h = correctionSize.dims.h;
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, w, h);
     const scale = h / 1.5;
@@ -175,10 +192,10 @@ export function createHud(canvases: HudCanvases, maze: Maze): Hud {
   }
 
   function drawTop(pose: Pose, u: number): void {
-    const ctx = fit(canvases.top);
+    const ctx = fit(canvases.top, topSize.dims);
     if (!ctx) return;
-    const w = canvases.top.clientWidth;
-    const h = canvases.top.clientHeight;
+    const w = topSize.dims.w;
+    const h = topSize.dims.h;
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, w, h);
     const scale = Math.min(w / ((MAZE_COLS + 2.2) * CELL), h / ((MAZE_ROWS + 0.6) * CELL));
@@ -232,6 +249,11 @@ export function createHud(canvases: HudCanvases, maze: Maze): Hud {
       drawDepth(frame);
       drawCorrection(frame, swing);
       drawTop(pose, u);
+    },
+    dispose() {
+      depthSize.stop();
+      correctionSize.stop();
+      topSize.stop();
     },
   };
 }

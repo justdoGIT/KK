@@ -1,91 +1,83 @@
-import { useEffect, useRef, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
+import { onFrame } from "../../motion/frame.ts";
 
 export function GlobalRibbonBackground(): JSX.Element {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const path1Ref = useRef<SVGPathElement>(null);
   const path2Ref = useRef<SVGPathElement>(null);
+  const [viewBox, setViewBox] = useState("0 0 1440 900");
 
   useEffect(() => {
     const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (isReduced) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
-    let rafId = 0;
-    const startTime = performance.now();
+    // The ribbon is a fixed, full-viewport background: static path geometry
+    // (set once below, sized to the current viewport) animated only by a
+    // compositor transform on each <path> — no per-frame `d` rewrite under
+    // the active blur filter, which used to force a CPU re-rasterize of the
+    // blur every frame.
+    let paused = !wrapper.isConnected;
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setViewBox(`0 0 ${Math.round(width)} ${Math.round(height)}`);
+    });
+    resizeObserver.observe(wrapper);
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        paused = !entry.isIntersecting;
+      },
+      { threshold: 0 },
+    );
+    visibilityObserver.observe(wrapper);
+
     let lastScrollY = window.scrollY;
-    let scrollVel = 0;
     let targetScrollVel = 0;
-
+    let scrollVel = 0;
     const handleScroll = () => {
       const currentY = window.scrollY;
       targetScrollVel = (currentY - lastScrollY) * 0.15;
       lastScrollY = currentY;
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
 
-    const animate = (now: number) => {
-      const elapsed = (now - startTime) * 0.001; // seconds
-
-      // Damped scroll velocity
+    const startTime = performance.now();
+    const stopRead = onFrame("read", () => {
+      if (paused) return;
       scrollVel += (targetScrollVel - scrollVel) * 0.1;
       targetScrollVel *= 0.92;
-
-      const sy = window.scrollY;
-      const w = window.innerWidth || 1440;
-      const h = window.innerHeight || 900;
-
-      // Organic wave control points for Ribbon 1
-      const wave1A = Math.sin(elapsed * 0.8 + sy * 0.0015) * 80 + scrollVel * 1.5;
-      const wave1B = Math.cos(elapsed * 0.6 + sy * 0.002) * 90 - scrollVel * 1.2;
-      const wave1C = Math.sin(elapsed * 1.1 + sy * 0.001) * 70;
-
-      // Ribbon 1 Path: smooth multi-segment Cubic Bezier flowing across viewport
-      const p1X0 = -100;
-      const p1Y0 = h * 0.25 + wave1A;
-      const cp1X1 = w * 0.35;
-      const cp1Y1 = h * 0.1 + wave1B;
-      const cp1X2 = w * 0.65;
-      const cp1Y2 = h * 0.75 + wave1C;
-      const p1X3 = w + 100;
-      const p1Y3 = h * 0.5 - wave1A * 0.5;
-
-      const d1 = `M ${p1X0},${p1Y0} C ${cp1X1},${cp1Y1} ${cp1X2},${cp1Y2} ${p1X3},${p1Y3}`;
-
-      // Organic wave control points for Ribbon 2 (Secondary accent ribbon with phase shift)
-      const wave2A = Math.cos(elapsed * 0.7 + sy * 0.0012) * 65 - scrollVel * 1.8;
-      const wave2B = Math.sin(elapsed * 0.9 + sy * 0.0018) * 85 + scrollVel * 1.4;
-
-      const p2X0 = -80;
-      const p2Y0 = h * 0.65 + wave2A;
-      const cp2X1 = w * 0.3;
-      const cp2Y1 = h * 0.85 - wave2B;
-      const cp2X2 = w * 0.7;
-      const cp2Y2 = h * 0.25 + wave2A;
-      const p2X3 = w + 80;
-      const p2Y3 = h * 0.7 - wave2B * 0.5;
-
-      const d2 = `M ${p2X0},${p2Y0} C ${cp2X1},${cp2Y1} ${cp2X2},${cp2Y2} ${p2X3},${p2Y3}`;
-
+    });
+    const stopWrite = onFrame("write", (time) => {
+      if (paused) return;
+      const elapsed = (time - startTime) * 0.001;
+      // Gentle drift + scroll-velocity kick, entirely on the compositor:
+      // translate and a hair of rotation, never touching path geometry.
+      const driftX = Math.sin(elapsed * 0.15) * 14 + scrollVel * 0.6;
+      const driftY = Math.cos(elapsed * 0.12) * 10 - scrollVel * 0.4;
+      const rot1 = Math.sin(elapsed * 0.08) * 1.4;
+      const rot2 = Math.cos(elapsed * 0.1) * 1.2;
       if (path1Ref.current) {
-        path1Ref.current.setAttribute("d", d1);
+        path1Ref.current.style.transform = `translate3d(${driftX.toFixed(2)}px, ${driftY.toFixed(2)}px, 0) rotate(${rot1.toFixed(3)}deg)`;
       }
       if (path2Ref.current) {
-        path2Ref.current.setAttribute("d", d2);
+        path2Ref.current.style.transform = `translate3d(${(-driftX * 0.8).toFixed(2)}px, ${(-driftY * 0.8).toFixed(2)}px, 0) rotate(${rot2.toFixed(3)}deg)`;
       }
-
-      rafId = requestAnimationFrame(animate);
-    };
-
-    rafId = requestAnimationFrame(animate);
+    });
 
     return () => {
-      cancelAnimationFrame(rafId);
+      stopRead();
+      stopWrite();
       window.removeEventListener("scroll", handleScroll);
+      resizeObserver.disconnect();
+      visibilityObserver.disconnect();
     };
   }, []);
 
   return (
-    <div className="global-ribbon-wrapper" aria-hidden="true">
-      <svg className="global-ribbon-svg" viewBox="0 0 1440 900" preserveAspectRatio="none">
+    <div ref={wrapperRef} className="global-ribbon-wrapper" aria-hidden="true">
+      <svg className="global-ribbon-svg" viewBox={viewBox} preserveAspectRatio="none">
         <defs>
           <linearGradient id="globalRibbonGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.02" />

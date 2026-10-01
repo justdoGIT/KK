@@ -1,17 +1,19 @@
 import { Suspense, useEffect, type JSX } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 import type { CareerClockRef } from "./career-clock.ts";
 import { preloadModels } from "./robot-model.ts";
 import { CAREER_STAGES } from "./stages/registry.ts";
+import { useAdaptiveDpr } from "../AdaptiveDpr.tsx";
 
 type CareerJourneyCanvasProps = { clock: CareerClockRef; active: boolean };
 
 /** Locally built studio environment: no HDR downloads (CSP connect-src 'self'). */
 function StudioEnvironment(): JSX.Element {
   return (
-    <Environment resolution={128} frames={1}>
+    <Environment resolution={256} frames={1}>
       <Lightformer form="rect" intensity={2.2} color="#dbeafe" position={[0, 6, 2]} scale={[10, 3, 1]} rotation-x={Math.PI / 2} />
       <Lightformer form="rect" intensity={1.6} color="#38bdf8" position={[-6, 2, 0]} scale={[4, 6, 1]} rotation-y={Math.PI / 2} />
       <Lightformer form="rect" intensity={1.4} color="#93a4ff" position={[6, 2, -2]} scale={[4, 6, 1]} rotation-y={-Math.PI / 2} />
@@ -21,6 +23,8 @@ function StudioEnvironment(): JSX.Element {
 }
 
 export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps): JSX.Element {
+  const { dpr, monitor } = useAdaptiveDpr();
+
   useEffect(() => {
     preloadModels(["turtlebot3", "husky", "go2", "astronaut", "humanoid"]);
   }, []);
@@ -28,14 +32,17 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
   return (
     <Canvas
       className="career-canvas"
-      dpr={[1, 1.75]}
+      dpr={dpr}
       frameloop={active ? "always" : "never"}
       shadows
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ fov: 42, near: 0.03, far: 80, position: [0, 5, 5] }}
     >
+      {monitor}
       <color attach="background" args={["#02040a"]} />
-      <fog attach="fog" args={["#02040a", 7, 24]} />
+      {/* Pushed back from [7, 24]: the previous near bound fogged stage
+          content almost immediately after the camera, washing it out. */}
+      <fog attach="fog" args={["#02040a", 12, 34]} />
       <hemisphereLight args={["#93a4ff", "#02040a", 0.45]} />
       <directionalLight
         castShadow
@@ -55,9 +62,10 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
           <Stage clock={clock} index={index} />
         </Suspense>
       ))}
-      <EffectComposer multisampling={0}>
-        <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.2} />
-        <Vignette offset={0.28} darkness={0.72} />
+      <EffectComposer multisampling={4}>
+        <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.9} luminanceSmoothing={0.2} />
+        <ToneMapping mode={ToneMappingMode.NEUTRAL} />
+        <Vignette offset={0.32} darkness={0.5} />
       </EffectComposer>
     </Canvas>
   );

@@ -1,9 +1,9 @@
-import { Group, Matrix4, Quaternion, Vector3, type Object3D } from "three";
+import { Box3, Group, Matrix4, Quaternion, Vector3, type Object3D } from "three";
 import { createChibiHead } from "./humanoid-head.ts";
 import { createChibiTorso } from "./humanoid-torso.ts";
 import { createChibiPalette } from "./humanoid-surfaces.ts";
 import {
-  BOOT_SOLE_HEIGHT, FOREARM_LENGTH, SHIN_LENGTH, THIGH_LENGTH, UPPER_ARM_LENGTH,
+  FOREARM_LENGTH, SHIN_LENGTH, THIGH_LENGTH, UPPER_ARM_LENGTH,
   createChibiArm, createChibiLeg, type ChibiArm, type ChibiLeg,
 } from "./humanoid-limbs.ts";
 
@@ -104,6 +104,11 @@ export function attachChibiAppearance(b: ChibiBones, root: Group): DynamicPart[]
   });
 
   const legL = createChibiLeg(palette);
+  // The sole's footprint corners in boot space, from the detached boot's own geometry.
+  const sole = new Box3().setFromObject(legL.boot);
+  const soleCorners = [sole.min.x, sole.max.x].flatMap((x) =>
+    [sole.min.z, sole.max.z].map((z) => new Vector3(x, sole.min.y, z)),
+  );
   const legR = cloneLeg(legL);
   const legs = [
     { parts: legL, hip: b.upperLegL, knee: b.lowerLegL, foot: b.footL, side: "L" },
@@ -118,10 +123,6 @@ export function attachChibiAppearance(b: ChibiBones, root: Group): DynamicPart[]
       hipPosition: new Vector3(), kneePosition: new Vector3(), footPosition: new Vector3(),
     };
   });
-  const soleCorners = [
-    new Vector3(-0.141, -BOOT_SOLE_HEIGHT, -0.11), new Vector3(0.141, -BOOT_SOLE_HEIGHT, -0.11),
-    new Vector3(-0.141, -BOOT_SOLE_HEIGHT, 0.262), new Vector3(0.141, -BOOT_SOLE_HEIGHT, 0.262),
-  ];
 
   const update = (): void => {
     toRoot.copy(root.matrixWorld).invert();
