@@ -144,7 +144,10 @@ export function CaseStudies(): JSX.Element {
     const scrollProgress = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
 
     if (headingWobbleRef.current) {
-      headingWobbleRef.current.style.transform = `translateY(${Math.sin(scrollProgress * Math.PI * 4) * 12}px)`;
+      const exit = Math.max(0, Math.min(1, (scrollProgress - 0.42) / 0.2));
+      const wobble = Math.sin(scrollProgress * Math.PI * 4) * 12;
+      headingWobbleRef.current.style.transform = `translateY(${Math.round(wobble - exit * 24)}px)`;
+      headingWobbleRef.current.style.opacity = String(1 - exit);
     }
     stackBtnRef.current?.classList.toggle("active", scrollProgress < 0.3);
     fanBtnRef.current?.classList.toggle("active", scrollProgress >= 0.3);
