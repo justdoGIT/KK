@@ -14,10 +14,11 @@ export function createChipTexture(
   if (!isBrowser()) return createFallbackTexture("#18181b");
 
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 1024;
+  canvas.height = 1024;
   const ctx = canvas.getContext("2d");
   if (!ctx) return createFallbackTexture();
+  ctx.scale(2, 2);
 
   const grad = ctx.createRadialGradient(256, 256, 30, 256, 256, 320);
   grad.addColorStop(0, "#1c2128");
@@ -87,7 +88,8 @@ export function createChipTexture(
   ctx.fillText("TAIWAN / SECURED", 48, 450);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.anisotropy = 4;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -135,6 +137,7 @@ export function createWaferTexture(): THREE.CanvasTexture | THREE.Texture {
   }
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.anisotropy = 4;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
   return texture;
 }

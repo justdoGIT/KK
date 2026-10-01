@@ -2,6 +2,7 @@ import { type JSX } from "react";
 import { ColdSiliconBringupStage } from "./ColdSiliconBringupStage.tsx";
 import { BoardStackStage } from "./BoardStackStage.tsx";
 import { FleetArmyStage } from "./FleetArmyStage.tsx";
+import { SceneEnvironment } from "../SceneEnvironment.tsx";
 
 type SiliconFleetSceneProps = { currentStage: number }; // index into boardLifecycle (0–6)
 
@@ -11,9 +12,13 @@ export function SiliconFleetScene({ currentStage }: SiliconFleetSceneProps): JSX
     <>
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 8, 6]} intensity={1.6} />
-      <pointLight position={[-4, 3, 3]} intensity={1.3} color="#38bdf8" />
-      <pointLight position={[4, -4, -2]} intensity={1.1} color="#f59e0b" />
-
+      {/* Scaled for physically-correct inverse-square falloff at each
+          light's actual distance (three r155+ default): the previous
+          intensities of ~1.1-1.3 contributed only ~0.03 illuminance at
+          ~6 units away. */}
+      <pointLight position={[-4, 3, 3]} intensity={24} color="#38bdf8" />
+      <pointLight position={[4, -4, -2]} intensity={22} color="#f59e0b" />
+      <SceneEnvironment />
       {/* 0: silicon, PCB, and power sequencing on a bare board. */}
       <ColdSiliconBringupStage active={currentStage === 0} />
 

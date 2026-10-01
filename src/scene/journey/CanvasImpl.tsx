@@ -1,15 +1,14 @@
 import { Suspense, type JSX } from "react";
 import { Canvas } from "@react-three/fiber";
 import { SiliconFleetScene } from "./SiliconFleetScene.tsx";
-import { isMobile } from "../useCapability.ts";
+import { useAdaptiveDpr } from "../AdaptiveDpr.tsx";
 
 type CanvasImplProps = {
   currentStage: number;
 };
 
 export function CanvasImpl({ currentStage }: CanvasImplProps): JSX.Element {
-  const mobile = isMobile();
-  const dpr: [number, number] = mobile ? [1, 1] : [1, 1.5];
+  const { dpr, monitor } = useAdaptiveDpr();
 
   return (
     <Canvas
@@ -25,6 +24,7 @@ export function CanvasImpl({ currentStage }: CanvasImplProps): JSX.Element {
       }}
       style={{ position: "absolute", inset: 0 }}
     >
+      {monitor}
       <Suspense fallback={null}>
         <SiliconFleetScene currentStage={currentStage} />
       </Suspense>

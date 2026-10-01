@@ -1,4 +1,4 @@
-import { useRef, type JSX } from "react";
+import { useRef, useMemo, type JSX } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { PcbModule } from "../components/PcbModule.tsx";
@@ -13,14 +13,12 @@ export function ColdSiliconBringupStage({ active }: ColdSiliconBringupStageProps
   const powerPulseRef = useRef<THREE.Mesh>(null);
   const jtagProbeRef = useRef<THREE.Group>(null);
   const clockWaveRef = useRef<THREE.Mesh>(null);
+  const scaleTarget = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const targetScale = active ? 1.0 : 0.001;
-    groupRef.current.scale.lerp(
-      new THREE.Vector3(targetScale, targetScale, targetScale),
-      delta * 4.0,
-    );
+    groupRef.current.scale.lerp(scaleTarget.set(targetScale, targetScale, targetScale), delta * 4.0);
 
     if (!active) return;
     const time = state.clock.getElapsedTime();
