@@ -20,11 +20,11 @@ export type ClipName = "Idle" | "Walking" | "Running" | "Standing" | "Jump" | "W
 
 /** Scroll-scrubbed animation state for a skinned humanoid (no wall-clock time). */
 export type HumanoidRig = {
-  /** Normalised wrapper: 1.8 m tall, facing +Z, feet at y = 0. */
+  /** World-unit appearance and source animation rig, facing +Z with grounded soles. */
   root: Group;
   mixer: AnimationMixer;
   actions: Map<string, AnimationAction>;
-  /** Limb/foot parts that must be re-oriented every frame — see `DynamicPart`. */
+  /** Calibrated appearance bindings evaluated after each animation sample. */
   dynamicParts: DynamicPart[];
 };
 
@@ -33,15 +33,16 @@ const humanoids = new WeakMap<ModelInstance, HumanoidRig>();
 /**
  * Builds a procedural chibi robot on RobotExpressive's animation skeleton.
  * The complete source mesh is hidden, including the asset's detached
- * shoulder-height HandL/HandR groups. `attachChibiAppearance` cancels the
- * skeleton's baked ~37.6x scale and supplies the visible helmet, body and
- * articulated limbs in world-sized dimensions.
+ * shoulder-height HandL/HandR groups. The visible shell is a root-space sibling,
+ * calibrated against the source bind pose rather than inheriting its baked
+ * scale or its rotated wrist and foot axes.
  */
 export function humanoidRigFor(instance: ModelInstance): HumanoidRig {
   const cached = humanoids.get(instance);
   if (cached) return cached;
   const root = new Group();
   instance.scene.scale.setScalar(HUMANOID_HEIGHT / HUMANOID_MODEL_HEIGHT);
+  root.add(instance.scene);
   instance.scene.updateMatrixWorld(true);
 
   const bones: Record<string, Object3D> = {};
@@ -94,9 +95,8 @@ export function humanoidRigFor(instance: ModelInstance): HumanoidRig {
     upperLegR,
     lowerLegR,
     footR,
-  });
+  }, root);
 
-  root.add(instance.scene);
   const mixer = new AnimationMixer(instance.scene);
   const actions = new Map<string, AnimationAction>();
   for (const clip of instance.animations) {

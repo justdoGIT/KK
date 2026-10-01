@@ -59,6 +59,11 @@
   will-change: clip-path;
 }
 
+.aj-hero,
+.aj-hero * {
+  pointer-events: none !important;
+}
+
 .aj-canvas {
   position: absolute !important;
   inset: 0;

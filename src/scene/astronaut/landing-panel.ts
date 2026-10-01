@@ -25,12 +25,10 @@ const DEPTH = 0.55;
 const AHEAD = 0.72;
 /** Rig units from the ankle joint down to the boot sole. */
 const SOLE_BELOW_ANKLE = 0.1;
-/** Seated poses: hips above the panel top, and how far behind the front edge (rig units). */
-const SEAT_HEIGHT = 0.42;
-const SEAT_BACK = 0.22;
-/** Lying down pose: torso height above platform deck. */
-const LIE_HEIGHT = 0.08;
-const LIE_BACK = 0.25;
+/** Seated hips meet the deck while the torso stays above and legs hang below. */
+const SEAT_HEIGHT = -0.18;
+const LIE_HEIGHT = 0.12;
+const SEAT_X = -0.2;
 
 export type LandingAnchor = {
   /** Astronaut x, panel top y, and scale once landed (world units). */
@@ -84,10 +82,10 @@ export function restOnPanel(
   time = 0,
 ): { xOffset: number; y: number; z: number } {
   if (mode === "sit" || mode === "wait") {
-    return { xOffset: 0, y: anchor.top + SEAT_HEIGHT * anchor.scale, z: anchor.frontZ - SEAT_BACK * anchor.scale };
+    return { xOffset: anchor.width * SEAT_X, y: anchor.top + SEAT_HEIGHT * anchor.scale, z: 0 };
   }
   if (mode === "lie") {
-    return { xOffset: 0, y: anchor.top + LIE_HEIGHT * anchor.scale, z: anchor.frontZ - LIE_BACK * anchor.scale };
+    return { xOffset: 0, y: anchor.top + LIE_HEIGHT * anchor.scale, z: 0 };
   }
   if (mode === "walkPlank") {
     // Walking across the plank catwalk back and forth
@@ -95,9 +93,13 @@ export function restOnPanel(
     return { xOffset: walkX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
   }
   if (mode === "dance") {
-    // Moonwalk sideways shift
-    const danceX = Math.sin(time * 1.5) * (anchor.width * 0.25);
-    return { xOffset: danceX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
+    const danceX = Math.sin(time * 3.1) * (anchor.width * 0.06);
+    const bounce = Math.abs(Math.sin(time * 6.2)) * 0.035 * anchor.scale;
+    return { xOffset: danceX, y: anchor.top - localSoleY * anchor.scale + bounce, z: 0 };
+  }
+  if (mode === "moonwalk") {
+    const slideX = Math.sin(time * 1.5) * (anchor.width * 0.25);
+    return { xOffset: slideX, y: anchor.top - localSoleY * anchor.scale, z: 0 };
   }
   if (mode === "jumpWave") {
     // Up and down jumping on the deck

@@ -5,6 +5,9 @@ import {
   DIP_DOWN,
   HEADING_AT,
   LAND_AT,
+  HOVER_DANCE_END,
+  HOVER_RECLINE_END,
+  HOVER_SEQUENCE_END,
   LAND_START,
   SIT_AT,
   ZOOM_OUT_END,
@@ -51,7 +54,14 @@ describe("contact banner landing", () => {
     expect(contactPoseMode(LAND_AT, "none")).toBe("stand");
     expect(contactPoseMode(SIT_AT, "none")).toBe("sit");
     expect(contactPoseMode(1, "none")).toBe("sit");
-    expect(contactPoseMode(SIT_AT, "dance")).toBe("dance");
     expect(contactPoseMode(SIT_AT, "wait")).toBe("wait");
+  });
+
+  it("loops recline, dance, and moonwalk from CTA entry time", () => {
+    expect(contactPoseMode(SIT_AT, "dance", 0)).toBe("lie");
+    expect(contactPoseMode(SIT_AT, "dance", HOVER_RECLINE_END - 0.01)).toBe("lie");
+    expect(contactPoseMode(SIT_AT, "dance", HOVER_RECLINE_END)).toBe("dance");
+    expect(contactPoseMode(SIT_AT, "dance", HOVER_DANCE_END)).toBe("moonwalk");
+    expect(contactPoseMode(SIT_AT, "dance", HOVER_SEQUENCE_END)).toBe("lie");
   });
 });

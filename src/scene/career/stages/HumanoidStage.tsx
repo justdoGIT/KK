@@ -147,6 +147,9 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
       <MorphPad radius={1} position={[0, 0, 0]} />
       <PartMorph source={source} target={target} clock={clock} seed={37} />
       <group ref={body}>
+        <ambientLight color="#fff2dd" intensity={0.5} />
+        <pointLight position={[3, 3.5, 3]} color="#fff5e8" intensity={16} decay={2} />
+        <pointLight position={[1.5, 1.8, -2]} color="#e5faff" intensity={5} decay={2} />
         <primitive object={rig.root} />
       </group>
     </group>
