@@ -1,10 +1,11 @@
 # Experience Quality Plan: Motion, Rendering, and Site Fixes
 
-Status: in progress (October 2026). This plan comes from two audits run on the
-live site and its code: a 3D render-pipeline audit and a scroll/animation audit
-with live Playwright passes at 1280×800, 1440×900, 1568×782, and 390×844. It
-also covers the user-reported contact-finale and career-humanoid defects. Each
-item lists its evidence, the change, and how it is validated.
+Status: Workstreams 1, 2, and 4 complete; Workstream 3 complete except 3.7
+and 3.11 (deferred, see below). This plan comes from two audits run on the
+live site and its code: a 3D render-pipeline audit and a scroll/animation
+audit with live Playwright passes at 1280×800, 1440×900, 1568×782, and
+390×844. It also covers the user-reported contact-finale and career-humanoid
+defects. Each item lists its evidence, the change, and how it is validated.
 
 ## Goals
 
@@ -91,11 +92,11 @@ replaces:
 | 3.4 | Point lights about 0.02–0.05 effective under physical decay. Metals black without an environment | Physically scaled intensities. A shared Lightformer environment for the hero and silicon canvases |
 | 3.5 | Hero and silicon canvases render every frame for the whole page. The hero unmounts its context on tab hide | Viewport-gated frameloop. The silicon canvas mounts only when near. No unmount on hide |
 | 3.6 | Per-render THREE allocations (fleet lines leak) and per-frame vector allocations | Memoized `LineSegments` with disposal. Hoisted scratch objects |
-| 3.7 | Stage mounts compile shaders and paint 1024² textures mid-scroll | Always-mounted stages toggled by `visible`. Texture cache. `gl.compile` prewarm |
+| 3.7 | **Deferred.** Stage mounts compile shaders and paint 1024² textures mid-scroll | Needs always-mounted stages toggled by `visible`, a texture cache, and a `gl.compile` prewarm — a mount-lifecycle change across every `registry.ts` stage, left for a follow-up with dedicated visual-regression time |
 | 3.8 | Transmission material forces an extra scene pass | Additive basic material |
 | 3.9 | Ripple sim uploads a texture forever and maps the pointer to the window | Idles when there are no ripples. Pointer mapped through the canvas rect |
 | 3.10 | WebGL capability probes leak contexts | Cached result, with `WEBGL_lose_context` |
-| 3.11 | Hero 3D objects cross the headline. Silicon-to-Fleet frame mostly empty | Objects kept out of the text column. Camera framed so the model fills about 60% |
+| 3.11 | **Deferred.** Hero 3D objects cross the headline. Silicon-to-Fleet frame mostly empty | Needs per-breakpoint repositioning of `FloatingField` against the hero copy column and `SiliconFleetScene` camera reframing, tuned from screenshots — left for a follow-up |
 | 3.12 | Dead code (`useAdaptiveQuality.ts`, `Artifact.tsx`) | Deleted |
 
 ## Workstream 4 — Career humanoid
