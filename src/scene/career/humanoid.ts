@@ -129,7 +129,7 @@ type DynamicPart = { update(): void };
  * bone's own local frame before building the geometry.
  */
 function limbSegment(parentBone: Object3D, targetBone: Object3D, radiusTop: number, radiusBottom: number, material: MeshStandardMaterial, s: number): DynamicPart {
-  const mesh = new Mesh(new CylinderGeometry(radiusTop / s, radiusBottom / s, 1, 14), material);
+  const mesh = new Mesh(new CylinderGeometry(radiusTop / s, radiusBottom / s, 1, 18), material);
   parentBone.add(mesh);
   const update = (): void => {
     const localEnd = parentBone.worldToLocal(worldPos(targetBone));
@@ -142,9 +142,32 @@ function limbSegment(parentBone: Object3D, targetBone: Object3D, radiusTop: numb
   return { update };
 }
 
+/**
+ * Short tapered neck bridging `headBone` down toward `torsoBone`, capped at
+ * `maxLength` (world units) rather than spanning the full head-to-torso
+ * bone distance — that distance is much longer than a neck (it reaches
+ * past the chest to the hip-level body bone), so an uncapped span would
+ * read as a long rod instead of a short connector. Capping still orients
+ * toward wherever the torso currently is, so it tracks head tilt/bob.
+ */
+function neckSegment(headBone: Object3D, torsoBone: Object3D, radiusTop: number, radiusBottom: number, maxLength: number, material: MeshStandardMaterial, s: number): DynamicPart {
+  const mesh = new Mesh(new CylinderGeometry(radiusTop / s, radiusBottom / s, 1, 18), material);
+  headBone.add(mesh);
+  const update = (): void => {
+    const toTorso = headBone.worldToLocal(worldPos(torsoBone));
+    const dir = toTorso.clone().normalize();
+    const length = Math.min(toTorso.length(), maxLength / s);
+    mesh.quaternion.setFromUnitVectors(UP, dir);
+    mesh.position.copy(dir).multiplyScalar(length * 0.5);
+    mesh.scale.y = length;
+  };
+  update();
+  return { update };
+}
+
 /** Small sphere covering a joint seam (shoulder, elbow, knee) — sits at its own bone's origin, so it tracks that bone automatically without per-frame work. */
 function jointCap(bone: Object3D, radius: number, material: MeshStandardMaterial, s: number): void {
-  bone.add(new Mesh(new SphereGeometry(radius / s, 16, 14), material));
+  bone.add(new Mesh(new SphereGeometry(radius / s, 20, 16), material));
 }
 
 /** Rounded mitten hand with an orange wrist cuff ring — anchored at its own bone's origin, so it tracks that bone automatically without per-frame work. */
@@ -283,6 +306,10 @@ export function humanoidRigFor(instance: ModelInstance): HumanoidRig {
   const accent = accentMaterial();
   const joint = jointMaterial();
   const dynamicParts: DynamicPart[] = [];
+
+  // Bridges the dead gap between the head's collar and the torso's top —
+  // without this the head reads as a separate floating piece.
+  dynamicParts.push(neckSegment(head, torsoNode ?? body, 0.15, 0.19, 0.32, shell, s));
 
   for (const [shoulder, upperArm, lowerArm, palm] of [
     [shoulderL, upperArmL, lowerArmL, palmL],
