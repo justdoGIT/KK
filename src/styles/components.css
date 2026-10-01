@@ -3066,32 +3066,28 @@ main::before {
     0 60px 120px -40px rgba(8, 15, 28, 0.85);
   text-align: center;
 }
-/* Billboard side faces: shaded triangles flanking the card, full depth at
-   the top where the landing deck sits and tapering until the back edge
-   meets the front edge at the card's bottom corner, so the board reads as
-   receding in perspective. Shading runs from the lit front edge (beside
-   the card) to the dark back edge, darkening further toward the bottom.
-   They stop where the rounded bottom corners begin; offsets clear the 1px
-   border so each face abuts the card's outer edge. */
+/* Billboard side faces sit inside the card silhouette. Each starts at full
+   depth under the landing deck, then tapers to its own bottom corner so the
+   dark perspective shade never protrudes beyond the banner. */
 .contact-frame-wrapper::before,
 .contact-frame-wrapper::after {
   content: "";
   position: absolute;
-  top: -1px;
+  top: 0;
   bottom: 24px;
   width: 30px;
   pointer-events: none;
 }
 .contact-frame-wrapper::before {
-  left: -31px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
   background:
     linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 100%),
     linear-gradient(90deg, #03070d 0%, #0c1a2e 55%, #1c3557 100%);
 }
 .contact-frame-wrapper::after {
-  right: -31px;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
   background:
     linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 100%),
     linear-gradient(270deg, #03070d 0%, #0c1a2e 55%, #1c3557 100%);
@@ -3102,10 +3098,10 @@ main::before {
     width: 12px;
   }
   .contact-frame-wrapper::before {
-    left: -13px;
+    left: 0;
   }
   .contact-frame-wrapper::after {
-    right: -13px;
+    right: 0;
   }
 }
 .contact-crosshair {
