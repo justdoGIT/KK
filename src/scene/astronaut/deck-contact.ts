@@ -169,22 +169,40 @@ export function placeHull(hull: PosedHull, root: PlacedRoot, out: Float32Array):
 }
 
 /**
- * Lifts a landed root (and its placed hull) so no suit point sits inside or
- * beneath the slab's footprint. Mode changes blend pose and root over a few
- * frames, and a blend between e.g. hanging and reclining would otherwise sweep
- * the legs through the deck. The lift ramps in over `ENTRY_RAMP` behind the
- * front face, so a point crossing the face never makes the body jump.
+ * Keeps a landed root (and its placed hull) out of the slab's footprint.
+ * During mode blends, low limbs that have only crossed the front lip are
+ * moved back in front of it; points already deeper than `ENTRY_RAMP` lift the
+ * rigid body instead. This avoids both near-lip penetration and a large
+ * vertical jump when a hanging limb first crosses the face.
  */
 export function clearDeck(anchor: LandingAnchor, world: Float32Array, root: PlacedRoot): void {
   const back = anchor.frontZ - anchor.depth;
   const left = anchor.panelX - anchor.width / 2;
   const right = anchor.panelX + anchor.width / 2;
   const ramp = ENTRY_RAMP * root.scale;
+  const gap = CLEARANCE * root.scale;
+  let forward = 0;
+  for (let i = 0; i < world.length; i += 3) {
+    const z = world[i + 2];
+    const depth = anchor.frontZ - z;
+    if (
+      world[i] < left || world[i] > right ||
+      z < back || z > anchor.frontZ ||
+      world[i + 1] >= anchor.top ||
+      depth >= ramp
+    ) continue;
+    forward = Math.max(forward, depth + gap);
+  }
+  if (forward > 0) {
+    root.z += forward;
+    for (let i = 2; i < world.length; i += 3) world[i] += forward;
+  }
+
   let lift = 0;
   for (let i = 0; i < world.length; i += 3) {
     const z = world[i + 2];
     if (world[i] < left || world[i] > right || z < back || z > anchor.frontZ) continue;
-    lift = Math.max(lift, (anchor.top - world[i + 1]) * Math.min(1, (anchor.frontZ - z) / ramp));
+    lift = Math.max(lift, anchor.top + gap - world[i + 1]);
   }
   if (lift <= 0) return;
   root.y += lift;
