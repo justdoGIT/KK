@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type JSX, type CSSProperties } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, type JSX, type CSSProperties } from "react";
 import {
   getApprovedCaseStudies,
   type CaseStudyDetail,
@@ -84,6 +84,21 @@ export function CaseStudies(): JSX.Element {
     settledRef.current = settledMask;
   }, [settledMask]);
 
+  // A settled card is remounted with a flat DOM shape. Restore the landing
+  // transform before paint because the scroll callback wrote it to the
+  // now-unmounted flying node.
+  useLayoutEffect(() => {
+    settledMask.forEach((isSettled, idx) => {
+      if (!isSettled) return;
+      const card = cardRefs.current[idx];
+      if (!card) return;
+      const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
+      card.style.transform = animated
+        ? `translate(${Math.round(targetXsRef.current[idx] ?? 0)}px, ${Math.round(cfg.targetY)}px)`
+        : "none";
+    });
+  }, [animated, settledMask]);
+
   // Align card 0's left edge with the heading's left edge.
   // Cards are positioned via translate3d(X,…) where X is offset from stage center.
   // card_i center from stage left  = CARD_OFFSETS[i] + CARD_W/2
@@ -107,12 +122,19 @@ export function CaseStudies(): JSX.Element {
       ];
       const half = w / 2;
       targetXsRef.current = offsets.map((off) => off + cardW / 2 - half);
+      if (animated) {
+        targetXsRef.current.forEach((x, idx) => {
+          if (!settledRef.current[idx]) return;
+          const card = cardRefs.current[idx];
+          if (card) card.style.transform = `translate(${Math.round(x)}px, ${Math.round(CARD_CONFIGS[idx]?.targetY ?? 0)}px)`;
+        });
+      }
     };
     compute();
     const ro = new ResizeObserver(compute);
     if (stageRef.current) ro.observe(stageRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [animated]);
 
   useScrollFrame(() => {
     const section = sectionRef.current;
