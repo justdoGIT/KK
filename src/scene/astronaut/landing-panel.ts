@@ -26,7 +26,7 @@ const AHEAD = 0.72;
 /** Rig units from the ankle joint down to the boot sole. */
 const SOLE_BELOW_ANKLE = 0.1;
 /** Seated poses: hips above the panel top, and how far behind the front edge (rig units). */
-const SEAT_HEIGHT = 0.2;
+const SEAT_HEIGHT = 0.42;
 const SEAT_BACK = 0.22;
 /** Lying down pose: torso height above platform deck. */
 const LIE_HEIGHT = 0.08;
