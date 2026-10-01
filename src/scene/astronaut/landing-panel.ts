@@ -19,7 +19,7 @@ import { stageUnitAt, type FinaleClock } from "./journey-clock.ts";
 // and connects flush onto the contact card's top edge to form a continuous
 // 3D billboard hoarding structure.
 
-const THICKNESS = 0.16;
+const THICKNESS = 0.07;
 const DEPTH = 0.55;
 /** Share of the panel depth in front of his boots, so the deck reads ahead of him. */
 const AHEAD = 0.72;
@@ -163,7 +163,7 @@ function billboardTopTexture(): CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#1a2a3a";
+    ctx.fillStyle = "#0d1728";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Industrial grid pattern on platform surface matching card theme
@@ -200,14 +200,17 @@ export type LandingPanel = {
 /** 3D billboard hoarding deck with industrial frame outline and card-matched shaders. */
 export function createLandingPanel(): LandingPanel {
   // Side shadows for 3D depth effect
-  const sideShadow = new MeshBasicMaterial({ color: "#050a13", transparent: true });
-  const sideLight = new MeshBasicMaterial({ color: "#0a1428", transparent: true });
+  const sideShadow = new MeshBasicMaterial({ color: "#030609", transparent: true });
+  const sideLight = new MeshBasicMaterial({ color: "#16263d", transparent: true });
   const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
   const bottom = new MeshBasicMaterial({ color: "#04070d", transparent: true });
   const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
   // BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back).
   // Right shadow, left light (shadows on both sides for 3D effect), top, bottom, front, back.
-  const mesh = new Mesh(new BoxGeometry(1.35, 1.35, 1.35), [sideShadow, sideLight, top, bottom, front, sideShadow]);
+  // Unit cube: `placeLandingPanel` sets mesh.scale to the exact card width/
+  // thickness/depth per axis, so the box must start at 1:1:1 or every axis
+  // inherits a stray multiplier instead of matching the card precisely.
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), [sideShadow, sideLight, top, bottom, front, sideShadow]);
   const edges = new LineSegments(
     new EdgesGeometry(mesh.geometry),
     new LineBasicMaterial({ color: "#38bdf8", transparent: true }),

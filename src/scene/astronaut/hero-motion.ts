@@ -134,6 +134,10 @@ export function contactRoot(
     const dir = Math.cos(time * 1.5);
     const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
     out.ry = targetRy * fall;
+  } else if (mode === "wallClimb") {
+    // Gripping the top edge: face the wall (billboard), back to the viewer,
+    // same as a person hanging off a ledge they're holding onto.
+    out.ry = Math.PI * fall;
   } else {
     out.ry *= 1 - fall;
   }
