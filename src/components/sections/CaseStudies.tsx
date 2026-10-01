@@ -260,7 +260,16 @@ export function CaseStudies(): JSX.Element {
               if (isSettled) {
                 return (
                   <div
-                    key={study.record.slug}
+                    // Keyed separately from the unsettled branch below: they
+                    // render incompatible DOM shapes (this is a flat static
+                    // card, the other a 3D flipper with two faces). Sharing
+                    // one key let React reuse the flipper's DOM node for
+                    // this card, inheriting the imperatively-set
+                    // `rotateY(...)` inline transform the driver wrote on
+                    // it mid-flight — React only clears style it owns via
+                    // the `style` prop, never a ref's direct DOM writes —
+                    // which froze the card mirrored once settled.
+                    key={`${study.record.slug}-settled`}
                     ref={(el) => { cardRefs.current[idx] = el; }}
                     className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
                     data-front-visible="true"
@@ -283,7 +292,7 @@ export function CaseStudies(): JSX.Element {
 
               return (
                 <div
-                  key={study.record.slug}
+                  key={`${study.record.slug}-flying`}
                   ref={(el) => { cardRefs.current[idx] = el; }}
                   className="lusion-card-isolated-cell"
                   data-front-visible="false"
