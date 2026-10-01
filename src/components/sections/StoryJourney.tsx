@@ -2,24 +2,33 @@ import { useRef, useState, type JSX } from "react";
 import { SiliconFleetCanvas } from "../../scene/journey/SiliconFleetCanvas.tsx";
 import { boardLifecycle } from "../../content/board-lifecycle.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import "../../styles/board-lifecycle.css";
 
 export function StoryJourney(): JSX.Element {
   const section = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLSpanElement>(null);
   const enhanced = useMotionMode() === "enhanced";
-  const [progress, setProgress] = useState(0);
+  const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
   useScrollFrame(() => {
     const el = section.current;
-    if (el) setProgress(clamp01(-el.getBoundingClientRect().top / Math.max(1, el.offsetHeight - innerHeight)));
+    if (!el) return;
+    const p = clamp01(-el.getBoundingClientRect().top / Math.max(1, el.offsetHeight - innerHeight));
+    if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
+    const i = Math.min(boardLifecycle.length - 1, Math.floor(p * boardLifecycle.length));
+    if (i !== indexRef.current) {
+      indexRef.current = i;
+      setIndex(i);
+    }
   }, enhanced);
-  const index = Math.min(boardLifecycle.length - 1, Math.floor(progress * boardLifecycle.length));
   const stage = boardLifecycle[index];
   const jump = (target: number) => {
     const el = section.current;
     if (!el) return;
-    window.scrollTo({ top: scrollY + el.getBoundingClientRect().top + (el.offsetHeight - innerHeight) * (target + .15) / boardLifecycle.length, behavior: "instant" });
+    scrollToY(scrollY + el.getBoundingClientRect().top + (el.offsetHeight - innerHeight) * (target + .15) / boardLifecycle.length, { immediate: true });
   };
   return <section ref={section} className={`board-lifecycle${enhanced ? " is-animated" : ""}`} id="journey" aria-label="Systems journey" data-lifecycle-stage={stage.id} style={enhanced ? { height: `${boardLifecycle.length * 110 + 100}vh` } : undefined}>
     <div className="board-lifecycle-stage">
@@ -31,7 +40,7 @@ export function StoryJourney(): JSX.Element {
           <article className="board-lifecycle-copy"><span className="board-lifecycle-label">{stage.label}</span><h3>{stage.title}</h3><p>{stage.description}</p><ul>{stage.evidence.map((item) => <li key={item}>{item}</li>)}</ul><code>{stage.signal}</code></article>
           <div className="board-lifecycle-canvas" aria-hidden="true"><SiliconFleetCanvas currentStage={index} /></div>
         </div>
-        <div className="board-lifecycle-progress" aria-hidden="true"><span style={{ width: `${progress * 100}%` }} /></div>
+        <div className="board-lifecycle-progress" aria-hidden="true"><span ref={barRef} style={{ transform: "scaleX(0)" }} /></div>
       </> : <ol className="board-lifecycle-static">{boardLifecycle.map((item) => <li key={item.id}><span className="board-lifecycle-label">{item.label}</span><h3>{item.title}</h3><p>{item.description}</p><code>{item.signal}</code></li>)}</ol>}
     </div>
   </section>;

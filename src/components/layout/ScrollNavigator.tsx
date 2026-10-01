@@ -21,6 +21,7 @@ export function ScrollNavigator() {
   });
 
   const activeIndex = pageJourneyStops.findIndex((stop) => stop.id === active);
+  const isLastStop = activeIndex >= pageJourneyStops.length - 1;
   const next = pageJourneyStops[Math.min(activeIndex + 1, pageJourneyStops.length - 1)];
 
   return (
@@ -38,10 +39,12 @@ export function ScrollNavigator() {
           </li>
         ))}
       </ol>
-      <a className="scroll-next" href={`#${next.id}`}>
-        <span>Next</span>
-        <strong aria-hidden="true">↓</strong>
-      </a>
+      {!isLastStop && (
+        <a className="scroll-next" href={`#${next.id}`}>
+          <span>Next</span>
+          <strong aria-hidden="true">↓</strong>
+        </a>
+      )}
     </aside>
   );
 }

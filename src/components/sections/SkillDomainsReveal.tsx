@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX } from "react";
 import { skillCategories } from "../../content/skills.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { scrollToY } from "../../motion/smooth-scroll.ts";
 import {
   clamp01,
   easeOutCubic,
@@ -131,8 +132,7 @@ export function SkillDomainsReveal(): JSX.Element {
     requestAnimationFrame(() => {
       const el = sectionRef.current;
       if (!el) return;
-      const top = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
+      scrollToY(el.getBoundingClientRect().top + window.scrollY - 80, { immediate: true });
     });
   };
 

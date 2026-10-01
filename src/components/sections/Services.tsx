@@ -3,6 +3,7 @@ import { services, type Service } from "../../content/services.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { throwFrame, throwPose, throwProgressFor } from "../../motion/throw-deck.ts";
 import "../../styles/services-throw.css";
@@ -91,7 +92,7 @@ export function Services(): JSX.Element {
         const index = intersecting ? cardRefs.current.indexOf(intersecting.target as HTMLElement) : -1;
         if (index >= 0) setActiveCard(index);
       },
-      { threshold: [0.2, 0.5, 0.8], rootMargin: "-10% 0px -20%" },
+      { threshold: [0.5, 0.8], rootMargin: "-25% 0px -25%" },
     );
     cardRefs.current.forEach((el) => {
       if (el) observer.observe(el);
@@ -139,10 +140,14 @@ export function Services(): JSX.Element {
     if (throwMode && section) {
       const scrollable = section.offsetHeight - window.innerHeight;
       const top = section.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: top + scrollable * throwProgressFor(index, services.length), behavior: "smooth" });
+      scrollToY(top + scrollable * throwProgressFor(index, services.length));
       return;
     }
-    cardRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const card = cardRefs.current[index];
+    if (card) {
+      const rect = card.getBoundingClientRect();
+      scrollToY(rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2);
+    }
   };
 
   return (

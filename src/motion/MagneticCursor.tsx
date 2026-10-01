@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { onFrame } from "./frame.ts";
 import { useMotionMode } from "./use-motion-mode.ts";
 
+// Below this gap (px) the spring is considered settled; the frame
+// subscription stops until the next pointermove instead of ticking forever.
+const SETTLE_EPSILON = 0.05;
+
 /**
- * Magnetic cursor: a custom cursor that follows the pointer with
- * spring physics and uses mix-blend-mode: difference for visibility.
- * Disabled in native mode and on touch devices.
+ * Magnetic cursor: a custom cursor that follows the pointer with spring
+ * physics. Disabled in native mode and on touch devices.
  */
 export function MagneticCursor() {
   const mode = useMotionMode();
@@ -19,31 +23,38 @@ export function MagneticCursor() {
     const el = ref.current;
     if (!el) return;
 
-    let raf = 0;
     let targetX = window.innerWidth / 2;
     let targetY = window.innerHeight / 2;
     let currentX = targetX;
     let currentY = targetY;
     const stiffness = 0.15;
 
+    let stopTick: (() => void) | null = null;
+    const startTick = () => {
+      if (stopTick) return;
+      stopTick = onFrame("write", () => {
+        currentX += (targetX - currentX) * stiffness;
+        currentY += (targetY - currentY) * stiffness;
+        el.style.transform = `translate(${currentX}px, ${currentY}px)`;
+        const settled = Math.abs(targetX - currentX) < SETTLE_EPSILON && Math.abs(targetY - currentY) < SETTLE_EPSILON;
+        if (settled) {
+          stopTick?.();
+          stopTick = null;
+        }
+      });
+    };
+
     const onMove = (e: PointerEvent) => {
       targetX = e.clientX;
       targetY = e.clientY;
-    };
-
-    const tick = () => {
-      currentX += (targetX - currentX) * stiffness;
-      currentY += (targetY - currentY) * stiffness;
-      el.style.transform = `translate(${currentX}px, ${currentY}px)`;
-      raf = requestAnimationFrame(tick);
+      startTick();
     };
 
     window.addEventListener("pointermove", onMove);
-    raf = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
+      stopTick?.();
     };
   }, [mode, touch]);
 

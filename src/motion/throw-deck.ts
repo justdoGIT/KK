@@ -9,7 +9,10 @@ import { clamp01, easeOutCubic } from "./scroll-frame.ts";
  */
 export const THROW_FLIGHT = 0.55;
 export const STACK_STEP_PX = 12;
-const START_FRAME = -0.28;
+// Card 0 starts already landed (local = START_FRAME - 0 >= 1) so the section
+// never opens on a blank viewport while the reader waits for the first card
+// to fly in.
+const START_FRAME = 1;
 
 export type ThrowPose = {
   transform: string;
@@ -42,11 +45,17 @@ export function throwPose(index: number, frame: number, count: number): ThrowPos
     const e = easeOutCubic(flight);
     const x = dir * 105 * (1 - e);
     const y = rest - Math.sin(Math.PI * e) * 42;
-    const spin = landTilt + dir * 90 * (1 - e);
-    const yaw = -dir * 86 * (1 - flight);
+    // Flight rotation is deliberately modest: the card must already read as
+    // upright and legible by the time it reaches full opacity below, not
+    // just once it lands.
+    const spin = landTilt + dir * 50 * (1 - e);
+    const yaw = -dir * 45 * (1 - flight);
     return {
       transform: `translate3d(${x.toFixed(2)}vw, ${y.toFixed(1)}px, 0) rotateY(${yaw.toFixed(1)}deg) rotateZ(${spin.toFixed(1)}deg) scale(${(0.88 + 0.12 * e).toFixed(3)})`,
-      opacity: clamp01((flight - 0.18) / 0.32),
+      // Text fades in only over the back half of the flight, once rotation
+      // has mostly settled toward its resting tilt — never full-opacity text
+      // on a steeply rotated card.
+      opacity: clamp01((flight - 0.55) / 0.45),
       visible: true,
       settled: false,
       covered: 0,

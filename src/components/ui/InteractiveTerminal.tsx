@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
+import { useState, useRef, type CSSProperties, type JSX } from "react";
+import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 
 type TerminalCommand = {
@@ -103,6 +104,16 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
+// Reveal style at scroll-progress 0, applied until the first scheduler tick
+// writes a live value — matches `computeAndApply`'s popProgress===0 case so
+// there is no unstyled flash between first paint and first frame.
+const INITIAL_REVEAL_STYLE: CSSProperties = {
+  opacity: 0.1,
+  filter: "blur(4.00px)",
+  transform: "perspective(1200px) translate3d(-120.0px, 90.0px, -40.0px) scale(0.420) rotateX(14.00deg) rotateY(-9.00deg)",
+  clipPath: "inset(0% 20.0% 25.0% 0% round 0.0px)",
+};
+
 export function InteractiveTerminal(): JSX.Element {
   const [activeCmdIdx, setActiveCmdIdx] = useState(0);
   const [typedText, setTypedText] = useState("");
@@ -112,96 +123,94 @@ export function InteractiveTerminal(): JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [revealProgress, setRevealProgress] = useState(0);
 
   const sectionRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const manualOverrideRef = useRef(false);
   const manualTimerRef = useRef<number | null>(null);
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
 
-  useEffect(() => {
-    let rafId = 0;
+  // Scroll-linked reveal (opacity/filter/transform/clipPath) is a continuous
+  // per-frame value written straight to the wrapper's style — it never needs
+  // a React commit. Only the terminal script's text content (typed command,
+  // visible output lines, active tab) is state, and only changes at the
+  // discrete steps the script advances through.
+  useScrollFrame(() => {
+    const el = sectionRef.current;
+    if (!el) return;
 
-    const computeAndApply = () => {
-      const el = sectionRef.current;
-      if (!el) return;
+    const scrollable = el.offsetHeight - window.innerHeight;
+    if (scrollable <= 0) return;
 
-      const scrollable = el.offsetHeight - window.innerHeight;
-      if (scrollable <= 0) return;
+    const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
+    const popProgress = Math.min(1, raw / REVEAL_FRACTION);
 
-      const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
-
-      const popProgress = Math.min(1, raw / REVEAL_FRACTION);
-      if (Math.abs(popProgress - revealProgress) > 0.005) {
-        setRevealProgress(popProgress);
-      }
-
-      if (manualOverrideRef.current) return;
-
-      if (raw < REVEAL_FRACTION * 0.9) {
-        if (typedText !== "") setTypedText("");
-        if (showOutput) setShowOutput(false);
-        return;
-      }
-
-      const scriptSpan = 1 - REVEAL_FRACTION;
-      const scriptProgress = clamp01((raw - REVEAL_FRACTION) / scriptSpan);
-
-      const stepSize = 1 / TERMINAL_COMMANDS.length;
-      const cmdIndex = Math.min(
-        TERMINAL_COMMANDS.length - 1,
-        Math.floor(scriptProgress / stepSize),
-      );
-
-      const stepLocal = (scriptProgress - cmdIndex * stepSize) / stepSize;
-      const cmd = TERMINAL_COMMANDS[cmdIndex];
-
-      if (cmdIndex !== activeCmdIdx) {
-        setActiveCmdIdx(cmdIndex);
-      }
-
-      const typeFraction = 0.35;
-      if (stepLocal < typeFraction) {
-        const charProgress = stepLocal / typeFraction;
-        const charCount = Math.max(
-          1,
-          Math.floor(charProgress * cmd.command.length),
-        );
-        setTypedText(cmd.command.slice(0, charCount));
-        setIsTyping(true);
-        setShowOutput(false);
-        setVisibleLineCount(0);
+    const wrapper = wrapperRef.current;
+    if (wrapper && !isMinimized) {
+      const invReveal = 1 - popProgress;
+      if (popProgress >= 0.999) {
+        wrapper.style.opacity = "1";
+        wrapper.style.filter = "none";
+        wrapper.style.transform = "none";
+        wrapper.style.clipPath = "none";
       } else {
-        setTypedText(cmd.command);
-        setIsTyping(false);
-        setShowOutput(true);
-
-        const outFraction = (stepLocal - typeFraction) / (1 - typeFraction);
-        const lineCount = Math.min(
-          cmd.output.length,
-          Math.max(1, Math.ceil(outFraction * cmd.output.length)),
-        );
-        setVisibleLineCount(lineCount);
+        wrapper.style.opacity = (0.1 + popProgress * 0.9).toFixed(3);
+        wrapper.style.filter = invReveal > 0.05 ? `blur(${(invReveal * 4).toFixed(2)}px)` : "none";
+        wrapper.style.transform = `perspective(1200px) translate3d(${(invReveal * -120).toFixed(1)}px, ${(invReveal * 90).toFixed(1)}px, ${(invReveal * -40).toFixed(1)}px) scale(${(0.42 + popProgress * 0.58).toFixed(3)}) rotateX(${(invReveal * 14).toFixed(2)}deg) rotateY(${(invReveal * -9).toFixed(2)}deg)`;
+        wrapper.style.clipPath = `inset(0% ${(invReveal * 20).toFixed(1)}% ${(invReveal * 25).toFixed(1)}% 0% round ${(16 * popProgress).toFixed(1)}px)`;
       }
-    };
+    }
+    wrapper?.classList.toggle("terminal-glow", popProgress > 0.85);
 
-    const handleScroll = () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        computeAndApply();
-      });
-    };
+    if (manualOverrideRef.current) return;
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    computeAndApply();
+    if (raw < REVEAL_FRACTION * 0.9) {
+      if (typedText !== "") setTypedText("");
+      if (showOutput) setShowOutput(false);
+      return;
+    }
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      cancelAnimationFrame(rafId);
-    };
-  }, [activeCmdIdx, revealProgress, showOutput, typedText]);
+    const scriptSpan = 1 - REVEAL_FRACTION;
+    const scriptProgress = clamp01((raw - REVEAL_FRACTION) / scriptSpan);
+
+    const stepSize = 1 / TERMINAL_COMMANDS.length;
+    const cmdIndex = Math.min(
+      TERMINAL_COMMANDS.length - 1,
+      Math.floor(scriptProgress / stepSize),
+    );
+
+    const stepLocal = (scriptProgress - cmdIndex * stepSize) / stepSize;
+    const cmd = TERMINAL_COMMANDS[cmdIndex];
+
+    if (cmdIndex !== activeCmdIdx) {
+      setActiveCmdIdx(cmdIndex);
+    }
+
+    const typeFraction = 0.35;
+    if (stepLocal < typeFraction) {
+      const charProgress = stepLocal / typeFraction;
+      const charCount = Math.max(
+        1,
+        Math.floor(charProgress * cmd.command.length),
+      );
+      setTypedText(cmd.command.slice(0, charCount));
+      setIsTyping(true);
+      setShowOutput(false);
+      setVisibleLineCount(0);
+    } else {
+      setTypedText(cmd.command);
+      setIsTyping(false);
+      setShowOutput(true);
+
+      const outFraction = (stepLocal - typeFraction) / (1 - typeFraction);
+      const lineCount = Math.min(
+        cmd.output.length,
+        Math.max(1, Math.ceil(outFraction * cmd.output.length)),
+      );
+      setVisibleLineCount(lineCount);
+    }
+  });
 
   const handleTabClick = (idx: number) => {
     manualOverrideRef.current = true;
@@ -228,17 +237,6 @@ export function InteractiveTerminal(): JSX.Element {
 
   const visibleOutput = activeCommand.output.slice(0, visibleLineCount);
 
-  const invReveal = 1 - revealProgress;
-  const revealStyle: CSSProperties =
-    revealProgress >= 0.999
-      ? { opacity: 1, filter: "none", transform: "none", clipPath: "none" }
-      : {
-          opacity: (0.1 + revealProgress * 0.9).toFixed(3),
-          filter: invReveal > 0.05 ? `blur(${(invReveal * 4).toFixed(2)}px)` : "none",
-          transform: `perspective(1200px) translate3d(${(invReveal * -120).toFixed(1)}px, ${(invReveal * 90).toFixed(1)}px, ${(invReveal * -40).toFixed(1)}px) scale(${(0.42 + revealProgress * 0.58).toFixed(3)}) rotateX(${(invReveal * 14).toFixed(2)}deg) rotateY(${(invReveal * -9).toFixed(2)}deg)`,
-          clipPath: `inset(0% ${(invReveal * 20).toFixed(1)}% ${(invReveal * 25).toFixed(1)}% 0% round ${(16 * revealProgress).toFixed(1)}px)`,
-        };
-
   return (
     <div ref={sectionRef} className="terminal-scroll-section" style={{ height: `${TOTAL_SCROLL * 100}vh` }}>
       <div className="terminal-sticky-stage">
@@ -250,10 +248,9 @@ export function InteractiveTerminal(): JSX.Element {
           />
         </div>
         <div
-          className={`interactive-terminal-wrapper ${revealProgress > 0.85 ? "terminal-glow" : ""} ${
-            isExpanded ? "terminal-expanded-mode" : ""
-          } ${isMinimized ? "terminal-minimized-mode" : ""}`}
-          style={isMinimized ? undefined : revealStyle}
+          ref={wrapperRef}
+          className={`interactive-terminal-wrapper ${isExpanded ? "terminal-expanded-mode" : ""} ${isMinimized ? "terminal-minimized-mode" : ""}`}
+          style={isMinimized ? undefined : INITIAL_REVEAL_STYLE}
         >
           <div className="terminal-window">
             {/* Terminal Title Bar */}

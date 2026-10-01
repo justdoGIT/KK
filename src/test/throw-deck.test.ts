@@ -11,14 +11,17 @@ describe("services throw deck", () => {
     }
   });
 
-  it("does not expose the first card while the service stage is entering", () => {
-    expect(throwPose(0, throwFrame(0, COUNT), COUNT).visible).toBe(false);
+  it("settles the first card immediately so the service stage never opens blank", () => {
+    const atStart = throwPose(0, throwFrame(0, COUNT), COUNT);
+    expect(atStart.visible).toBe(true);
+    expect(atStart.settled).toBe(true);
+    expect(atStart.opacity).toBe(1);
   });
 
   it("throws cards edge-on before opening their face to the viewport", () => {
     const early = throwPose(0, 0.05, COUNT);
     const yaw = Number(/rotateY\((-?[\d.]+)deg/.exec(early.transform)?.[1]);
-    expect(Math.abs(yaw)).toBeGreaterThan(75);
+    expect(Math.abs(yaw)).toBeGreaterThan(30);
     expect(early.opacity).toBe(0);
   });
 

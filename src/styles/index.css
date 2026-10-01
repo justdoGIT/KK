@@ -119,13 +119,15 @@ body {
   border: 1px solid var(--color-surface-border);
   border-radius: 28px;
   padding: 4.5rem 4.5rem 3rem;
+  /* No backdrop-filter: this sits directly over the live hero WebGL canvas,
+     which would force a per-frame backdrop resample. A denser background
+     gradient keeps the frosted-glass look without it. */
   background: radial-gradient(
     circle at 75% 45%,
-    rgba(14, 165, 233, 0.05) 0%,
-    rgba(10, 10, 11, 0.45) 55%,
-    rgba(10, 10, 11, 0.85) 100%
+    rgba(14, 165, 233, 0.07) 0%,
+    rgba(10, 10, 11, 0.72) 55%,
+    rgba(10, 10, 11, 0.95) 100%
   );
-  backdrop-filter: blur(8px);
   box-shadow:
     0 30px 80px rgba(0, 0, 0, 0.6),
     0 0 50px rgba(56, 189, 248, 0.06),
