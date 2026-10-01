@@ -1,23 +1,11 @@
+import { Group, Matrix4, Quaternion, Vector3, type Object3D } from "three";
+import { createChibiHead } from "./humanoid-head.ts";
+import { createChibiTorso } from "./humanoid-torso.ts";
+import { createChibiPalette } from "./humanoid-surfaces.ts";
 import {
-  BoxGeometry,
-  CapsuleGeometry,
-  CylinderGeometry,
-  Group,
-  Mesh,
-  MeshStandardMaterial,
-  SphereGeometry,
-  TorusGeometry,
-  Vector3,
-  type BufferGeometry,
-  type Object3D,
-} from "three";
-
-const SHELL = "#f4efe5";
-const ACCENT = "#d97824";
-const DARK = "#10151d";
-const GLOW = "#67e8f9";
-const GLOW_EMISSIVE = "#22d3ee";
-const UP = new Vector3(0, 1, 0);
+  BOOT_SOLE_HEIGHT, FOREARM_LENGTH, SHIN_LENGTH, THIGH_LENGTH, UPPER_ARM_LENGTH,
+  createChibiArm, createChibiLeg, type ChibiArm, type ChibiLeg,
+} from "./humanoid-limbs.ts";
 
 export type ChibiBones = {
   head: Object3D;
@@ -37,249 +25,153 @@ export type ChibiBones = {
   lowerLegR: Object3D;
   footR: Object3D;
 };
-
 export type DynamicPart = { update(): void };
 
-type Palette = {
-  shell: MeshStandardMaterial;
-  accent: MeshStandardMaterial;
-  dark: MeshStandardMaterial;
-  glow: MeshStandardMaterial;
-  silver: MeshStandardMaterial;
-};
+function mirrorArm(arm: ChibiArm): ChibiArm {
+  return { upper: arm.upper.clone(), elbow: arm.elbow.clone(), forearm: arm.forearm.clone(), hand: arm.hand.clone() };
+}
+function cloneLeg(leg: ChibiLeg): ChibiLeg {
+  return { hip: leg.hip.clone(), thigh: leg.thigh.clone(), knee: leg.knee.clone(), shin: leg.shin.clone(), boot: leg.boot.clone() };
+}
 
-function createPalette(): Palette {
-  return {
-    shell: new MeshStandardMaterial({ color: SHELL, emissive: "#241b12", emissiveIntensity: 0.05, metalness: 0.14, roughness: 0.34 }),
-    accent: new MeshStandardMaterial({ color: ACCENT, metalness: 0.26, roughness: 0.32 }),
-    dark: new MeshStandardMaterial({ color: DARK, metalness: 0.38, roughness: 0.28 }),
-    glow: new MeshStandardMaterial({ color: GLOW, emissive: GLOW_EMISSIVE, emissiveIntensity: 3.8, metalness: 0.1, roughness: 0.12 }),
-    silver: new MeshStandardMaterial({ color: "#b9d1d8", metalness: 0.65, roughness: 0.22 }),
+/**
+ * Source bones supply animation, not geometry coordinates. Their baked scale and
+ * rotated bind axes stay inside the source rig; visible parts live in root units.
+ * Each joint frame is calibrated once, so armor remains closed and boots start flat.
+ */
+export function attachChibiAppearance(b: ChibiBones, root: Group): DynamicPart[] {
+  const palette = createChibiPalette();
+  const appearance = new Group();
+  appearance.name = "ChibiRobotAppearance";
+  root.add(appearance);
+  const head = createChibiHead(palette);
+  const torso = createChibiTorso(palette);
+  appearance.add(head, torso);
+  root.updateWorldMatrix(true, true);
+
+  const toRoot = new Matrix4().copy(root.matrixWorld).invert();
+  const matrix = new Matrix4();
+  const positionScratch = new Vector3();
+  const scaleScratch = new Vector3();
+  const quaternionScratch = new Quaternion();
+  const front = new Vector3(0, 0, 1);
+  const xAxis = new Vector3();
+  const yAxis = new Vector3();
+  const zAxis = new Vector3();
+  const rotationDelta = new Quaternion();
+  const sourceDirection = new Vector3();
+  const endpoint = new Vector3();
+
+  const position = (bone: Object3D, out: Vector3): Vector3 => out.setFromMatrixPosition(bone.matrixWorld).applyMatrix4(toRoot);
+  const rotation = (bone: Object3D, out: Quaternion): Quaternion => {
+    matrix.multiplyMatrices(toRoot, bone.matrixWorld).decompose(positionScratch, out, scaleScratch);
+    return out;
   };
-}
+  const bindHead = rotation(b.head, new Quaternion()).invert();
+  const bindBody = rotation(b.body, new Quaternion()).invert();
 
-function part(geometry: BufferGeometry, material: MeshStandardMaterial): Mesh {
-  const mesh = new Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
-}
+  // Orthonormal frames keep armor facing forward while its joint axis bends.
+  const orient = (group: Group, start: Vector3, end: Vector3, length?: number): void => {
+    yAxis.subVectors(end, start);
+    const distance = yAxis.length();
+    yAxis.multiplyScalar(1 / Math.max(distance, 1e-8));
+    zAxis.copy(front).addScaledVector(yAxis, -front.dot(yAxis));
+    if (zAxis.lengthSq() < 1e-6) zAxis.set(0, 1, 0).addScaledVector(yAxis, -yAxis.y);
+    zAxis.normalize();
+    xAxis.crossVectors(yAxis, zAxis).normalize();
+    matrix.makeBasis(xAxis, yAxis, zAxis);
+    group.quaternion.setFromRotationMatrix(matrix);
+    group.position.copy(start);
+    if (length) group.scale.y = distance / length;
+  };
 
-/** Cancels RobotExpressive's baked ~37.6x bone scale so children use world-sized dimensions. */
-function worldUnitWrap(bone: Object3D): Group {
-  const scale = bone.getWorldScale(new Vector3()).x || 1;
-  const wrap = new Group();
-  wrap.scale.setScalar(1 / scale);
-  bone.add(wrap);
-  return wrap;
-}
+  const armL = createChibiArm(palette);
+  const armR = mirrorArm(armL);
+  armR.hand.scale.x = -1;
+  const arms = [
+    { parts: armL, shoulder: b.shoulderL, upper: b.upperArmL, lower: b.lowerArmL, palm: b.palmL, side: 1 },
+    { parts: armR, shoulder: b.shoulderR, upper: b.upperArmR, lower: b.lowerArmR, palm: b.palmR, side: -1 },
+  ].map((arm) => {
+    appearance.add(...Object.values(arm.parts));
+    return {
+      ...arm,
+      bindUpper: position(arm.lower, new Vector3()).sub(position(arm.upper, new Vector3())).normalize(),
+      bindLower: position(arm.palm, new Vector3()).sub(position(arm.lower, new Vector3())).normalize(),
+      neutralUpper: new Vector3(arm.side * 0.17, -0.985, 0).normalize(),
+      neutralLower: new Vector3(arm.side * 0.1, -0.994, 0.04).normalize(),
+      shoulderPosition: new Vector3(), elbowPosition: new Vector3(), wristPosition: new Vector3(),
+    };
+  });
 
-function createHead(p: Palette): Group {
-  const head = new Group();
-  head.name = "ChibiRobotHelmet";
+  const legL = createChibiLeg(palette);
+  const legR = cloneLeg(legL);
+  const legs = [
+    { parts: legL, hip: b.upperLegL, knee: b.lowerLegL, foot: b.footL, side: "L" },
+    { parts: legR, hip: b.upperLegR, knee: b.lowerLegR, foot: b.footR, side: "R" },
+  ].map((leg) => {
+    leg.parts.boot.name = `ChibiRobotBoot${leg.side}`;
+    appearance.add(...Object.values(leg.parts));
+    return {
+      ...leg,
+      bindFoot: rotation(leg.foot, new Quaternion()).invert(),
+      soleBaseline: position(leg.foot, new Vector3()).y,
+      hipPosition: new Vector3(), kneePosition: new Vector3(), footPosition: new Vector3(),
+    };
+  });
+  const soleCorners = [
+    new Vector3(-0.141, -BOOT_SOLE_HEIGHT, -0.11), new Vector3(0.141, -BOOT_SOLE_HEIGHT, -0.11),
+    new Vector3(-0.141, -BOOT_SOLE_HEIGHT, 0.262), new Vector3(0.141, -BOOT_SOLE_HEIGHT, 0.262),
+  ];
 
-  const shell = part(new CapsuleGeometry(0.28, 0.12, 8, 28), p.shell);
-  shell.position.y = 0.13;
-  shell.scale.set(1.36, 1, 0.92);
-  head.add(shell);
-
-  const rim = part(new SphereGeometry(0.34, 32, 22), p.accent);
-  rim.position.set(0, 0.11, 0.23);
-  rim.scale.set(1.12, 0.58, 0.5);
-  head.add(rim);
-
-  const visor = part(new SphereGeometry(0.33, 32, 22), p.dark);
-  visor.position.set(0, 0.11, 0.27);
-  visor.scale.set(1.05, 0.5, 0.5);
-  head.add(visor);
-
-  const eyeRingGeometry = new TorusGeometry(0.086, 0.026, 12, 24);
-  const pupilGeometry = new CylinderGeometry(0.06, 0.06, 0.02, 24);
-  for (const x of [-0.17, 0.17]) {
-    const ring = part(eyeRingGeometry, p.silver);
-    ring.position.set(x, 0.1, 0.425);
-    const pupil = part(pupilGeometry, p.glow);
-    pupil.rotation.x = Math.PI / 2;
-    pupil.position.set(x, 0.1, 0.44);
-    head.add(ring, pupil);
-  }
-
-  const podGeometry = new SphereGeometry(0.105, 20, 16);
-  const podCoreGeometry = new CylinderGeometry(0.055, 0.055, 0.04, 18);
-  for (const side of [-1, 1]) {
-    const pod = part(podGeometry, p.shell);
-    pod.position.set(side * 0.405, 0.13, 0);
-    pod.scale.x = 0.72;
-    const core = part(podCoreGeometry, p.glow);
-    core.rotation.z = Math.PI / 2;
-    core.position.set(side * 0.47, 0.13, 0);
-    head.add(pod, core);
-  }
-
-  const beaconGeometry = new SphereGeometry(0.035, 14, 10);
-  for (const x of [-0.24, 0.24]) {
-    const beacon = part(beaconGeometry, p.glow);
-    beacon.position.set(x, 0.44, 0.02);
-    head.add(beacon);
-  }
-  return head;
-}
-
-function createTorso(p: Palette): Group {
-  const torso = new Group();
-  torso.name = "ChibiRobotTorso";
-
-  const waist = part(new SphereGeometry(0.25, 24, 18), p.dark);
-  waist.position.y = 0.08;
-  waist.scale.set(1, 0.42, 0.72);
-  torso.add(waist);
-
-  const shell = part(new SphereGeometry(0.34, 28, 22), p.shell);
-  shell.position.set(0, 0.27, 0.01);
-  shell.scale.set(0.84, 0.72, 0.64);
-  torso.add(shell);
-
-  const collar = part(new CylinderGeometry(0.22, 0.24, 0.075, 28), p.accent);
-  collar.position.y = 0.49;
-  torso.add(collar);
-
-  const lowerTrim = part(new TorusGeometry(0.22, 0.032, 10, 28), p.accent);
-  lowerTrim.rotation.x = Math.PI / 2;
-  lowerTrim.position.set(0, 0.08, 0.02);
-  torso.add(lowerTrim);
-
-  const ventGeometry = new BoxGeometry(0.027, 0.052, 0.025);
-  for (let index = 0; index < 4; index += 1) {
-    const vent = part(ventGeometry, p.glow);
-    vent.position.set(-0.115, 0.34 - index * 0.055, 0.218);
-    vent.rotation.z = -0.16;
-    torso.add(vent);
-  }
-
-  const spineGeometry = new BoxGeometry(0.042, 0.055, 0.025);
-  for (let index = 0; index < 4; index += 1) {
-    const spine = part(spineGeometry, index === 0 ? p.silver : p.glow);
-    spine.position.set(0.025, 0.31 - index * 0.057, 0.222);
-    torso.add(spine);
-  }
-
-  const buttonRing = part(new CylinderGeometry(0.055, 0.055, 0.026, 20), p.accent);
-  buttonRing.rotation.x = Math.PI / 2;
-  buttonRing.position.set(0.145, 0.34, 0.22);
-  const button = part(new CylinderGeometry(0.027, 0.027, 0.032, 18), p.glow);
-  button.rotation.x = Math.PI / 2;
-  button.position.set(0.145, 0.34, 0.24);
-  torso.add(buttonRing, button);
-  return torso;
-}
-
-function addJoint(bone: Object3D, radius: number, material: MeshStandardMaterial, scale = new Vector3(1, 1, 1)): void {
-  const wrap = worldUnitWrap(bone);
-  const joint = part(new SphereGeometry(radius, 20, 16), material);
-  joint.scale.copy(scale);
-  wrap.add(joint);
-}
-
-function segment(parentBone: Object3D, targetBone: Object3D, geometry: BufferGeometry, material: MeshStandardMaterial, maxLength = Infinity): DynamicPart {
-  const wrap = worldUnitWrap(parentBone);
-  const mesh = part(geometry, material);
-  wrap.add(mesh);
-  const targetWorld = new Vector3();
-  const localEnd = new Vector3();
-  const direction = new Vector3();
   const update = (): void => {
-    targetBone.getWorldPosition(targetWorld);
-    localEnd.copy(targetWorld);
-    wrap.worldToLocal(localEnd);
-    const length = Math.min(localEnd.length(), maxLength);
-    if (length <= 1e-5) return;
-    direction.copy(localEnd).normalize();
-    mesh.quaternion.setFromUnitVectors(UP, direction);
-    mesh.position.copy(direction).multiplyScalar(length * 0.5);
-    mesh.scale.y = length;
+    toRoot.copy(root.matrixWorld).invert();
+    position(b.body, torso.position);
+    rotation(b.body, torso.quaternion).multiply(bindBody);
+    position(b.head, head.position);
+    rotation(b.head, head.quaternion).multiply(bindHead);
+    front.set(0, 0, 1).applyQuaternion(torso.quaternion);
+
+    for (const arm of arms) {
+      const { parts, shoulderPosition, elbowPosition, wristPosition } = arm;
+      position(arm.shoulder, shoulderPosition);
+      endpoint.set(arm.side * 0.105, 0, 0).applyQuaternion(torso.quaternion);
+      shoulderPosition.add(endpoint);
+      position(arm.lower, sourceDirection).sub(position(arm.upper, endpoint)).normalize();
+      rotationDelta.setFromUnitVectors(arm.bindUpper, sourceDirection);
+      elbowPosition.copy(arm.neutralUpper).applyQuaternion(rotationDelta).multiplyScalar(UPPER_ARM_LENGTH).add(shoulderPosition);
+      position(arm.palm, sourceDirection).sub(position(arm.lower, endpoint)).normalize();
+      rotationDelta.setFromUnitVectors(arm.bindLower, sourceDirection);
+      wristPosition.copy(arm.neutralLower).applyQuaternion(rotationDelta).multiplyScalar(FOREARM_LENGTH).add(elbowPosition);
+      orient(parts.upper, shoulderPosition, elbowPosition);
+      orient(parts.forearm, elbowPosition, wristPosition);
+      parts.elbow.position.copy(elbowPosition);
+      parts.elbow.quaternion.copy(parts.forearm.quaternion);
+      parts.hand.position.copy(wristPosition);
+      parts.hand.quaternion.copy(parts.forearm.quaternion);
+    }
+
+    for (const leg of legs) {
+      const { parts, hipPosition, kneePosition, footPosition } = leg;
+      position(leg.hip, hipPosition);
+      position(leg.knee, kneePosition);
+      position(leg.foot, footPosition);
+      rotation(leg.foot, quaternionScratch).multiply(leg.bindFoot);
+      parts.boot.quaternion.copy(quaternionScratch);
+      let soleY = Infinity;
+      for (const corner of soleCorners) {
+        endpoint.copy(corner).applyQuaternion(quaternionScratch);
+        soleY = Math.min(soleY, endpoint.y);
+      }
+      footPosition.y = Math.max(0, footPosition.y - leg.soleBaseline) - soleY;
+      parts.boot.position.copy(footPosition);
+      parts.hip.position.copy(hipPosition);
+      parts.hip.quaternion.copy(torso.quaternion);
+      orient(parts.thigh, hipPosition, kneePosition, THIGH_LENGTH);
+      orient(parts.shin, kneePosition, footPosition, SHIN_LENGTH);
+      parts.knee.position.copy(kneePosition);
+      parts.knee.quaternion.copy(parts.shin.quaternion);
+    }
   };
   update();
-  return { update };
-}
-
-function addHand(lowerArm: Object3D, palm: Object3D, p: Palette): DynamicPart {
-  const wrap = worldUnitWrap(lowerArm);
-  const hand = new Group();
-  const cuff = part(new TorusGeometry(0.105, 0.025, 10, 22), p.accent);
-  cuff.rotation.x = Math.PI / 2;
-  const palmMesh = part(new SphereGeometry(0.105, 20, 16), p.dark);
-  palmMesh.position.y = 0.055;
-  palmMesh.scale.set(0.92, 1.15, 0.78);
-  hand.add(cuff, palmMesh);
-  wrap.add(hand);
-
-  const palmWorld = new Vector3();
-  const localPalm = new Vector3();
-  const direction = new Vector3();
-  const update = (): void => {
-    palm.getWorldPosition(palmWorld);
-    localPalm.copy(palmWorld);
-    wrap.worldToLocal(localPalm);
-    const length = Math.min(localPalm.length(), 0.27);
-    if (length <= 1e-5) return;
-    direction.copy(localPalm).normalize();
-    hand.position.copy(direction).multiplyScalar(length);
-    hand.quaternion.setFromUnitVectors(UP, direction);
-  };
-  update();
-  return { update };
-}
-
-function addBoot(foot: Object3D, p: Palette): void {
-  const wrap = worldUnitWrap(foot);
-  const sole = part(new CapsuleGeometry(0.13, 0.1, 6, 20), p.dark);
-  sole.position.set(0, 0.09, 0.055);
-  sole.scale.set(1.22, 1, 0.42);
-  const shell = part(new CapsuleGeometry(0.125, 0.08, 6, 20), p.shell);
-  shell.position.set(0, 0.1, 0.105);
-  shell.scale.set(1.15, 0.96, 0.64);
-  const toe = part(new CapsuleGeometry(0.1, 0.07, 6, 18), p.accent);
-  toe.position.set(0, 0.17, 0.125);
-  toe.scale.set(1.18, 0.9, 0.72);
-  const light = part(new BoxGeometry(0.11, 0.035, 0.022), p.glow);
-  light.position.set(0, 0.27, 0.17);
-  wrap.add(sole, shell, toe, light);
-}
-
-/** Attaches the complete chibi-robot shell while retaining the source skeleton and clips. */
-export function attachChibiAppearance(b: ChibiBones): DynamicPart[] {
-  const p = createPalette();
-  const headWrap = worldUnitWrap(b.head);
-  headWrap.add(createHead(p));
-  const torsoWrap = worldUnitWrap(b.body);
-  torsoWrap.add(createTorso(p));
-
-  const upperArmGeometry = new CylinderGeometry(0.105, 0.13, 1, 20);
-  const forearmGeometry = new CylinderGeometry(0.09, 0.11, 1, 20);
-  const thighGeometry = new CylinderGeometry(0.125, 0.15, 1, 20);
-  const shinGeometry = new CylinderGeometry(0.105, 0.13, 1, 20);
-  const dynamic: DynamicPart[] = [];
-
-  for (const [shoulder, upperArm, lowerArm, palm] of [
-    [b.shoulderL, b.upperArmL, b.lowerArmL, b.palmL],
-    [b.shoulderR, b.upperArmR, b.lowerArmR, b.palmR],
-  ] as const) {
-    addJoint(shoulder, 0.145, p.accent);
-    dynamic.push(segment(upperArm, lowerArm, upperArmGeometry, p.shell, 0.28));
-    addJoint(lowerArm, 0.105, p.dark);
-    dynamic.push(segment(lowerArm, palm, forearmGeometry, p.shell, 0.235));
-    dynamic.push(addHand(lowerArm, palm, p));
-  }
-
-  for (const [upperLeg, lowerLeg, foot] of [
-    [b.upperLegL, b.lowerLegL, b.footL],
-    [b.upperLegR, b.lowerLegR, b.footR],
-  ] as const) {
-    addJoint(upperLeg, 0.145, p.dark, new Vector3(1, 0.9, 0.82));
-    dynamic.push(segment(upperLeg, lowerLeg, thighGeometry, p.shell));
-    addJoint(lowerLeg, 0.13, p.dark);
-    dynamic.push(segment(lowerLeg, foot, shinGeometry, p.shell));
-    addBoot(foot, p);
-  }
-  return dynamic;
+  return [{ update }];
 }

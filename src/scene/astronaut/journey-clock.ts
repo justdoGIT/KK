@@ -17,6 +17,7 @@ export type FinaleClock = {
   cursorX: number;
   cursorY: number;
   lastPointerAt: number;
+  interactionStartedAt: number;
   interaction: ContactInteraction;
   mode: ContactPoseMode;
 };
@@ -24,7 +25,8 @@ export type FinaleClock = {
 export function createFinaleClock(): FinaleClock {
   return {
     progress: 0, cardLeft: 0, cardTop: 0, cardWidth: 0, footX: 0, bodyHeight: 0,
-    cursorX: 0, cursorY: 0, lastPointerAt: 0, interaction: "none", mode: "landing",
+    cursorX: 0, cursorY: 0, lastPointerAt: 0, interactionStartedAt: 0,
+    interaction: "none", mode: "landing",
   };
 }
 

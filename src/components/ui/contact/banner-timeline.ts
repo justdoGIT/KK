@@ -18,12 +18,18 @@ export const DIP_DOWN = 0.2;
 export const DIP_RISE = 1.6;
 export const BANNER_SETTLED = DIP_DOWN + DIP_RISE;
 
+/** CTA-hover choreography boundaries, in seconds from pointer entry. */
+export const HOVER_RECLINE_END = 2.4;
+export const HOVER_DANCE_END = 5.6;
+export const HOVER_SEQUENCE_END = 8.8;
+
 export type ContactPoseMode =
   | "landing"
   | "stand"
   | "sit"
   | "lie"
   | "dance"
+  | "moonwalk"
   | "jumpWave"
   | "walkPlank"
   | "wallClimb"
@@ -71,7 +77,7 @@ export function bannerState(progress: number, sinceLanding: number): BannerState
 /**
  * Pose precedence & autonomous idle behaviors:
  * 1. landing
- * 2. CTA button hover/near -> dance or jump & wave
+ * 2. direct CTA hover/focus -> recline, dance, moonwalk loop
  * 3. LinkedIn/GitHub click -> wait
  * 4. Screen idle > 90s -> wall climbing down and up the clear corner
  * 5. Screen idle > 60s -> lie down from standing
@@ -84,22 +90,21 @@ export function contactPoseMode(
   elapsedTime = 0,
 ): ContactPoseMode {
   if (progress < LAND_AT) return "landing";
-  if (interaction === "dance") return "dance";
+  if (interaction === "dance") {
+    const cycle = Math.max(0, elapsedTime) % HOVER_SEQUENCE_END;
+    if (cycle < HOVER_RECLINE_END) return "lie";
+    if (cycle < HOVER_DANCE_END) return "dance";
+    return "moonwalk";
+  }
   if (interaction === "jumpWave") return "jumpWave";
   if (interaction === "wait") return "wait";
 
-  // Long idle behaviors once settled
   if (progress >= SIT_AT) {
     if (elapsedTime >= 90) {
-      // Wall climbing cycle every 20s (climb down corner and back up)
       const cycle = (elapsedTime - 90) % 20;
       if (cycle < 16) return "wallClimb";
     }
-    if (elapsedTime >= 60) {
-      // Lie down from standing position
-      return "lie";
-    }
-    // Random / cycling actions after 12s on screen
+    if (elapsedTime >= 60) return "lie";
     if (elapsedTime >= 12) {
       const loop = Math.floor(elapsedTime / 8) % 4;
       if (loop === 1) return "walkPlank";

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
-import {
-  applyPose,
-  createPoseBuffer,
-  sampleContactPose,
-} from "../scene/astronaut/astronaut-poses.ts";
+import { applyPose, createPoseBuffer } from "../scene/astronaut/astronaut-poses.ts";
+import { sampleContactPose } from "../scene/astronaut/contact-poses.ts";
 import { instantiateAstronaut, type AstronautInstance, type BoneName } from "../scene/astronaut/astronaut-rig.ts";
 
 // Glove axes in the NASA bind pose (measured on the mesh): fingers along the

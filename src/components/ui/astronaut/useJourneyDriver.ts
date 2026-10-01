@@ -74,8 +74,11 @@ function paintFinale(els: JourneyElements, t: number, height: number, nowSec: nu
   }
   const firstSeen = root.dataset.finaleFirstSeen ? parseFloat(root.dataset.finaleFirstSeen) : nowSec;
   const idleElapsed = Math.max(0, nowSec - firstSeen);
+  const poseElapsed = finale.interaction === "none"
+    ? idleElapsed
+    : Math.max(0, nowSec - finale.interactionStartedAt);
 
-  finale.mode = contactPoseMode(progress, finale.interaction, idleElapsed);
+  finale.mode = contactPoseMode(progress, finale.interaction, poseElapsed);
 
   const reveal = smoothstep(0, 0.06, progress);
   const isSettled = progress >= ZOOM_OUT_END;

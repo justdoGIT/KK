@@ -22,37 +22,11 @@ const HeroCanvas = lazy(() =>
 
 const TITLE_LINES = ["Step into a new orbit", "and let your", "silicon run wild"];
 
-function detectInteraction(
-  target: EventTarget | null,
-  clientX: number,
-  clientY: number,
-  ctaBtn: HTMLElement | null,
-): ContactInteraction {
-  if (target instanceof Element) {
-    const action = target.closest<HTMLElement>("[data-astronaut-action]")?.dataset.astronautAction;
-    if (action === "wait") return "wait";
-    if (action === "dance") return "dance";
-  }
-
-  // Proximity detection: when cursor is over or close to "Start a Conversation" button
-  if (ctaBtn) {
-    const rect = ctaBtn.getBoundingClientRect();
-    if (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    ) {
-      return "dance";
-    }
-    const btnCenterX = rect.left + rect.width / 2;
-    const btnCenterY = rect.top + rect.height / 2;
-    const dist = Math.hypot(clientX - btnCenterX, clientY - btnCenterY);
-    if (dist < 240) {
-      return clientX < btnCenterX ? "dance" : "jumpWave";
-    }
-  }
-
+function detectInteraction(target: EventTarget | null): ContactInteraction {
+  if (!(target instanceof Element)) return "none";
+  const action = target.closest<HTMLElement>("[data-astronaut-action]")?.dataset.astronautAction;
+  if (action === "wait") return "wait";
+  if (action === "dance") return "dance";
   return "none";
 }
 
@@ -71,7 +45,6 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   const contactHeading = useRef<HTMLHeadingElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1, finale: createFinaleClock() });
-  const ctaBtnRef = useRef<HTMLElement | null>(null);
 
   const els = useMemo<JourneyElements>(
     () => ({
@@ -82,11 +55,15 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   );
   const { near, active } = useJourneyDriver(els);
 
-  const updateInteraction = (target: EventTarget | null, clientX = 0, clientY = 0) => {
-    if (!ctaBtnRef.current && contact.current) {
-      ctaBtnRef.current = contact.current.querySelector<HTMLElement>(".contact-main-btn");
-    }
-    clock.current.finale.interaction = detectInteraction(target, clientX, clientY, ctaBtnRef.current);
+  const setInteraction = (interaction: ContactInteraction) => {
+    const finale = clock.current.finale;
+    if (interaction === finale.interaction) return;
+    finale.interaction = interaction;
+    finale.interactionStartedAt = performance.now() / 1000;
+  };
+
+  const updateInteraction = (target: EventTarget | null) => {
+    setInteraction(detectInteraction(target));
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -94,22 +71,22 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
     finale.cursorX = event.clientX;
     finale.cursorY = event.clientY;
     finale.lastPointerAt = performance.now() / 1000;
-    updateInteraction(event.target, event.clientX, event.clientY);
+    updateInteraction(event.target);
   };
 
   const onPointerLeave = () => {
-    clock.current.finale.interaction = "none";
+    setInteraction("none");
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) =>
-    updateInteraction(event.target, event.clientX, event.clientY);
+    updateInteraction(event.target);
 
   const onFocus = (event: FocusEvent<HTMLDivElement>) =>
     updateInteraction(event.target);
 
   const onBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget)) {
-      clock.current.finale.interaction = "none";
+      setInteraction("none");
     }
   };
 

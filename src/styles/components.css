@@ -3048,13 +3048,12 @@ main::before {
   border: 1px solid var(--color-surface-border);
   border-radius: 24px;
   padding: 4rem 3.5rem;
-  /* Match the site's dark-glass cards: a restrained cyan top glow over a
-     near-black slate face. The vignette darkens all four edges while leaving
-     the content field readable. */
+  /* A blue-slate face ties the banner to the cyan accents and landing deck;
+     opaque backing keeps the moving scene from washing out its color. */
   background:
-    radial-gradient(ellipse at 50% 45%, transparent 36%, rgba(2, 6, 14, 0.38) 76%, rgba(2, 6, 14, 0.82) 100%),
-    radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.84) 58%, rgba(9, 13, 22, 0.98) 100%);
-  backdrop-filter: blur(12px);
+    linear-gradient(90deg, rgba(3, 10, 23, 0.72), transparent 12%, transparent 88%, rgba(3, 10, 23, 0.72)),
+    radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.12), transparent 65%),
+    linear-gradient(180deg, #142a43 0%, #101f35 55%, #0b1526 100%);
   /* Recess the face with stronger side/bottom occlusion, then lift the whole
      card with the same soft black shadow used by the surrounding card grid. */
   box-shadow:
@@ -3082,15 +3081,15 @@ main::before {
   left: 0;
   clip-path: polygon(0 0, 100% 0, 0 100%);
   background:
-    linear-gradient(180deg, rgba(3, 7, 13, 0.35) 0%, rgba(0, 0, 0, 0.82) 100%),
-    linear-gradient(90deg, #010307 0%, #07101d 58%, #142942 100%);
+    linear-gradient(180deg, rgba(3, 9, 21, 0.2) 0%, rgba(2, 6, 16, 0.75) 100%),
+    linear-gradient(90deg, #020710 0%, #0a192b 58%, #18354e 100%);
 }
 .contact-frame-wrapper::after {
   right: 0;
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   background:
-    linear-gradient(180deg, rgba(3, 7, 13, 0.35) 0%, rgba(0, 0, 0, 0.82) 100%),
-    linear-gradient(270deg, #010307 0%, #07101d 58%, #142942 100%);
+    linear-gradient(180deg, rgba(3, 9, 21, 0.2) 0%, rgba(2, 6, 16, 0.75) 100%),
+    linear-gradient(270deg, #020710 0%, #0a192b 58%, #18354e 100%);
 }
 @media (max-width: 768px) {
   .contact-frame-wrapper::before,

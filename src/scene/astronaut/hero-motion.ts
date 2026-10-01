@@ -130,10 +130,12 @@ export function contactRoot(
     const dir = Math.cos(time * 0.8);
     const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
     out.ry = targetRy * fall;
-  } else if (mode === "dance") {
+  } else if (mode === "moonwalk") {
     const dir = Math.cos(time * 1.5);
     const targetRy = dir >= 0 ? Math.PI / 2 : -Math.PI / 2;
     out.ry = targetRy * fall;
+  } else if (mode === "dance") {
+    out.ry = Math.sin(time * 3.1) * 0.18 * fall;
   } else if (mode === "wallClimb") {
     // Gripping the top edge: face the wall (billboard), back to the viewer,
     // same as a person hanging off a ledge they're holding onto.
