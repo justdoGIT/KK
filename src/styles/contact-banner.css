@@ -2,7 +2,7 @@
    only the astronaut on his 3D landing panel (HeroScene); the card attaches
    beneath that panel as the view zooms out to the complete contact card. */
 .contact-banner {
-  --contact-scale: 1;
+  --contact-scale: 0.85;
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -138,13 +138,13 @@
   }
 }
 
-@media (max-height: 700px) {
+@media (max-height: 820px) {
   .contact-banner {
-    --contact-scale: 0.85;
+    --contact-scale: 0.74;
   }
 
   .contact-banner-mover {
-    margin-top: 10.5rem;
+    margin-top: 9rem;
   }
 }
 

@@ -1281,16 +1281,12 @@ main::before {
 }
 .services-deck-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0 0 2.5rem 0;
   width: 100%;
   max-width: 100%;
   margin: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.services-deck-nav::-webkit-scrollbar {
-  display: none;
 }
 .services-deck-tab {
   display: inline-flex;
