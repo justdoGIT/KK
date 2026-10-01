@@ -127,11 +127,12 @@ function billboardFrontTexture(): CanvasTexture {
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    // Light steel-blue gradient so the deck reads as a lit billboard surface
+    // Lit steel-blue front rim: the brightest face of the deck (light comes
+    // from above), easing only slightly darker toward its bottom edge.
     const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bg.addColorStop(0, "#1e3a5f");
-    bg.addColorStop(0.5, "#17304f");
-    bg.addColorStop(1, "#122540");
+    bg.addColorStop(0, "#3f75b0");
+    bg.addColorStop(0.5, "#33639a");
+    bg.addColorStop(1, "#2a5487");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -163,7 +164,7 @@ function billboardTopTexture(): CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#1e3a5f";
+    ctx.fillStyle = "#3f75b0";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Industrial grid pattern on platform surface matching card theme
@@ -204,8 +205,10 @@ export function createLandingPanel(): LandingPanel {
   const sideLight = new MeshBasicMaterial({ color: "#16263d", transparent: true });
   const top = new MeshBasicMaterial({ map: billboardTopTexture(), transparent: true });
   // The settled deck sits above the camera's eye line, so this underside is
-  // the broad flat band viewers actually see beneath the front rim.
-  const bottom = new MeshBasicMaterial({ color: "#2a4f7a", transparent: true });
+  // the broad flat band seen beneath the front rim. It faces away from the
+  // light, so it stays a step darker than the rim (but clearly blue, not
+  // black) — that contrast is what makes the deck read as a 3D slab.
+  const bottom = new MeshBasicMaterial({ color: "#1d3d66", transparent: true });
   const front = new MeshBasicMaterial({ map: billboardFrontTexture(), transparent: true });
   // BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back).
   // Right shadow, left light (shadows on both sides for 3D effect), top, bottom, front, back.
