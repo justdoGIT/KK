@@ -81,7 +81,7 @@ export function Services(): JSX.Element {
   const [activeCard, setActiveCard] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
-  useGuidedScroll(sectionRef, throwMode, 0.94, 300);
+  useGuidedScroll(sectionRef, throwMode, { target: 0.94, seconds: 20 });
 
   // Stacked layout: the most visible card is the active tab.
   useEffect(() => {
@@ -103,26 +103,32 @@ export function Services(): JSX.Element {
   }, [throwMode]);
 
   // Throw layout: scroll position drives each card's flight and straightening.
-  useScrollFrame(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const scrollable = Math.max(1, section.offsetHeight - window.innerHeight);
-    const frame = throwFrame(clamp01(-section.getBoundingClientRect().top / scrollable), services.length);
-    let top = 0;
-    cardRefs.current.forEach((card, index) => {
-      if (!card) return;
-      const pose = throwPose(index, frame, services.length);
-      card.style.transform = pose.transform;
-      card.style.opacity = pose.opacity.toFixed(3);
-      card.style.setProperty("--covered", pose.covered.toFixed(3));
-      card.style.visibility = pose.visible ? "visible" : "hidden";
-      if (pose.visible) top = index;
-    });
-    cardRefs.current.forEach((card, index) => {
-      if (card) card.inert = index !== top;
-    });
-    setActiveCard(top);
-  }, throwMode);
+  const frameRef = useRef(throwFrame(0, services.length));
+  useScrollFrame(
+    () => {
+      const section = sectionRef.current;
+      if (!section) return;
+      const scrollable = Math.max(1, section.offsetHeight - window.innerHeight);
+      frameRef.current = throwFrame(clamp01(-section.getBoundingClientRect().top / scrollable), services.length);
+    },
+    () => {
+      let top = 0;
+      cardRefs.current.forEach((card, index) => {
+        if (!card) return;
+        const pose = throwPose(index, frameRef.current, services.length);
+        card.style.transform = pose.transform;
+        card.style.opacity = pose.opacity.toFixed(3);
+        card.style.setProperty("--covered", pose.covered.toFixed(3));
+        card.style.visibility = pose.visible ? "visible" : "hidden";
+        if (pose.visible) top = index;
+      });
+      cardRefs.current.forEach((card, index) => {
+        if (card) card.inert = index !== top;
+      });
+      setActiveCard(top);
+    },
+    throwMode,
+  );
 
   useEffect(() => {
     if (throwMode) return;

@@ -25,7 +25,8 @@ export type JourneyElements = {
 
 /** The authored tunnel cruise stops before the glass-break finale. */
 const CRUISE_TARGET = 0.62;
-const CRUISE_SPEED = 240;
+/** Authored playback length for the tunnel cruise (viewport-size independent). */
+const CRUISE_SECONDS = 15;
 /** Gap between the heading's bottom edge and the card's top edge (px). */
 const HEADING_CLEARANCE = 20;
 
@@ -48,7 +49,7 @@ function measure(els: JourneyElements, layout: JourneyLayout): void {
   // The nav bar is sticky at the viewport top, and so is the pinned stage.
   layout.navBottom = document.querySelector<HTMLElement>(".nav-bar")?.offsetHeight ?? 0;
   if (heading && contact) {
-    contact.style.setProperty("--contact-heading-clear", `${heading.offsetTop + heading.offsetHeight + HEADING_CLEARANCE}px`);
+    layout.headingClearance = heading.offsetTop + heading.offsetHeight + HEADING_CLEARANCE;
     layout.headingWidth = heading.offsetWidth;
     layout.headingCentre = heading.offsetLeft;
   }
@@ -69,7 +70,7 @@ function measure(els: JourneyElements, layout: JourneyLayout): void {
 export function useJourneyDriver(els: JourneyElements): { near: boolean; active: boolean } {
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
-  useGuidedScroll(els.section, near, CRUISE_TARGET, CRUISE_SPEED);
+  useGuidedScroll(els.section, near, { target: CRUISE_TARGET, seconds: CRUISE_SECONDS });
 
   useEffect(() => {
     const section = els.section.current;
@@ -101,11 +102,13 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       moverTop: 0,
       headingWidth: 0,
       headingCentre: 0,
+      headingClearance: 0,
       navBottom: 0,
     };
     let dirty = true;
     let target = 0;
     let painted = -1;
+    let appliedClearance = -1;
 
     const invalidate = () => {
       dirty = true;
@@ -126,6 +129,14 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       target = layout.scrollable > 0 ? clamp01(scrolled / layout.scrollable) : 0;
     });
     const stopWrite = onFrame("write", (time) => {
+      if (appliedClearance !== layout.headingClearance) {
+        els.contact.current?.style.setProperty("--contact-heading-clear", `${layout.headingClearance}px`);
+        appliedClearance = layout.headingClearance;
+        // The constraint changes the mover's layout. Measure it next frame
+        // before painting the new anchor, without a read-after-write flush.
+        dirty = true;
+        return;
+      }
       const clock = els.clock.current;
       clock.t = target;
       clock.width = layout.width;

@@ -15,9 +15,13 @@ export function easeOutCubic(t: number): number {
  * both expressed as fractions of the viewport height. Bidirectional: scrolling
  * back up lowers the value again.
  */
-export function viewportEntry(el: Element, start = 0.95, end = 0.45): number {
+export function viewportEntry(el: HTMLElement, start = 0.95, end = 0.45): number {
   const vh = window.innerHeight;
-  const top = el.getBoundingClientRect().top;
+  // Measure the layout edge, not the reveal transform from the last frame.
+  const parent = el.offsetParent;
+  const top = el.offsetTop + (parent instanceof HTMLElement
+    ? parent.getBoundingClientRect().top + parent.clientTop - parent.scrollTop
+    : -window.scrollY);
   return clamp01((vh * start - top) / (vh * (start - end)));
 }
 
@@ -29,37 +33,47 @@ export function gridColumnCount(el: Element): number {
 }
 
 /**
- * Runs `apply` once per scheduler frame while the page scrolls or resizes.
- * Scroll events can fire several times per frame; coalescing to one `write`-
- * phase call per frame — on the same scheduler tick as every other driver,
- * right after Lenis advances in `scroll` — keeps scroll-linked transforms
- * from strobing and guarantees `apply` reads the same scroll position every
- * other layer painted from this frame, instead of the extra frame of lag a
- * privately-scheduled `requestAnimationFrame` added.
+ * Runs `read` (layout and style reads only) in the scheduler's read phase,
+ * then `write` (DOM and style writes, discrete state) in the write phase of
+ * the same frame. Scroll events can fire several times per frame; coalescing
+ * to one read/write pair per frame — on the same scheduler tick as every
+ * other driver, right after Lenis advances in `scroll` — keeps scroll-linked
+ * transforms from strobing, guarantees both callbacks see the same scroll
+ * position, and never lets one driver's writes force another's layout.
  */
-export function useScrollFrame(apply: () => void, enabled = true): void {
-  const applyRef = useRef(apply);
+export function useScrollFrame(read: () => void, write: () => void, enabled = true): void {
+  const readRef = useRef(read);
+  const writeRef = useRef(write);
   useEffect(() => {
-    applyRef.current = apply;
+    readRef.current = read;
+    writeRef.current = write;
   });
 
   useEffect(() => {
     if (!enabled) return;
     let pending = true; // run once immediately on mount/enable
+    let armed = false; // the read phase produced a frame for the write phase
     const schedule = () => {
       pending = true;
     };
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    const stop = onFrame("write", () => {
+    const stopRead = onFrame("read", () => {
       if (!pending) return;
       pending = false;
-      applyRef.current();
+      readRef.current();
+      armed = true;
+    });
+    const stopWrite = onFrame("write", () => {
+      if (!armed) return;
+      armed = false;
+      writeRef.current();
     });
     return () => {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
-      stop();
+      stopRead();
+      stopWrite();
     };
   }, [enabled]);
 }

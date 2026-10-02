@@ -35,6 +35,7 @@ export type JourneyLayout = {
   /** Untransformed heading width and visual centre x within the stage. */
   headingWidth: number;
   headingCentre: number;
+  headingClearance: number;
   /** Bottom edge of the sticky nav bar in stage px. */
   navBottom: number;
 };
@@ -94,7 +95,7 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
   // Pointer events unlock once the card reads as attached, not only after the
   // slower zoom-out settles, so the button never looks clickable but inert.
-  root.style.pointerEvents = attach >= 0.98 ? "auto" : "none";
+  root.style.pointerEvents = attach >= 0.98 || finale.progress >= ZOOM_OUT_END ? "auto" : "none";
   if (isSettled) {
     root.dataset.finaleSettled = "true";
     mover.dataset.settled = "true";

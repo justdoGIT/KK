@@ -31,7 +31,7 @@ export function useCareerDriver(els: CareerElements, enabled: boolean): CareerDr
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
   const [stage, setStage] = useState(0);
-  useGuidedScroll(els.section, enabled, 0.94, 300);
+  useGuidedScroll(els.section, enabled, { target: 0.94, seconds: 26 });
 
   useEffect(() => {
     const section = els.section.current;

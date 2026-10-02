@@ -1,4 +1,5 @@
-import { useState, useEffect, type JSX } from "react";
+import { useEffect, useState, type JSX } from "react";
+import { useArchitectureDialog } from "./useArchitectureDialog.ts";
 
 export type ArchitectureDetail = {
   title: string;
@@ -22,30 +23,41 @@ export function ArchitectureModal({
   architecture,
 }: ArchitectureModalProps): JSX.Element | null {
   const [viewMode, setViewMode] = useState<"visual" | "mermaid">("visual");
-  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [activeNode, setActiveNode] = useState<string | null>(null);
-
+  const containerRef = useArchitectureDialog(isOpen && architecture !== null, onClose);
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+    if (copyStatus === "idle") return;
+    const timer = window.setTimeout(() => setCopyStatus("idle"), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copyStatus]);
 
   if (!isOpen || !architecture) return null;
 
-  const copyMermaid = () => {
-    navigator.clipboard.writeText(architecture.mermaidCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const copyMermaid = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(architecture.mermaidCode);
+      setCopyStatus("copied");
+    } catch {
+      // Keep the selection inside the dialog and restore focus after the
+      // legacy fallback. A false return is a denied copy, not success.
+      const focused = document.activeElement;
+      const textarea = document.createElement("textarea");
+      textarea.value = architecture.mermaidCode;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      containerRef.current?.appendChild(textarea);
+      textarea.select();
+      try {
+        setCopyStatus(document.execCommand("copy") ? "copied" : "failed");
+      } catch {
+        setCopyStatus("failed");
+      } finally {
+        textarea.remove();
+        if (focused instanceof HTMLElement) focused.focus({ preventScroll: true });
+      }
+    }
   };
 
   const selectedNodeInfo = architecture.nodes.find((n) => n.id === activeNode);
@@ -113,7 +125,10 @@ export function ArchitectureModal({
       onClick={onClose}
     >
       <div
+        ref={containerRef}
         className="arch-modal-container"
+        tabIndex={-1}
+        data-lenis-prevent
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -154,7 +169,7 @@ export function ArchitectureModal({
         <div className="arch-modal-body">
           {viewMode === "visual" ? (
             <div className="arch-visual-stage">
-              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="arch-modal-svg" role="img" aria-label="Expanded Architecture Flow">
+              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="arch-modal-svg" role="group" aria-label="Expanded Architecture Flow">
                 <defs>
                   <linearGradient id="busGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
@@ -209,6 +224,10 @@ export function ArchitectureModal({
                       className="arch-node-group"
                       onMouseEnter={() => setActiveNode(node.id)}
                       onMouseLeave={() => setActiveNode(null)}
+                      onFocus={() => setActiveNode(node.id)}
+                      onBlur={() => setActiveNode(null)}
+                      role="group"
+                      aria-label={node.label}
                       tabIndex={0}
                     >
                       <g className="arch-node-inner">
@@ -309,7 +328,7 @@ export function ArchitectureModal({
                   className="arch-copy-btn"
                   onClick={copyMermaid}
                 >
-                  {copied ? "✓ Copied to Clipboard" : "Copy Mermaid Code"}
+                  {copyStatus === "copied" ? "✓ Copied to Clipboard" : copyStatus === "failed" ? "Copy unavailable" : "Copy Mermaid Code"}
                 </button>
               </div>
               <pre className="arch-mermaid-code">

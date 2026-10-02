@@ -12,20 +12,26 @@ export function StoryJourney(): JSX.Element {
   const section = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const enhanced = useMotionMode() === "enhanced";
-  useGuidedScroll(section, enhanced, 0.94, 280);
+  useGuidedScroll(section, enhanced, { target: 0.94, seconds: 18 });
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
-  useScrollFrame(() => {
-    const el = section.current;
-    if (!el) return;
-    const p = clamp01(-el.getBoundingClientRect().top / Math.max(1, el.offsetHeight - innerHeight));
-    if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
-    const i = Math.min(boardLifecycle.length - 1, Math.floor(p * boardLifecycle.length));
-    if (i !== indexRef.current) {
-      indexRef.current = i;
-      setIndex(i);
-    }
-  }, enhanced);
+  const progressRef = useRef(0);
+  useScrollFrame(
+    () => {
+      const el = section.current;
+      if (!el) return;
+      progressRef.current = clamp01(-el.getBoundingClientRect().top / Math.max(1, el.offsetHeight - innerHeight));
+    },
+    () => {
+      if (barRef.current) barRef.current.style.transform = `scaleX(${progressRef.current})`;
+      const i = Math.min(boardLifecycle.length - 1, Math.floor(progressRef.current * boardLifecycle.length));
+      if (i !== indexRef.current) {
+        indexRef.current = i;
+        setIndex(i);
+      }
+    },
+    enhanced,
+  );
   const stage = boardLifecycle[index];
   const jump = (target: number) => {
     const el = section.current;

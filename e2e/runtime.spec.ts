@@ -73,3 +73,37 @@ test("production limits connections to same-origin models and blocks injected st
   });
   await expect(page.getByRole("main")).toBeVisible();
 });
+
+test("guided playback resumes after an upward touch gesture", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto("/");
+    const section = page.locator(".terminal-scroll-section");
+    const target = await section.evaluate((element) => {
+      const top = element.getBoundingClientRect().top + scrollY;
+      return top + (element.clientHeight - innerHeight) * 0.25;
+    });
+    await page.evaluate((y) => scrollTo({ top: y, behavior: "instant" }), target);
+    await expect.poll(() => page.evaluate((y) => Math.abs(scrollY - y), target)).toBeLessThan(3);
+
+    const cdp = await context.newCDPSession(page);
+    const point = (y: number) => [{ x: 640, y, radiusX: 1, radiusY: 1, force: 1, id: 1 }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(600) });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(520) });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(440) });
+    await page.waitForTimeout(350);
+    const held = await page.evaluate(() => scrollY);
+    await page.waitForTimeout(300);
+    expect(Math.abs(await page.evaluate(() => scrollY) - held)).toBeLessThanOrEqual(2);
+
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(() => page.evaluate(() => scrollY), { timeout: 3000 }).toBeGreaterThan(held + 20);
+    await cdp.detach();
+  } finally {
+    await context.close();
+  }
+});
