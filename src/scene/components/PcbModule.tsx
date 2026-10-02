@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createPcbTexture } from "../textures.ts";
 
@@ -16,6 +16,9 @@ export function PcbModule({
   theme = "green",
 }: PcbModuleProps): JSX.Element {
   const pcbTexture = useMemo(() => createPcbTexture(theme), [theme]);
+  // R3F disposes the materials it creates, but not material maps it does not
+  // own; this canvas texture would otherwise survive every remount.
+  useEffect(() => () => pcbTexture.dispose(), [pcbTexture]);
 
   // Gold mounting hole ring markers
   const mountingHoles = useMemo<[number, number][]>(() => [

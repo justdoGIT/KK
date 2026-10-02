@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createSchematicTexture } from "../textures.ts";
 
@@ -14,6 +14,16 @@ export function SchematicHologramCard({
   scale = 1,
 }: SchematicHologramCardProps): JSX.Element {
   const schematicTexture = useMemo(() => createSchematicTexture(), []);
+  // Built once: `<edgesGeometry args={[new PlaneGeometry(...)]} />` rebuilt
+  // (and leaked) the geometry on every render of this card's tree.
+  const border = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.8, 1.8)), []);
+  useEffect(
+    () => () => {
+      schematicTexture.dispose();
+      border.dispose();
+    },
+    [schematicTexture, border],
+  );
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -38,8 +48,7 @@ export function SchematicHologramCard({
       </mesh>
 
       {/* Cybernetic Glowing Card Border */}
-      <lineSegments>
-        <edgesGeometry args={[new THREE.PlaneGeometry(1.8, 1.8)]} />
+      <lineSegments geometry={border}>
         <lineBasicMaterial color="#38bdf8" transparent opacity={0.6} />
       </lineSegments>
     </group>

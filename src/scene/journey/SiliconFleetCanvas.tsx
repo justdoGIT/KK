@@ -30,15 +30,24 @@ export function SiliconFleetCanvas({
   // WebGL context and render loop otherwise ran for the whole page, even
   // while scrolled many screens away.
   const [near, setNear] = useState(false);
+  // Frames follow actual visibility: between the 100% margin and the
+  // viewport edge the canvas stays mounted (no context churn) but stops
+  // rendering.
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+    const nearObserver = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
       rootMargin: "100% 0px",
     });
-    observer.observe(el);
-    return () => observer.disconnect();
+    const activeObserver = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting));
+    nearObserver.observe(el);
+    activeObserver.observe(el);
+    return () => {
+      nearObserver.disconnect();
+      activeObserver.disconnect();
+    };
   }, []);
 
   if (!webglSupported || !near) {
@@ -52,7 +61,7 @@ export function SiliconFleetCanvas({
   return (
     <div ref={containerRef} className="sand-canvas-container" aria-hidden="true">
       <Suspense fallback={<CSSJourneyFallback currentStage={currentStage} />}>
-        <CanvasImpl currentStage={currentStage} />
+        <CanvasImpl currentStage={currentStage} active={active} />
       </Suspense>
     </div>
   );

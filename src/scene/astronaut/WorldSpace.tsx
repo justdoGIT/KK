@@ -8,11 +8,14 @@ import {
   Color,
   PlaneGeometry,
   PointsMaterial,
+  RepeatWrapping,
   ShaderMaterial,
   SphereGeometry,
+  TextureLoader,
   type Group,
   type Mesh,
   type Points,
+  type Texture,
 } from "three";
 import { fit, phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import type { JourneyClockRef } from "./journey-clock.ts";
@@ -44,15 +47,36 @@ const earthVertex = /* glsl */ `
 
 const earthFragment = /* glsl */ `
   uniform float uTime;
+  uniform sampler2D uDayMap;
+  uniform sampler2D uCloudMap;
+  uniform float uHasDay;
+  uniform float uHasCloud;
   varying vec3 vLocal; varying vec3 vNormalW; varying vec3 vViewW;
   ${NOISE}
+  vec2 equirect(vec3 n) {
+    return vec2(atan(n.z, n.x) / 6.2831853 + 0.5, asin(clamp(n.y, -1.0, 1.0)) / 3.14159265 + 0.5);
+  }
   void main() {
     vec3 n = normalize(vLocal);
-    float land = smoothstep(0.5, 0.56, fbm(n * 3.2));
-    vec3 ocean = mix(vec3(0.01, 0.07, 0.26), vec3(0.04, 0.22, 0.55), fbm(n * 9.0));
-    vec3 ground = mix(vec3(0.13, 0.28, 0.11), vec3(0.46, 0.37, 0.2), fbm(n * 6.0 + 3.0));
-    vec3 color = mix(ocean, ground, land);
-    float clouds = smoothstep(0.55, 0.78, fbm(n * 5.0 + vec3(uTime * 0.01, 0.0, 0.0)));
+    vec2 uv = equirect(n);
+    vec3 color;
+    // NASA Blue Marble when it has loaded; the procedural fbm surface only
+    // covers the first frames, so the scene never blanks while loading.
+    if (uHasDay > 0.5) {
+      color = texture2D(uDayMap, uv).rgb;
+    } else {
+      float land = smoothstep(0.5, 0.56, fbm(n * 3.2));
+      vec3 ocean = mix(vec3(0.01, 0.07, 0.26), vec3(0.04, 0.22, 0.55), fbm(n * 9.0));
+      vec3 ground = mix(vec3(0.13, 0.28, 0.11), vec3(0.46, 0.37, 0.2), fbm(n * 6.0 + 3.0));
+      color = mix(ocean, ground, land);
+    }
+    float clouds;
+    if (uHasCloud > 0.5) {
+      // Slow eastward drift: the cloud composite is its own equirect layer.
+      clouds = smoothstep(0.32, 0.92, texture2D(uCloudMap, uv + vec2(uTime * 0.0015, 0.0)).r);
+    } else {
+      clouds = smoothstep(0.55, 0.78, fbm(n * 5.0 + vec3(uTime * 0.01, 0.0, 0.0))) * 0.85;
+    }
     color = mix(color, vec3(0.96), clouds * 0.85);
     float light = clamp(dot(vNormalW, normalize(vec3(0.35, 0.9, 0.45))), 0.0, 1.0);
     color *= 0.2 + light * 1.15;
@@ -65,8 +89,15 @@ const earthFragment = /* glsl */ `
 const atmosphereFragment = /* glsl */ `
   varying vec3 vLocal; varying vec3 vNormalW; varying vec3 vViewW;
   void main() {
-    float glow = pow(max(0.0, 0.75 - dot(vNormalW, vViewW)), 3.0);
-    gl_FragColor = vec4(vec3(0.3, 0.55, 1.0) * glow * 3.0, glow);
+    float d = dot(vNormalW, vViewW);
+    // Back faces only: d runs from about -0.27 at the planet's silhouette to
+    // 0 at the shell's outer edge. Band the glow over that span so it hugs
+    // the limb and fades to nothing, instead of growing outward; the old
+    // 0.75 - d form reached 1.06 here and both clipped to white (rgb * 3)
+    // and ended in a hard edge where the shell is depth-tested away.
+    float band = smoothstep(-0.45, -0.22, d) * (1.0 - smoothstep(-0.10, 0.0, d));
+    float glow = band * band;
+    gl_FragColor = vec4(min(vec3(0.22, 0.45, 0.95) * glow * 1.35, vec3(0.8)), glow * 0.5);
   }
 `;
 
@@ -109,7 +140,17 @@ export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
   const kit = useMemo(() => {
     const earthGeometry = new SphereGeometry(30, 128, 96);
     const atmosphereGeometry = new SphereGeometry(31.2, 96, 64);
-    const earth = new ShaderMaterial({ vertexShader: earthVertex, fragmentShader: earthFragment, uniforms: { uTime: { value: 0 } } });
+    const earth = new ShaderMaterial({
+      vertexShader: earthVertex,
+      fragmentShader: earthFragment,
+      uniforms: {
+        uTime: { value: 0 },
+        uDayMap: { value: null },
+        uCloudMap: { value: null },
+        uHasDay: { value: 0 },
+        uHasCloud: { value: 0 },
+      },
+    });
     const atmosphere = new ShaderMaterial({
       vertexShader: earthVertex,
       fragmentShader: atmosphereFragment,
@@ -145,6 +186,43 @@ export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
     },
     [kit],
   );
+
+  // Real Earth artwork (NASA Blue Marble + cloud composite, see
+  // public/textures/CREDITS.md), swapped in when each layer arrives: the
+  // procedural surface keeps rendering until then, so a slow or failed load
+  // never blanks the scene. Owned here, disposed here.
+  useEffect(() => {
+    const loader = new TextureLoader();
+    const owned: Texture[] = [];
+    let alive = true;
+    const load = (url: string, apply: (texture: Texture) => void) => {
+      loader.load(url, (texture) => {
+        if (!alive) {
+          texture.dispose();
+          return;
+        }
+        // The shader writes raw texels like the procedural path did (no
+        // output encoding), so the textures stay without a colour-space
+        // conversion to keep both branches on the same pipeline.
+        texture.anisotropy = 4;
+        owned.push(texture);
+        apply(texture);
+      });
+    };
+    load(`${import.meta.env.BASE_URL}textures/earth-day-2048.jpg`, (texture) => {
+      kit.earth.uniforms.uDayMap.value = texture;
+      kit.earth.uniforms.uHasDay.value = 1;
+    });
+    load(`${import.meta.env.BASE_URL}textures/earth-clouds-2048.jpg`, (texture) => {
+      texture.wrapS = RepeatWrapping;
+      kit.earth.uniforms.uCloudMap.value = texture;
+      kit.earth.uniforms.uHasCloud.value = 1;
+    });
+    return () => {
+      alive = false;
+      for (const texture of owned) texture.dispose();
+    };
+  }, [kit]);
 
   useFrame((state) => {
     const { t } = clock.current;

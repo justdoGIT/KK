@@ -161,7 +161,16 @@ export function GlassShards({ clock, impact }: { clock: JourneyClockRef; impact:
     const rect = stageRectToWorld(screenRect(width, height), width, height, camera);
     const u = (mesh.material as ShaderMaterial).uniforms;
     u.uRect.value.set(rect.cx, rect.cy, rect.width, rect.height);
-    u.uImpact.value.set(impact.current.x, impact.current.y);
+    // The impact is tracked in hero-canvas space; the shader wants it in the
+    // glass pane's own 0..1 space (origin bottom-left). The pane is the 16:9
+    // screen rect centred in the stage, so convert canvas → stage px → pane.
+    const pane = screenRect(width, height);
+    const px = impact.current.x * width;
+    const py = (1 - impact.current.y) * height;
+    u.uImpact.value.set(
+      (px - pane.x) / pane.width,
+      (pane.y + pane.height - py) / pane.height,
+    );
     u.uBreak.value = shatter;
     u.uFade.value = Math.max(0, (drop - 0.55) / 0.45);
     u.uOpacity.value = shatter > 0 ? Math.min(1, 0.32 + shatter * 4) : 0.12;

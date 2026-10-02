@@ -168,7 +168,10 @@ export function FluidRipplePlane(): JSX.Element {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uResolution.value.set(size.width, size.height);
       materialRef.current.uniforms.uPointer.value.set(ptr.x, ptr.y);
-      materialRef.current.uniforms.uPointerActive.value = 1.0;
+      // The cursor's continuous standing wave costs per-pixel work in every
+      // fragment; let it idle with the CPU ripple sim instead of pulsing
+      // forever after the pointer stops.
+      materialRef.current.uniforms.uPointerActive.value = recentlyActive ? 1.0 : 0.0;
     }
   });
 

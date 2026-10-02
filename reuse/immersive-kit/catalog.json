@@ -119,8 +119,12 @@
         "src/styles/contact-banner.css",
         "src/styles/components.css"
       ],
-      "assetPaths": ["public/models/characters/nasa-astronaut.glb"],
-      "licensePaths": ["public/models/CREDITS.md"]
+      "assetPaths": [
+        "public/models/characters/nasa-astronaut.glb",
+        "public/textures/earth-day-2048.jpg",
+        "public/textures/earth-clouds-2048.jpg"
+      ],
+      "licensePaths": ["public/models/CREDITS.md", "public/textures/CREDITS.md"]
     },
     {
       "id": "hero-artifacts",
@@ -160,9 +164,12 @@
         "src/components/sections/SkillDomainsReveal.tsx",
         "src/components/sections/SkillCategoryCard.tsx",
         "src/components/ui/ArchitectureModal.tsx",
+        "src/components/ui/useArchitectureDialog.ts",
         "src/components/ui/CardBackArtwork.tsx",
         "src/components/ui/CategoryIllustrations.tsx",
         "src/components/ui/InteractiveTerminal.tsx",
+        "src/components/ui/terminal-runner.ts",
+        "src/content/terminal.ts",
         "src/components/ui/LusionKineticHeading.tsx",
         "src/content/case-studies.ts",
         "src/content/services.ts",

@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createChipTexture } from "../textures.ts";
 
@@ -23,6 +23,7 @@ export function MicrocontrollerQfp({
     () => createChipTexture(brand, model, spec, "EMBEDDED HIGH-SPEED SOC"),
     [brand, model, spec],
   );
+  useEffect(() => () => chipTexture.dispose(), [chipTexture]);
 
   const pinsPerSide = 12;
   const pinSpacing = 0.11;

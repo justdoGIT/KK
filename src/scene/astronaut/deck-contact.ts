@@ -110,8 +110,11 @@ export function restOnDeck(
 
   if (mode === "sit" || mode === "wait") {
     let legBack = Infinity;
+    let lowest = Infinity;
     for (let i = 0; i < count; i += 1) {
-      if (LOWER_LEGS.includes(hull.bones[i])) legBack = Math.min(legBack, oriented(hull, i).z);
+      const q = oriented(hull, i);
+      lowest = Math.min(lowest, q.y);
+      if (LOWER_LEGS.includes(hull.bones[i])) legBack = Math.min(legBack, q.z);
     }
     out.x = anchor.width * SEAT_X;
     out.z = anchor.frontZ + CLEARANCE * s - legBack * s;
@@ -121,7 +124,11 @@ export function restOnDeck(
       const q = oriented(hull, i);
       if (q.z <= overDeck) seat = Math.min(seat, q.y);
     }
-    out.y = anchor.top + CLEARANCE * s - seat * s;
+    // While a stride blends into the seat, a trailing boot can be the
+    // rearmost point, leaving nothing behind the shins to sit on. Rest on the
+    // lowest point until the seat forms; an infinite height here would make
+    // the root (and the panel placed from it) non-finite.
+    out.y = anchor.top + CLEARANCE * s - (seat === Infinity ? lowest : seat) * s;
     return out;
   }
 

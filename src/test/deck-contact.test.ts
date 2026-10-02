@@ -6,7 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import type { ContactPoseMode } from "../components/ui/contact/banner-timeline.ts";
 import { applyPose, createPoseBuffer } from "../scene/astronaut/astronaut-poses.ts";
-import { buildAstronautRig, instantiateAstronaut, type AstronautRigData } from "../scene/astronaut/astronaut-rig.ts";
+import { BONES, buildAstronautRig, instantiateAstronaut, type AstronautRigData } from "../scene/astronaut/astronaut-rig.ts";
 import { sampleContactPose } from "../scene/astronaut/contact-poses.ts";
 import { clearDeck, createPosedHull, placeHull, updatePosedHull } from "../scene/astronaut/deck-contact.ts";
 import { contactRoot, createRootPose } from "../scene/astronaut/hero-motion.ts";
@@ -114,6 +114,38 @@ describe("astronaut contact with the landing deck", () => {
       const sunk = placedSuit(mode, time).filter((v) => overDeck(v) && v.y < DECK.top - TOLERANCE);
       expect(sunk.length, `${mode} at ${time}s`).toBe(0);
     }
+  });
+
+  it("keeps the landed root finite while any mode blends into another", () => {
+    // A stride blending into the seat once left nothing behind the shins to
+    // sit on, so the root went non-finite and the astronaut and panel vanished.
+    const hero = instantiateAstronaut(rig);
+    const from = createPoseBuffer();
+    const to = createPoseBuffer();
+    const pose = createPoseBuffer();
+    const hull = createPosedHull(rig.hull);
+    const world = new Float32Array(hull.points.length);
+    const failures: string[] = [];
+    for (const a of ["landing", ...MODES] as const) {
+      for (const b of MODES) {
+        for (let time = 0; time < 8; time += 0.35) {
+          sampleContactPose(a, time, 1, from);
+          sampleContactPose(b, time, 1, to);
+          for (const k of [0, 0.1, 0.5, 1]) {
+            for (const bone of BONES) {
+              for (let i = 0; i < 3; i += 1) pose[bone][i] = from[bone][i] + (to[bone][i] - from[bone][i]) * k;
+            }
+            applyPose(hero, pose);
+            hero.root.updateWorldMatrix(true, true);
+            updatePosedHull(hero, rig.hull, hull);
+            const root = contactRoot(DECK, b, hull, 1, time, createRootPose());
+            clearDeck(DECK, placeHull(hull, root, world), root);
+            if (!Number.isFinite(root.x + root.y + root.z)) failures.push(`${a} -> ${b} at ${time.toFixed(2)}s, blend ${k}`);
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
   });
 
   it.each(["sit", "wait"] as const)("seats the %s pose on the lip with the shins hanging in front of the face", (mode) => {

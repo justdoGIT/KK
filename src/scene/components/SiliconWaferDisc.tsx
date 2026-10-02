@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createWaferTexture } from "../textures.ts";
 
@@ -14,6 +14,7 @@ export function SiliconWaferDisc({
   scale = 1,
 }: SiliconWaferDiscProps): JSX.Element {
   const waferTexture = useMemo(() => createWaferTexture(), []);
+  useEffect(() => () => waferTexture.dispose(), [waferTexture]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -28,8 +29,9 @@ export function SiliconWaferDisc({
         />
       </mesh>
 
-      {/* Wafer Outer Mirror Bevel Edge */}
-      <mesh position={[0, 0, 0]}>
+      {/* Wafer Outer Mirror Bevel Edge: the disc is a Y-axis cylinder, so the
+          ring must lie in its top plane instead of standing through it. */}
+      <mesh position={[0, 0.016, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.18, 1.21, 48]} />
         <meshStandardMaterial
           color="#38bdf8"

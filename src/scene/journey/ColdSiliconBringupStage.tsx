@@ -17,10 +17,14 @@ export function ColdSiliconBringupStage({ active }: ColdSiliconBringupStageProps
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
-    const targetScale = active ? 1.0 : 0.001;
-    groupRef.current.scale.lerp(scaleTarget.set(targetScale, targetScale, targetScale), delta * 4.0);
-
-    if (!active) return;
+    // `visible={active}` hides the stage the moment it retires, so the only
+    // transition worth animating is the grow-in: snap the hidden state and
+    // spend no frames shrinking something nobody can see.
+    if (!active) {
+      groupRef.current.scale.setScalar(0.001);
+      return;
+    }
+    groupRef.current.scale.lerp(scaleTarget.set(1, 1, 1), Math.min(1, delta * 4.0));
     const time = state.clock.getElapsedTime();
 
     // Cascading PMIC Power Rail pulse wave (3.3V -> 1.8V -> 0.85V Core)

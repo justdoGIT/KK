@@ -34,10 +34,15 @@ export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
-    const targetScale = active ? 1.0 : 0.001;
-    groupRef.current.scale.lerp(scaleTarget.set(targetScale, targetScale, targetScale), delta * 4.0);
+    // As with the silicon stage, the hidden state is snapped: only the
+    // grow-in transition is ever visible.
+    if (!active) {
+      groupRef.current.scale.setScalar(0.001);
+      return;
+    }
+    groupRef.current.scale.lerp(scaleTarget.set(1, 1, 1), Math.min(1, delta * 4.0));
 
-    if (!active || !constellationRef.current) return;
+    if (!constellationRef.current) return;
     const time = state.clock.getElapsedTime();
     constellationRef.current.rotation.y = time * 0.15;
     constellationRef.current.rotation.x = Math.sin(time * 0.08) * 0.06;
