@@ -29,9 +29,19 @@ npm run test:e2e -- e2e/smoke.spec.ts e2e/runtime.spec.ts
 The runtime suite checks development styling, hot reload, mobile navigation,
 and production restrictions on network connections and injected styles.
 
-Pull requests run `.github/workflows/pr-review.yml` after leaving draft state.
-The review gate rejects moderate-or-higher dependency risk, runs the Chromium
-runtime and smoke suites serially, and retains browser artifacts on failure.
+Pull requests run deterministic checks from `.github/workflows/pr-review.yml`
+after leaving draft state. The gate rejects moderate-or-higher dependency risk,
+runs the Chromium runtime and smoke suites serially, and retains browser
+artifacts on failure.
+
+`.github/workflows/ai-review.yml` sends at most 180,000 characters from each
+non-draft, same-repository pull-request diff to the free
+`moonshotai/kimi-k2.7-code-free` model through ZenMux. The reviewer treats the
+patch as untrusted data and updates one bot comment on each push. It never
+checks out pull-request code under `pull_request_target`, has no paid-model
+fallback, and receives only read access to contents and pull requests plus
+write access to issue comments. The workflow requires the `ZENMUX_API_KEY`
+repository secret.
 
 ## Architecture
 
