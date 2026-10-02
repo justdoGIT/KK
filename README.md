@@ -29,6 +29,10 @@ npm run test:e2e -- e2e/smoke.spec.ts e2e/runtime.spec.ts
 The runtime suite checks development styling, hot reload, mobile navigation,
 and production restrictions on network connections and injected styles.
 
+Pull requests run `.github/workflows/pr-review.yml` after leaving draft state.
+The review gate rejects moderate-or-higher dependency risk, runs the Chromium
+runtime and smoke suites serially, and retains browser artifacts on failure.
+
 ## Architecture
 
 - **Semantic HTML first**: all content remains usable without WebGL, smooth
