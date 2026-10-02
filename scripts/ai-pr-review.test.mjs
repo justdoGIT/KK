@@ -36,6 +36,13 @@ describe("AI pull-request review boundaries", () => {
     expect(comment).not.toContain("Notify @maintainer");
   });
 
+  it("uses the exact clean-review comment text", () => {
+    const comment = formatReviewComment("No actionable defects found.");
+
+    expect(comment).toContain("\n\nNo issues found\n\n");
+    expect(comment).not.toContain("No actionable defects found");
+  });
+
   it("keeps multibyte output within GitHub's body limit", () => {
     const comment = formatReviewComment("🧪".repeat(MAX_COMMENT_BYTES));
 
