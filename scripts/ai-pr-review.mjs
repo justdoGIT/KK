@@ -1,11 +1,11 @@
 import { Buffer } from "node:buffer";
 import { pathToFileURL } from "node:url";
 
-export const REVIEW_MARKER = "<!-- kimi-code-review -->";
+export const REVIEW_MARKER = "<!-- ai-code-review -->";
 export const MAX_DIFF_CHARS = 180_000;
 export const MAX_COMMENT_BYTES = 60_000;
 
-const MODEL = "moonshotai/kimi-k2.7-code-free";
+const MODEL = "dots-studio/dots3-note-prev";
 const GITHUB_API = "https://api.github.com";
 const ZENMUX_API = "https://zenmux.ai/api/v1/chat/completions";
 
@@ -49,7 +49,7 @@ export function formatReviewComment(review) {
     .replaceAll(REVIEW_MARKER, "")
     .replace(/@(?=[A-Za-z0-9_-])/g, "@\u200b")
     .trim();
-  const header = `${REVIEW_MARKER}\n## Kimi code review\n\n`;
+  const header = `${REVIEW_MARKER}\n## AI code review\n\n`;
   const footer = `\n\n---\n_Model: \`${MODEL}\` via ZenMux's free endpoint._`;
   const complete = `${header}${safeReview}${footer}`;
 
@@ -140,13 +140,13 @@ async function requestReview(input, token) {
         stream: false,
       }),
     },
-    "Requesting Kimi review",
+    "Requesting AI review",
   );
   const payload = await response.json();
   const content = payload.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
-    throw new Error("Kimi review response did not contain message content");
+    throw new Error("AI review response did not contain message content");
   }
   return content;
 }
@@ -214,7 +214,7 @@ export async function runReview() {
   );
 
   console.log(
-    `Kimi review posted for ${repository}#${pullNumber}${input.truncated ? " (diff truncated)" : ""}.`,
+    `AI review posted for ${repository}#${pullNumber}${input.truncated ? " (diff truncated)" : ""}.`,
   );
 }
 

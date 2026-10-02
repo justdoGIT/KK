@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  kimi-review:
+  ai-review:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.draft == false &&
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Review changed code with Kimi K2.7 Code
+      - name: Review changed code with Dots3 Note
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}

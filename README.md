@@ -36,7 +36,7 @@ artifacts on failure.
 
 `.github/workflows/ai-review.yml` sends at most 180,000 characters from each
 non-draft, same-repository pull-request diff to the free
-`moonshotai/kimi-k2.7-code-free` model through ZenMux. The reviewer treats the
+`dots-studio/dots3-note-prev` model through ZenMux. The reviewer treats the
 patch as untrusted data and updates one bot comment on each push. It never
 checks out pull-request code under `pull_request_target`, has no paid-model
 fallback, and receives only read access to contents and pull requests plus
