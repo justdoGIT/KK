@@ -2,12 +2,19 @@ import { Buffer } from "node:buffer";
 import { pathToFileURL } from "node:url";
 
 export const REVIEW_MARKER = "<!-- ai-code-review -->";
-export const MAX_DIFF_CHARS = 180_000;
+// NVIDIA's free-credit endpoint for this 550B-parameter model measured
+// ~100s at 16,000 diff characters (succeeded twice) and was unreliable at
+// 40,000 characters (one 503, one hung connection). The cap stays at the
+// proven-safe size; a bounded retry absorbs the endpoint's demonstrated
+// transient overload.
+export const MAX_DIFF_CHARS = 16_000;
 export const MAX_COMMENT_BYTES = 60_000;
 
-const MODEL = "dots-studio/dots3-note-prev";
+const MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
 const GITHUB_API = "https://api.github.com";
-const ZENMUX_API = "https://zenmux.ai/api/v1/chat/completions";
+const NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
+const REVIEW_RETRY_ATTEMPTS = 2;
+const REVIEW_RETRY_DELAY_MS = 5_000;
 
 export function buildReviewInput(diff, limit = MAX_DIFF_CHARS) {
   if (diff.length <= limit) {
@@ -60,7 +67,7 @@ export function formatReviewComment(review) {
     "@\u200b",
   );
   const header = `${REVIEW_MARKER}\n## AI code review\n\n`;
-  const footer = `\n\n---\n_Model: \`${MODEL}\` via ZenMux's free endpoint._`;
+  const footer = `\n\n---\n_Model: \`${MODEL}\` via NVIDIA's free inference credits._`;
   const complete = `${header}${safeReview}${footer}`;
 
   if (Buffer.byteLength(complete, "utf8") <= MAX_COMMENT_BYTES) {
@@ -126,9 +133,15 @@ function reviewPrompt(input) {
   ].join("\n");
 }
 
-async function requestReview(input, token) {
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function requestReviewOnce(input, token) {
   const response = await checkedFetch(
-    ZENMUX_API,
+    NVIDIA_API,
     {
       method: "POST",
       headers: {
@@ -145,7 +158,7 @@ async function requestReview(input, token) {
           },
           { role: "user", content: reviewPrompt(input) },
         ],
-        max_tokens: 4_000,
+        max_tokens: 3_000,
         temperature: 0,
         stream: false,
       }),
@@ -153,12 +166,28 @@ async function requestReview(input, token) {
     "Requesting AI review",
   );
   const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content?.trim();
+  const choice = payload.choices?.[0];
+  const content = choice?.message?.content?.trim();
 
   if (!content) {
-    throw new Error("AI review response did not contain message content");
+    throw new Error(
+      `AI review response did not contain message content (finish_reason: ${choice?.finish_reason ?? "unknown"})`,
+    );
   }
   return content;
+}
+
+async function requestReview(input, token) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await requestReviewOnce(input, token);
+    } catch (error) {
+      if (attempt >= REVIEW_RETRY_ATTEMPTS) {
+        throw error;
+      }
+      await delay(REVIEW_RETRY_DELAY_MS);
+    }
+  }
 }
 
 async function findExistingComment(repository, pullNumber, token) {
@@ -203,7 +232,7 @@ async function upsertReviewComment(repository, pullNumber, body, token) {
 export async function runReview() {
   const repository = requiredEnvironment("GITHUB_REPOSITORY");
   const githubToken = requiredEnvironment("GITHUB_TOKEN");
-  const zenmuxToken = requiredEnvironment("ZENMUX_API_KEY");
+  const nvidiaToken = requiredEnvironment("NVIDIA_API_KEY");
   const pullNumber = Number.parseInt(requiredEnvironment("PR_NUMBER"), 10);
 
   if (!/^[-\w.]+\/[-\w.]+$/.test(repository)) {
@@ -215,7 +244,7 @@ export async function runReview() {
 
   const diff = await fetchPullRequestDiff(repository, pullNumber, githubToken);
   const input = buildReviewInput(diff);
-  const review = await requestReview(input, zenmuxToken);
+  const review = await requestReview(input, nvidiaToken);
   await upsertReviewComment(
     repository,
     pullNumber,

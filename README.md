@@ -34,13 +34,20 @@ after leaving draft state. The gate rejects moderate-or-higher dependency risk,
 runs the Chromium runtime and smoke suites serially, and retains browser
 artifacts on failure.
 
-`.github/workflows/ai-review.yml` sends at most 180,000 characters from every
+`.github/workflows/ai-review.yml` sends at most 16,000 characters from every
 non-draft pull-request diff, including forks, to the free
-`dots-studio/dots3-note-prev` model through ZenMux. The reviewer treats the
-patch as untrusted data and updates one bot comment on each push. It never
-checks out pull-request code under `pull_request_target`, has no paid-model
+`nvidia/nemotron-3-ultra-550b-a55b` model (550B-parameter MoE) through
+NVIDIA's free inference-credit API. That diff cap is the largest size this
+endpoint answered reliably in testing; a 40,000-character diff triggered a
+503 and a hung connection, and the request retries once after a 5-second
+backoff to absorb that observed overload. Reviews take roughly 100 seconds
+at the diff cap. Larger diffs are reviewed only up to that cap. NVIDIA's
+free credits are a one-time grant, not a recurring quota, so this reviewer
+can stop working once they are exhausted. The reviewer treats the patch as
+untrusted data and updates one bot comment on each push. It never checks
+out pull-request code under `pull_request_target`, has no paid-model
 fallback, and receives only read access to contents and pull requests plus
-write access to issue comments. The workflow requires the `ZENMUX_API_KEY`
+write access to issue comments. The workflow requires the `NVIDIA_API_KEY`
 repository secret.
 
 ## Architecture
