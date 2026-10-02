@@ -71,6 +71,8 @@ The personal agent harness case study uses a strict public identity contract:
 - `docs/portfolio-design.md`: architecture, PR plan, and provenance matrix.
 - `docs/experience-quality-plan.md`: motion, rendering, reliability, and
   browser-verification decisions.
+- `docs/review-remediation.md`: full-site defect, performance, and browser
+  verification record.
 
 ## License
 
