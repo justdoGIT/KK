@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createCapacitorTexture } from "../textures.ts";
 
@@ -14,6 +14,7 @@ export function ElectrolyticCapacitor({
   scale = 1,
 }: ElectrolyticCapacitorProps): JSX.Element {
   const capTexture = useMemo(() => createCapacitorTexture(), []);
+  useEffect(() => () => capTexture.dispose(), [capTexture]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>

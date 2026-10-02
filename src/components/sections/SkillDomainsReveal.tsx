@@ -58,7 +58,7 @@ export function SkillDomainsReveal(): JSX.Element {
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const revealedCountRef = useRef(0);
-  useGuidedScroll(sectionRef, pinned, 0.88, 300);
+  useGuidedScroll(sectionRef, pinned, { target: 0.88, seconds: 13 });
 
   const visible = selected === ALL
     ? skillCategories
@@ -67,47 +67,59 @@ export function SkillDomainsReveal(): JSX.Element {
   const revealComplete = !pinned || revealedCount >= total;
   const highlightedCategoryCount = pinned && !revealComplete ? revealedCount : 0;
 
-  useScrollFrame(() => {
-    const section = sectionRef.current;
-    const stage = stageRef.current;
-    const grid = gridRef.current;
-    if (!section || !stage || !grid) return;
+  const revealFrameRef = useRef({ sticky: false, progress: 1, steps: 0, tracks: 1, locals: [] as number[] });
+  useScrollFrame(
+    () => {
+      const section = sectionRef.current;
+      const stage = stageRef.current;
+      const grid = gridRef.current;
+      if (!section || !stage || !grid) return;
 
-    // Small/short viewports drop the sticky stage via CSS; fall back to
-    // revealing each card as it enters the viewport, staggered by column.
-    const sticky = getComputedStyle(stage).position === "sticky";
-    let progress = 1;
-    if (sticky) {
-      const scrollable = section.offsetHeight - window.innerHeight;
-      progress = scrollable > 0 ? clamp01(-section.getBoundingClientRect().top / scrollable) : 1;
-    }
-    const steps = (progress / REVEAL_END) * total;
-    // Each card spans 2 of the 8 desktop tracks: 4 visual columns.
-    const tracks = gridColumnCount(grid);
-    const cols = tracks >= 8 ? tracks / 2 : tracks;
-    let opened = 0;
-    cardRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const local = sticky
-        ? clamp01(steps - i)
-        : clamp01(viewportEntry(el, 0.98, 0.62) * 1.5 - (i % cols) * 0.15);
-      if (local >= 0.999) opened += 1;
-      applyCardReveal(el, easeOutCubic(local), i);
-    });
+      const frame = revealFrameRef.current;
+      // Small/short viewports drop the sticky stage via CSS; fall back to
+      // revealing each card as it enters the viewport, staggered by column.
+      frame.sticky = getComputedStyle(stage).position === "sticky";
+      if (frame.sticky) {
+        const scrollable = section.offsetHeight - window.innerHeight;
+        frame.progress = scrollable > 0 ? clamp01(-section.getBoundingClientRect().top / scrollable) : 1;
+      }
+      frame.steps = (frame.progress / REVEAL_END) * total;
+      // Each card spans 2 of the 8 desktop tracks: 4 visual columns.
+      const tracks = gridColumnCount(grid);
+      frame.tracks = tracks >= 8 ? tracks / 2 : tracks;
+      cardRefs.current.forEach((el, i) => {
+        frame.locals[i] = el
+          ? frame.sticky
+            ? clamp01(frame.steps - i)
+            : clamp01(viewportEntry(el, 0.98, 0.62) * 1.5 - (i % frame.tracks) * 0.15)
+          : 0;
+      });
+    },
+    () => {
+      const frame = revealFrameRef.current;
+      let opened = 0;
+      cardRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const local = frame.locals[i] ?? 1;
+        if (local >= 0.999) opened += 1;
+        applyCardReveal(el, easeOutCubic(local), i);
+      });
 
-    if (revealedCountRef.current !== opened) {
-      revealedCountRef.current = opened;
-      setRevealedCount(opened);
-    }
+      if (revealedCountRef.current !== opened) {
+        revealedCountRef.current = opened;
+        setRevealedCount(opened);
+      }
 
-    if (counterRef.current) {
-      counterRef.current.textContent = `${String(opened).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
-    }
-    if (barRef.current) {
-      const fill = sticky ? steps / total : opened / total;
-      barRef.current.style.transform = `scaleX(${clamp01(fill).toFixed(4)})`;
-    }
-  }, pinned);
+      if (counterRef.current) {
+        counterRef.current.textContent = `${String(opened).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+      }
+      if (barRef.current) {
+        const fill = frame.sticky ? frame.steps / total : opened / total;
+        barRef.current.style.transform = `scaleX(${clamp01(fill).toFixed(4)})`;
+      }
+    },
+    pinned,
+  );
 
   // Filtered views and reduced motion show every card fully open.
   useEffect(() => {

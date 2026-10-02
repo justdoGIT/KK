@@ -41,6 +41,8 @@ type FrameBuffers = {
   lastMode: ContactPoseMode | null;
   transitionAt: number;
   history: RootPose[];
+  /** Last finite root placement, reused if a frame's contact solve is not finite. */
+  lastRoot: RootPose;
   impact: Vector3;
   scratch: Vector3;
   cursor: number;
@@ -92,6 +94,9 @@ function blendRoot(from: RootPose, to: RootPose, amount: number): void {
 }
 
 /** Unmasked foreground: licensed NASA EMU astronaut, tunnel echoes, glass, and impact debris. */
+const RIM_IMPACT = new Color("#93a4ff");
+const RIM_REST = new Color("#38bdf8");
+
 export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
   const gltf = useGLTF(modelUrl("astronaut"), false, true);
   const rig = useMemo(() => buildAstronautRig(gltf.scene), [gltf.scene]);
@@ -142,6 +147,7 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
       lastMode: null,
       transitionAt: 0,
       history: Array.from({ length: HISTORY }, createRootPose),
+      lastRoot: createRootPose(),
       impact: new Vector3(),
       scratch: new Vector3(),
       cursor: 0,
@@ -170,7 +176,12 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     }
     if (transition < 1) blendPose(buf.transitionFromPose, buf.pose, transition);
     applyPose(hero, buf.pose);
-    // Contact depends only on the pose, so measure the suit before moving the root.
+    // Contact depends only on the pose: measure the suit under an identity
+    // root, so the hull never inherits the previous frame's placement (one
+    // bad placement would otherwise feed back into every later frame).
+    hero.root.position.set(0, 0, 0);
+    hero.root.rotation.set(0, 0, 0);
+    hero.root.scale.setScalar(1);
     hero.root.updateWorldMatrix(true, true);
     updatePosedHull(hero, rig.hull, buf.hull);
     const sole = hullFloor(buf.hull);
@@ -182,6 +193,12 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     if (transition < 1) blendRoot(buf.transitionFromRoot, root, transition);
     placeHull(buf.hull, root, buf.world);
     if (anchor && fall >= 1) clearDeck(anchor, buf.world, root);
+    if (Number.isFinite(root.x + root.y + root.z + root.scale + root.rx + root.ry + root.rz)) {
+      Object.assign(buf.lastRoot, root);
+    } else {
+      Object.assign(root, buf.lastRoot);
+      placeHull(buf.hull, root, buf.world);
+    }
     applyRoot(hero.root, root);
 
     const cloneAlpha = cloneWeight(t);
@@ -215,7 +232,7 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
     const rim = rimRef.current;
     if (rim) {
       const white = phaseRatio(t, "whiteTunnel");
-      rim.color.set(white > 0 && white < 1 ? "#93a4ff" : "#38bdf8");
+      rim.color.copy(white > 0 && white < 1 ? RIM_IMPACT : RIM_REST);
       rim.intensity = 2.8 + white * 2.2 + impact * 5;
     }
   });

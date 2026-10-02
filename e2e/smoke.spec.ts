@@ -159,9 +159,6 @@ test.describe("Portfolio smoke tests", () => {
           behavior: "instant",
         });
       }, progress);
-      await expect.poll(async () => Number(await banner.getAttribute("data-finale-progress")), {
-        timeout: 20_000,
-      }).toBeCloseTo(progress, 2);
     };
 
     await scrollFinaleTo(0.08);

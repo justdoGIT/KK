@@ -32,7 +32,7 @@ const WHEEL_R = 0.033;
 const HALF_TRACK = 0.144;
 const TRAIL = 240;
 
-type Scratch = { pose: Pose; probe: Pose; frame: SensorFrame; cam: Vector3; look: Vector3; tmp: Vector3 };
+type Scratch = { pose: Pose; probe: Pose; frame: SensorFrame; cam: Vector3; look: Vector3; tmp: Vector3; heading: { fx: number; fz: number } };
 
 function createScratch(): Scratch {
   return {
@@ -42,6 +42,7 @@ function createScratch(): Scratch {
     cam: new Vector3(),
     look: new Vector3(),
     tmp: new Vector3(),
+    heading: { fx: 0, fz: 1 },
   };
 }
 
@@ -64,17 +65,20 @@ function hitGeometry(): BufferGeometry {
   return geometry;
 }
 
+const CHASE_OFFSETS = [-0.02, -0.01, 0, 0.01, 0.02] as const;
+
 /** Averaged heading around u so the chase camera glides through pivots. */
-function chaseHeading(maze: Maze, u: number, probe: Pose): { fx: number; fz: number } {
+function chaseHeading(maze: Maze, u: number, probe: Pose, out: { fx: number; fz: number }): void {
   let fx = 0;
   let fz = 0;
-  for (const offset of [-0.02, -0.01, 0, 0.01, 0.02]) {
+  for (const offset of CHASE_OFFSETS) {
     poseAt(maze, u + offset, probe);
     fx += Math.cos(probe.yaw);
     fz -= Math.sin(probe.yaw);
   }
   const len = Math.hypot(fx, fz) || 1;
-  return { fx: fx / len, fz: fz / len };
+  out.fx = fx / len;
+  out.fz = fz / len;
 }
 
 /** Stage 0 (IFM Engineering): TurtleBot3 follows the right-hand wall out of the maze. */
@@ -140,7 +144,8 @@ export function WallFollowerStage({ clock, index }: StageProps): JSX.Element {
     }
 
     // Camera: maze overview → chase → exit reveal.
-    const heading = chaseHeading(maze, u, probe);
+    chaseHeading(maze, u, probe, scratch.current.heading);
+    const heading = scratch.current.heading;
     const rightX = -heading.fz;
     const rightZ = heading.fx;
     cam.set(pose.x - heading.fx * 1.05 + rightX * 0.4, 1.75, pose.z - heading.fz * 1.05 + rightZ * 0.4);

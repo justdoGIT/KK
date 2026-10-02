@@ -35,7 +35,7 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
       dpr={dpr}
       frameloop={active ? "always" : "never"}
       shadows
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
       camera={{ fov: 42, near: 0.03, far: 80, position: [0, 5, 5] }}
     >
       {monitor}

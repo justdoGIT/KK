@@ -59,6 +59,10 @@ export function disposeDeckShadows(shadows: DeckShadows): void {
  * body rises; points hanging in front of the face below the lip size a drop
  * shadow cast down-right onto the card (the key light sits up-left).
  */
+// Reused across calls: `placeDeckShadows` runs every frame of the finale.
+const rest = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity, low: Infinity };
+const hang = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+
 export function placeDeckShadows(
   shadows: DeckShadows,
   anchor: LandingAnchor | null,
@@ -72,8 +76,17 @@ export function placeDeckShadows(
   if (!anchor || shown <= 0.001) return;
   const back = anchor.frontZ - anchor.depth;
   const reach = CONTACT_REACH * scale;
-  const rest = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity, low: Infinity };
-  const hang = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+  // Module scratch, reset per call: this ran every frame of the finale, so
+  // two fresh object literals here were pure GC churn.
+  rest.x0 = Infinity;
+  rest.x1 = -Infinity;
+  rest.z0 = Infinity;
+  rest.z1 = -Infinity;
+  rest.low = Infinity;
+  hang.x0 = Infinity;
+  hang.x1 = -Infinity;
+  hang.y0 = Infinity;
+  hang.y1 = -Infinity;
   for (let i = 0; i < world.length; i += 3) {
     const x = world[i];
     const y = world[i + 1];

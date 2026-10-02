@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createChipTexture } from "../textures.ts";
 
@@ -23,6 +23,7 @@ export function AiTensorProcessor({
       ),
     [],
   );
+  useEffect(() => () => chipTexture.dispose(), [chipTexture]);
 
   // Matrix of BGA solder balls (6x6 array)
   const bgaGrid = useMemo(() => {

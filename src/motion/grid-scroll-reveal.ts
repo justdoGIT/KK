@@ -38,6 +38,7 @@ export function useGridScrollReveal(
   // Column count only changes on layout shifts (resize, font load), not on
   // every scroll tick — cached here instead of recomputed per card per frame.
   const colsRef = useRef(1);
+  const frameRef = useRef({ t: [] as number[], opened: 0, mean: 1 });
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
@@ -50,36 +51,47 @@ export function useGridScrollReveal(
     return () => ro.disconnect();
   }, [gridRef]);
 
-  useScrollFrame(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    const cols = colsRef.current;
-    const items = itemRefs.current;
-    const span = 1 + (cols - 1) * COLUMN_STAGGER;
-    let opened = 0;
-    let sum = 0;
-    let count = 0;
-    items.forEach((el, i) => {
-      if (!el) return;
-      const local = clamp01(
-        viewportEntry(el, 0.95, settleAt) * span - (i % cols) * COLUMN_STAGGER,
-      );
-      const t = easeOutCubic(local);
-      count += 1;
-      sum += t;
-      if (t >= 0.999) {
-        opened += 1;
-        settle(el);
-        return;
-      }
-      const inv = 1 - t;
-      el.classList.remove("is-open");
-      el.style.setProperty("--r", t.toFixed(3));
-      el.style.opacity = t.toFixed(3);
-      el.style.transform = transform(inv, i);
-    });
-    onFrame?.(opened, count ? sum / count : 1);
-  }, enabled);
+  useScrollFrame(
+    () => {
+      const grid = gridRef.current;
+      if (!grid) return;
+      const cols = colsRef.current;
+      const items = itemRefs.current;
+      const span = 1 + (cols - 1) * COLUMN_STAGGER;
+      let opened = 0;
+      let sum = 0;
+      let count = 0;
+      const t = frameRef.current.t;
+      items.forEach((el, i) => {
+        if (!el) return;
+        const local = clamp01(viewportEntry(el, 0.95, settleAt) * span - (i % cols) * COLUMN_STAGGER);
+        t[i] = easeOutCubic(local);
+        count += 1;
+        sum += t[i];
+        if (t[i] >= 0.999) opened += 1;
+      });
+      frameRef.current.opened = opened;
+      frameRef.current.mean = count ? sum / count : 1;
+    },
+    () => {
+      const items = itemRefs.current;
+      items.forEach((el, i) => {
+        if (!el) return;
+        const t = frameRef.current.t[i] ?? 1;
+        if (t >= 0.999) {
+          settle(el);
+          return;
+        }
+        const inv = 1 - t;
+        el.classList.remove("is-open");
+        el.style.setProperty("--r", t.toFixed(3));
+        el.style.opacity = t.toFixed(3);
+        el.style.transform = transform(inv, i);
+      });
+      onFrame?.(frameRef.current.opened, frameRef.current.mean);
+    },
+    enabled,
+  );
 
   useEffect(() => {
     if (enabled) return;

@@ -44,7 +44,7 @@ export function CaseStudies(): JSX.Element {
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef   = useRef<HTMLDivElement>(null);
-  useGuidedScroll(sectionRef, animated, 0.76, 320);
+  useGuidedScroll(sectionRef, animated, { target: 0.76, seconds: 11 });
   // Computed targetX per card: card 0 left edge = heading left edge. A ref,
   // not state — read every scroll frame by the imperative driver below, so a
   // stage resize never has to wait for a React render to reach the cards.
@@ -136,95 +136,102 @@ export function CaseStudies(): JSX.Element {
     return () => ro.disconnect();
   }, [animated]);
 
-  useScrollFrame(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const rect = section.getBoundingClientRect();
-    const totalScroll = rect.height - window.innerHeight;
-    const scrollProgress = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
+  const progressRef = useRef(0);
+  useScrollFrame(
+    () => {
+      const section = sectionRef.current;
+      if (!section) return;
+      const rect = section.getBoundingClientRect();
+      const totalScroll = rect.height - window.innerHeight;
+      progressRef.current = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
+    },
+    () => {
+      const scrollProgress = progressRef.current;
 
-    if (headingWobbleRef.current) {
-      const exit = Math.max(0, Math.min(1, (scrollProgress - 0.42) / 0.2));
-      const wobble = Math.sin(scrollProgress * Math.PI * 4) * 12;
-      headingWobbleRef.current.style.transform = `translateY(${Math.round(wobble - exit * 24)}px)`;
-      headingWobbleRef.current.style.opacity = String(1 - exit);
-    }
-    stackBtnRef.current?.classList.toggle("active", scrollProgress < 0.3);
-    fanBtnRef.current?.classList.toggle("active", scrollProgress >= 0.3);
-
-    const targetXs = targetXsRef.current;
-    const mask = settledRef.current;
-    let maskChanged = false;
-
-    studies.forEach((_study, idx) => {
-      const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
-      const cardP = Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay)));
-      const isSettled = cardP >= 1;
-      if (mask[idx] !== isSettled) {
-        mask[idx] = isSettled;
-        maskChanged = true;
+      if (headingWobbleRef.current) {
+        const exit = Math.max(0, Math.min(1, (scrollProgress - 0.42) / 0.2));
+        const wobble = Math.sin(scrollProgress * Math.PI * 4) * 12;
+        headingWobbleRef.current.style.transform = `translateY(${Math.round(wobble - exit * 24)}px)`;
+        headingWobbleRef.current.style.opacity = String(1 - exit);
       }
+      stackBtnRef.current?.classList.toggle("active", scrollProgress < 0.3);
+      fanBtnRef.current?.classList.toggle("active", scrollProgress >= 0.3);
 
-      // Once a card finishes its flip and lands at cardP===1, it never
-      // changes again until the user scrolls back up — there's no reason to
-      // keep it in the 3D transform stack (perspective + preserve-3d +
-      // rotateY + backface-visibility) that forces GPU compositing. The
-      // settled branch below renders a completely flat 2D structure instead.
-      if (isSettled) {
+      const targetXs = targetXsRef.current;
+      const mask = settledRef.current;
+      let maskChanged = false;
+
+      studies.forEach((_study, idx) => {
+        const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
+        const cardP = Math.max(0, Math.min(1, (scrollProgress - cfg.delay) / (1.0 - cfg.delay)));
+        const isSettled = cardP >= 1;
+        if (mask[idx] !== isSettled) {
+          mask[idx] = isSettled;
+          maskChanged = true;
+        }
+
+        // Once a card finishes its flip and lands at cardP===1, it never
+        // changes again until the user scrolls back up — there's no reason to
+        // keep it in the 3D transform stack (perspective + preserve-3d +
+        // rotateY + backface-visibility) that forces GPU compositing. The
+        // settled branch below renders a completely flat 2D structure instead.
+        if (isSettled) {
+          const card = cardRefs.current[idx];
+          if (card) {
+            const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
+            const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
+            card.style.transform = `translate(${currentX}px, ${currentY}px)`;
+          }
+          return;
+        }
+
+        // During travel: organic tilt from start angles back to 0 at landing.
+        // Rounded to whole px/degrees before hitting the style: any fractional
+        // value here (THREE_lerp floats, or the ~1e-16 residue from
+        // Math.sin(Math.PI) not being exactly 0) forces the browser to keep
+        // this element's text in a sub-pixel-offset GPU compositing layer even
+        // once the card has visually landed, which reads as a permanent slight
+        // blur on the card body text. Snapping every translate/rotate/scale
+        // component to whole px / whole degrees / 3-decimal scale removes that
+        // residue without affecting the animation itself.
+        const flipP = Math.min(1, cardP / cfg.flipSpeed);
+        const rotY = flipP * 180 + Math.sin(flipP * Math.PI) * cfg.wobbleY;
+        const isFrontVisible = rotY >= 90;
+        const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
+        const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
+        const currentRotZ = Math.round(THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP));
+        const currentRotX = Math.round(THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP));
+        const currentScale = Math.round(THREE_lerp(0.93, 1.0, cardP) * 1000) / 1000;
+        const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
+        const rotYDisplay = Math.round(rotY * 100) / 100;
+
         const card = cardRefs.current[idx];
         if (card) {
-          const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
-          const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
-          card.style.transform = `translate(${currentX}px, ${currentY}px)`;
+          card.style.transform = `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`;
+          card.style.zIndex = String(Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx)));
+          card.dataset.frontVisible = isFrontVisible ? "true" : "false";
         }
-        return;
-      }
+        const flipper = flipperRefs.current[idx];
+        if (flipper) flipper.style.transform = `rotateY(${rotYDisplay}deg)`;
+        const front = frontRefs.current[idx];
+        if (front) {
+          front.style.pointerEvents = isFrontVisible ? "auto" : "none";
+          front.style.opacity = isFrontVisible ? "1" : "0";
+          front.inert = !isFrontVisible;
+          if (isFrontVisible) front.removeAttribute("aria-hidden");
+          else front.setAttribute("aria-hidden", "true");
+        }
+        const back = backRefs.current[idx];
+        if (back) {
+          back.style.pointerEvents = !isFrontVisible ? "auto" : "none";
+          back.style.opacity = !isFrontVisible ? "1" : "0";
+        }
+      });
 
-      // During travel: organic tilt from start angles back to 0 at landing.
-      // Rounded to whole px/degrees before hitting the style: any fractional
-      // value here (THREE_lerp floats, or the ~1e-16 residue from
-      // Math.sin(Math.PI) not being exactly 0) forces the browser to keep
-      // this element's text in a sub-pixel-offset GPU compositing layer even
-      // once the card has visually landed, which reads as a permanent slight
-      // blur on the card body text. Snapping every translate/rotate/scale
-      // component to whole px / whole degrees / 3-decimal scale removes that
-      // residue without affecting the animation itself.
-      const flipP = Math.min(1, cardP / cfg.flipSpeed);
-      const rotY = flipP * 180 + Math.sin(flipP * Math.PI) * cfg.wobbleY;
-      const isFrontVisible = rotY >= 90;
-      const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
-      const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
-      const currentRotZ = Math.round(THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP));
-      const currentRotX = Math.round(THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP));
-      const currentScale = Math.round(THREE_lerp(0.93, 1.0, cardP) * 1000) / 1000;
-      const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
-      const rotYDisplay = Math.round(rotY * 100) / 100;
-
-      const card = cardRefs.current[idx];
-      if (card) {
-        card.style.transform = `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`;
-        card.style.zIndex = String(Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx)));
-        card.dataset.frontVisible = isFrontVisible ? "true" : "false";
-      }
-      const flipper = flipperRefs.current[idx];
-      if (flipper) flipper.style.transform = `rotateY(${rotYDisplay}deg)`;
-      const front = frontRefs.current[idx];
-      if (front) {
-        front.style.pointerEvents = isFrontVisible ? "auto" : "none";
-        front.style.opacity = isFrontVisible ? "1" : "0";
-        front.inert = !isFrontVisible;
-        if (isFrontVisible) front.removeAttribute("aria-hidden");
-        else front.setAttribute("aria-hidden", "true");
-      }
-      const back = backRefs.current[idx];
-      if (back) {
-        back.style.pointerEvents = !isFrontVisible ? "auto" : "none";
-        back.style.opacity = !isFrontVisible ? "1" : "0";
-      }
-    });
-
-    if (maskChanged) setSettledMask([...mask]);
-  }, animated);
+      if (maskChanged) setSettledMask([...mask]);
+    },
+    animated,
+  );
 
   const openArchitectureModal = (study: CaseStudyDetail, index: number) => {
     if (!study) return;

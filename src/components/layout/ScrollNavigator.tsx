@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { pageJourneyStops } from "./page-journey-stops.ts";
 
@@ -9,16 +9,22 @@ const ACTIVE_LINE = 0.4;
 
 export function ScrollNavigator() {
   const [active, setActive] = useState<string>(pageJourneyStops[0].id);
+  const currentRef = useRef(active);
 
-  useScrollFrame(() => {
-    const line = window.innerHeight * ACTIVE_LINE;
-    let current: string = pageJourneyStops[0].id;
-    for (const stop of pageJourneyStops) {
-      const section = document.getElementById(stop.id);
-      if (section && section.getBoundingClientRect().top <= line) current = stop.id;
-    }
-    setActive(current);
-  });
+  useScrollFrame(
+    () => {
+      const line = window.innerHeight * ACTIVE_LINE;
+      let current: string = pageJourneyStops[0].id;
+      for (const stop of pageJourneyStops) {
+        const section = document.getElementById(stop.id);
+        if (section && section.getBoundingClientRect().top <= line) current = stop.id;
+      }
+      currentRef.current = current;
+    },
+    () => {
+      if (active !== currentRef.current) setActive(currentRef.current);
+    },
+  );
 
   const activeIndex = pageJourneyStops.findIndex((stop) => stop.id === active);
   const isLastStop = activeIndex >= pageJourneyStops.length - 1;
