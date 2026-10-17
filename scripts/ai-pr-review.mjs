@@ -2,19 +2,31 @@ import { Buffer } from "node:buffer";
 import { pathToFileURL } from "node:url";
 
 export const REVIEW_MARKER = "<!-- ai-code-review -->";
-// NVIDIA's free-credit endpoint for this 550B-parameter model measured
-// ~100s at 16,000 diff characters (succeeded twice) and was unreliable at
-// 40,000 characters (one 503, one hung connection). The cap stays at the
-// proven-safe size; a bounded retry absorbs the endpoint's demonstrated
-// transient overload.
+// NVIDIA's free-credit endpoint is shared and overloads. The 550B Ultra model
+// answered "503 Service temporarily overloaded" even to a one-line prompt on
+// 2026-10-17, which failed the check after a single retry; it also measured
+// ~100s at 16,000 diff characters and was unreliable at 40,000 (one 503, one
+// hung connection). The cap stays at the proven-safe size, every request has a
+// timeout, and the models below are tried in order.
 export const MAX_DIFF_CHARS = 16_000;
 export const MAX_COMMENT_BYTES = 60_000;
 
-const MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
+export const REVIEW_MODELS = [
+  { id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
+  // A reasoning model: part of max_tokens is spent on reasoning, so it gets a
+  // larger budget than Ultra, otherwise the answer can come back empty.
+  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 8_000 },
+];
 const GITHUB_API = "https://api.github.com";
 const NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
+// Attempts per model, then the next model.
 const REVIEW_RETRY_ATTEMPTS = 2;
 const REVIEW_RETRY_DELAY_MS = 5_000;
+const REVIEW_REQUEST_TIMEOUT_MS = 150_000;
+// No new attempt starts after this, so posting still fits the workflow timeout.
+const REVIEW_BUDGET_MS = 420_000;
+// The key or the request is rejected: no other model would accept it.
+const FATAL_STATUSES = new Set([401, 403]);
 
 export function buildReviewInput(diff, limit = MAX_DIFF_CHARS) {
   if (diff.length <= limit) {
@@ -51,7 +63,7 @@ function truncateUtf8(value, maxBytes) {
   return value.slice(0, low);
 }
 
-export function formatReviewComment(review) {
+export function formatReviewComment(review, model = REVIEW_MODELS[0].id) {
   const cleanedReview = review.replaceAll(REVIEW_MARKER, "").trim();
   const plainReview = cleanedReview
     .replace(/^[*_`~]+\s*/, "")
@@ -67,7 +79,11 @@ export function formatReviewComment(review) {
     "@\u200b",
   );
   const header = `${REVIEW_MARKER}\n## AI code review\n\n`;
-  const footer = `\n\n---\n_Model: \`${MODEL}\` via NVIDIA's free inference credits._`;
+  const fallbackNote =
+    model === REVIEW_MODELS[0].id
+      ? ""
+      : ` (fallback: ${REVIEW_MODELS[0].id} was unavailable)`;
+  const footer = `\n\n---\n_Model: \`${model}\` via NVIDIA's free inference credits${fallbackNote}._`;
   const complete = `${header}${safeReview}${footer}`;
 
   if (Buffer.byteLength(complete, "utf8") <= MAX_COMMENT_BYTES) {
@@ -98,10 +114,18 @@ function githubHeaders(token, accept = "application/vnd.github+json") {
   };
 }
 
-async function checkedFetch(url, options, operation) {
-  const response = await fetch(url, options);
+export class HttpError extends Error {
+  constructor(operation, status) {
+    super(`${operation} failed with HTTP ${status}`);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+async function checkedFetch(url, options, operation, fetchImpl = fetch) {
+  const response = await fetchImpl(url, options);
   if (!response.ok) {
-    throw new Error(`${operation} failed with HTTP ${response.status}`);
+    throw new HttpError(operation, response.status);
   }
   return response;
 }
@@ -139,7 +163,7 @@ function delay(ms) {
   });
 }
 
-async function requestReviewOnce(input, token) {
+async function requestReviewOnce(model, input, token, fetchImpl) {
   const response = await checkedFetch(
     NVIDIA_API,
     {
@@ -148,8 +172,9 @@ async function requestReviewOnce(input, token) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(REVIEW_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
-        model: MODEL,
+        model: model.id,
         messages: [
           {
             role: "system",
@@ -158,12 +183,13 @@ async function requestReviewOnce(input, token) {
           },
           { role: "user", content: reviewPrompt(input) },
         ],
-        max_tokens: 3_000,
+        max_tokens: model.maxTokens,
         temperature: 0,
         stream: false,
       }),
     },
     "Requesting AI review",
+    fetchImpl,
   );
   const payload = await response.json();
   const choice = payload.choices?.[0];
@@ -177,17 +203,57 @@ async function requestReviewOnce(input, token) {
   return content;
 }
 
-async function requestReview(input, token) {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return await requestReviewOnce(input, token);
-    } catch (error) {
-      if (attempt >= REVIEW_RETRY_ATTEMPTS) {
-        throw error;
+function describeFailure(error) {
+  if (error instanceof HttpError) return `HTTP ${error.status}`;
+  if (error?.name === "TimeoutError") return "timed out";
+  return error instanceof Error ? error.message : String(error);
+}
+
+// Tries each model in order. A model that is overloaded (503/429), unreachable
+// or answers with no content is retried REVIEW_RETRY_ATTEMPTS times in all, then
+// the next model is used; a model that times out is not retried. A rejected key
+// (401/403) stops at once: no other model would accept it. Returns the review
+// and the id of the model that wrote it.
+export async function requestReview(input, token, options = {}) {
+  const {
+    fetchImpl = fetch,
+    sleep = delay,
+    now = Date.now,
+    models = REVIEW_MODELS,
+  } = options;
+  const startedAt = now();
+  const lastFailure = new Map();
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= REVIEW_RETRY_ATTEMPTS; attempt += 1) {
+      if (now() - startedAt > REVIEW_BUDGET_MS) {
+        lastFailure.set(model.id, "skipped, time budget used up");
+        break;
       }
-      await delay(REVIEW_RETRY_DELAY_MS);
+      try {
+        return {
+          content: await requestReviewOnce(model, input, token, fetchImpl),
+          model: model.id,
+        };
+      } catch (error) {
+        if (error instanceof HttpError && FATAL_STATUSES.has(error.status)) {
+          throw error;
+        }
+        lastFailure.set(model.id, describeFailure(error));
+        // A model that hung once will usually hang again, and each wait costs a
+        // full request timeout: go to the next model instead of retrying.
+        if (error?.name === "TimeoutError") break;
+        if (attempt < REVIEW_RETRY_ATTEMPTS) {
+          await sleep(REVIEW_RETRY_DELAY_MS);
+        }
+      }
     }
   }
+
+  const summary = [...lastFailure]
+    .map(([id, reason]) => `${id}: ${reason}`)
+    .join("; ");
+  throw new Error(`Requesting AI review failed on every model (${summary})`);
 }
 
 async function findExistingComment(repository, pullNumber, token) {
@@ -244,11 +310,11 @@ export async function runReview() {
 
   const diff = await fetchPullRequestDiff(repository, pullNumber, githubToken);
   const input = buildReviewInput(diff);
-  const review = await requestReview(input, nvidiaToken);
+  const { content, model } = await requestReview(input, nvidiaToken);
   await upsertReviewComment(
     repository,
     pullNumber,
-    formatReviewComment(review),
+    formatReviewComment(content, model),
     githubToken,
   );
 
