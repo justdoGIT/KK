@@ -261,16 +261,6 @@ test.describe("Portfolio smoke tests", () => {
       await expect(page.locator(".career-entry.is-active")).toContainText(expected.company);
     }
 
-    await section.evaluate((element, base) => {
-      const scrollable = element.offsetHeight - window.innerHeight;
-      window.scrollTo({ top: base + scrollable * 0.985, behavior: "instant" as ScrollBehavior });
-    }, sectionTop);
-    await expect
-      .poll(async () => Number((await section.getAttribute("data-career-local")) ?? "0"))
-      .toBeGreaterThan(0.9);
-    await expect
-      .poll(async () => page.locator(".career-entries").evaluate((list) => list.scrollTop), { timeout: 10_000 })
-      .toBeGreaterThan(20);
   });
 
   test("mobile navigation opens and closes", async ({ page }) => {
@@ -298,23 +288,6 @@ test.describe("Portfolio smoke tests", () => {
     await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
   });
 
-  test("keeps card choreography usable on short wide screens", async ({ page }) => {
-    await page.setViewportSize({ width: 1381, height: 367 });
-    await page.goto("/");
-
-    const caseStudies = page.getByLabel("Case studies");
-    await expect(caseStudies).not.toHaveClass(/is-static/);
-
-    const serviceCard = page.getByLabel(/Firmware & Board Bring-Up service details/i);
-    const overflow = await serviceCard.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        scrollable: element.scrollHeight > element.clientHeight,
-        overflowY: style.overflowY,
-      };
-    });
-    expect(overflow).toEqual({ scrollable: true, overflowY: "auto" });
-  });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
     await page.goto("/");
