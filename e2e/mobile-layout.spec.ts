@@ -155,6 +155,18 @@ test.describe("Phone and short-screen layout", () => {
           }
         }
 
+        const contactHeading = page.locator(".aj-contact-flow .contact-journey-heading");
+        await expect(contactHeading).toHaveCount(1);
+        await contactHeading.scrollIntoViewIfNeeded();
+        const contactHeadingRect = await contactHeading.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, viewport: window.innerWidth };
+        });
+        expect(contactHeadingRect.left, "static contact heading left edge").toBeGreaterThanOrEqual(-1);
+        expect(contactHeadingRect.right, "static contact heading right edge").toBeLessThanOrEqual(
+          contactHeadingRect.viewport + 1,
+        );
+
         expect(
           [...found].map(([finding, y]) => `${finding} (first at y=${y})`),
           "layout problems",
