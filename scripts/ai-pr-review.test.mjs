@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  HttpError,
   MAX_COMMENT_BYTES,
   REVIEW_MARKER,
   REVIEW_MODELS,
@@ -57,9 +58,17 @@ describe("AI pull-request review boundaries", () => {
   });
 });
 
-describe("AI review model fallback", () => {
-  const [primary, secondary] = REVIEW_MODELS;
+describe("AI review model chain", () => {
   const input = buildReviewInput("diff --git a/x b/x");
+  const byProvider = (label) =>
+    REVIEW_MODELS.filter((model) => model.label === label);
+  const [first, second] = REVIEW_MODELS;
+  const nvidia = byProvider("NVIDIA");
+  const providers = [...new Set(REVIEW_MODELS.map((model) => model.label))];
+  const allKeys = Object.fromEntries(
+    REVIEW_MODELS.map((model) => [model.keyEnv, `key-for-${model.keyEnv}`]),
+  );
+
   const answer = (content) => ({
     ok: true,
     status: 200,
@@ -69,58 +78,57 @@ describe("AI review model fallback", () => {
   });
   const failure = (status) => ({ ok: false, status });
 
-  // Answers each call for a model from its script (the last step repeats) and
-  // records which models were asked, in order.
-  function scripted(script, extra = {}) {
-    const asked = [];
-    const fetchImpl = async (_url, options) => {
-      const id = JSON.parse(options.body).model;
-      asked.push(id);
-      const seen = asked.filter((asked_id) => asked_id === id).length;
-      const steps = script[id] ?? [failure(503)];
+  // Answers each call for a model from its script (the last step repeats; a
+  // model with no script answers 503) and records the requests, in order.
+  function scripted(script, { keys = allKeys, ...extra } = {}) {
+    const requests = [];
+    const fetchImpl = async (url, options) => {
+      const body = JSON.parse(options.body);
+      requests.push({
+        id: body.model,
+        url: String(url),
+        authorization: options.headers.Authorization,
+        body,
+      });
+      const seen = requests.filter((request) => request.id === body.model).length;
+      const steps = script[body.model] ?? [failure(503)];
       const step = steps[Math.min(seen, steps.length) - 1];
       if (step instanceof Error) throw step;
       return step;
     };
     const result = () =>
-      requestReview(input, "key", {
+      requestReview(input, keys, {
         fetchImpl,
         sleep: async () => {},
         ...extra,
       });
-    return { asked, result };
+    return { requests, asked: () => requests.map((request) => request.id), result };
   }
 
   it("uses the next model when the first stays overloaded", async () => {
-    const run = scripted({
-      [primary.id]: [failure(503)],
-      [secondary.id]: [answer("Finding: x")],
-    });
+    const run = scripted({ [second.id]: [answer("Finding: x")] });
 
     await expect(run.result()).resolves.toEqual({
       content: "Finding: x",
-      model: secondary.id,
+      model: second.id,
     });
-    expect(run.asked).toEqual([primary.id, primary.id, secondary.id]);
+    expect(run.asked()).toEqual([first.id, first.id, second.id]);
   });
 
-  it("retries a transient failure on the same model before falling back", async () => {
-    const run = scripted({
-      [primary.id]: [failure(503), answer("No issues found")],
-      [secondary.id]: [answer("unused")],
-    });
+  it("retries a transient failure on the same model before moving on", async () => {
+    const run = scripted({ [first.id]: [failure(503), answer("No issues found")] });
 
-    await expect(run.result()).resolves.toMatchObject({ model: primary.id });
-    expect(run.asked).toEqual([primary.id, primary.id]);
+    await expect(run.result()).resolves.toMatchObject({ model: first.id });
+    expect(run.asked()).toEqual([first.id, first.id]);
   });
 
   it("treats an empty answer as a failure and moves on", async () => {
     const run = scripted({
-      [primary.id]: [answer("  ")],
-      [secondary.id]: [answer("Finding: y")],
+      [first.id]: [answer("  ")],
+      [second.id]: [answer("Finding: y")],
     });
 
-    await expect(run.result()).resolves.toMatchObject({ model: secondary.id });
+    await expect(run.result()).resolves.toMatchObject({ model: second.id });
   });
 
   it("does not retry a model that timed out, it moves on to the next one", async () => {
@@ -128,22 +136,92 @@ describe("AI review model fallback", () => {
       name: "TimeoutError",
     });
     const run = scripted({
-      [primary.id]: [timeout],
-      [secondary.id]: [answer("Finding: z")],
+      [first.id]: [timeout],
+      [second.id]: [answer("Finding: z")],
     });
 
-    await expect(run.result()).resolves.toMatchObject({ model: secondary.id });
-    expect(run.asked).toEqual([primary.id, secondary.id]);
+    await expect(run.result()).resolves.toMatchObject({ model: second.id });
+    expect(run.asked()).toEqual([first.id, second.id]);
   });
 
-  it("stops at once when the key is rejected", async () => {
+  it("skips the rest of a provider that refused its key but tries the others", async () => {
+    const refusedLabel = first.label;
+    const refused = byProvider(refusedLabel).map((model) => model.id);
     const run = scripted({
-      [primary.id]: [failure(401)],
-      [secondary.id]: [answer("never reached")],
+      [first.id]: [failure(401)],
+      [second.id]: [answer("Finding: v")],
     });
 
-    await expect(run.result()).rejects.toThrow("failed with HTTP 401");
-    expect(run.asked).toEqual([primary.id]);
+    await expect(run.result()).resolves.toMatchObject({ model: second.id });
+    expect(run.asked()).toEqual([first.id, second.id]);
+
+    const all = scripted({ [first.id]: [failure(401)] });
+    await expect(all.result()).rejects.toBeInstanceOf(ReviewUnavailableError);
+    expect(all.asked().filter((id) => refused.includes(id))).toEqual([first.id]);
+  });
+
+  it("fails as a misconfiguration when every provider refuses its key", async () => {
+    const refusals = Object.fromEntries(
+      REVIEW_MODELS.map((model) => [model.id, [failure(403)]]),
+    );
+    const run = scripted(refusals);
+
+    const error = await run.result().catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(HttpError);
+    expect(error).not.toBeInstanceOf(ReviewUnavailableError);
+    expect(error.status).toBe(403);
+    expect(run.asked()).toHaveLength(providers.length);
+  });
+
+  it("skips models whose provider key is not set", async () => {
+    const run = scripted(
+      { [nvidia[0].id]: [answer("Finding: u")] },
+      { keys: { [nvidia[0].keyEnv]: "only-key" } },
+    );
+
+    await expect(run.result()).resolves.toMatchObject({ model: nvidia[0].id });
+    expect(run.asked()).toEqual([nvidia[0].id]);
+  });
+
+  it("says so when no model has a key at all", async () => {
+    await expect(scripted({}, { keys: {} }).result()).rejects.toThrow(
+      "No review model has a provider key set",
+    );
+  });
+
+  it("sends each provider only its own key and endpoint", async () => {
+    const run = scripted({});
+    await run.result().catch(() => {});
+
+    expect(new Set(run.asked())).toEqual(new Set(REVIEW_MODELS.map((m) => m.id)));
+    for (const request of run.requests) {
+      const model = REVIEW_MODELS.find((candidate) => candidate.id === request.id);
+      expect(request.authorization).toBe(`Bearer key-for-${model.keyEnv}`);
+      expect(new URL(request.url).hostname).toBe(new URL(model.baseUrl).hostname);
+      expect(new URL(request.url).pathname).toMatch(/\/chat\/completions$/);
+    }
+  });
+
+  it("asks the reasoning models for a short answer instead of a long hidden one", async () => {
+    const run = scripted({});
+    await run.result().catch(() => {});
+    const bodyOf = (id) => run.requests.find((request) => request.id === id).body;
+
+    for (const model of nvidia.filter((candidate) => candidate.body)) {
+      expect(bodyOf(model.id).chat_template_kwargs).toEqual({
+        enable_thinking: false,
+      });
+    }
+    const ultra = nvidia.find((model) => !model.body);
+    expect(bodyOf(ultra.id).chat_template_kwargs).toBeUndefined();
+    const effortModels = REVIEW_MODELS.filter(
+      (model) => model.body?.reasoning_effort,
+    );
+    expect(effortModels.length).toBeGreaterThan(0);
+    for (const model of effortModels) {
+      expect(bodyOf(model.id).reasoning_effort).toBe("low");
+    }
   });
 
   it("puts the reason from the response body into the error", async () => {
@@ -152,10 +230,9 @@ describe("AI review model fallback", () => {
       status: 403,
       text: async () => '{"message":\n  "Resource not accessible by integration"}',
     };
-    const run = scripted({
-      [primary.id]: [rejected],
-      [secondary.id]: [answer("never reached")],
-    });
+    const run = scripted(
+      Object.fromEntries(REVIEW_MODELS.map((model) => [model.id, [rejected]])),
+    );
 
     await expect(run.result()).rejects.toThrow(
       'failed with HTTP 403: {"message": "Resource not accessible by integration"}',
@@ -163,81 +240,29 @@ describe("AI review model fallback", () => {
   });
 
   it("names every model's last failure when all of them fail", async () => {
-    const run = scripted({
-      [primary.id]: [failure(503)],
-      [secondary.id]: [failure(429)],
-    });
+    const run = scripted({ [first.id]: [failure(503)], [second.id]: [failure(429)] });
 
     await expect(run.result()).rejects.toThrow(
-      `${primary.id}: HTTP 503; ${secondary.id}: HTTP 429`,
+      `${first.id}: HTTP 503; ${second.id}: HTTP 429`,
     );
   });
 
   it("starts no new attempt once the time budget is used up", async () => {
     const times = [0, 0, 500_000];
-    const run = scripted(
-      { [primary.id]: [failure(503)], [secondary.id]: [failure(503)] },
-      { now: () => times.shift() ?? 500_000 },
-    );
+    const run = scripted({}, { now: () => times.shift() ?? 500_000 });
 
     await expect(run.result()).rejects.toThrow("time budget used up");
-    expect(run.asked).toEqual([primary.id]);
+    expect(run.asked()).toEqual([first.id]);
   });
 
-  it("says in the comment when a fallback model wrote the review", () => {
-    const fallback = formatReviewComment("No issues found", secondary.id);
-    const normal = formatReviewComment("No issues found", primary.id);
+  it("names the provider and any fallback in the comment", () => {
+    const fallback = formatReviewComment("No issues found", second.id);
+    const normal = formatReviewComment("No issues found", first.id);
 
-    expect(fallback).toContain(`\`${secondary.id}\``);
-    expect(fallback).toContain(`fallback: ${primary.id} was unavailable`);
+    expect(fallback).toContain(`\`${second.id}\` via ${second.label}`);
+    expect(fallback).toContain(`fallback: ${first.id} was unavailable`);
+    expect(normal).toContain(`\`${first.id}\` via ${first.label}`);
     expect(normal).not.toContain("fallback");
-  });
-
-  it("uses the third model when the first two keep failing", async () => {
-    const third = REVIEW_MODELS[2];
-    const run = scripted({
-      [primary.id]: [failure(503)],
-      [secondary.id]: [failure(503)],
-      [third.id]: [answer("Finding: w")],
-    });
-
-    await expect(run.result()).resolves.toMatchObject({ model: third.id });
-    expect(run.asked).toEqual([
-      primary.id,
-      primary.id,
-      secondary.id,
-      secondary.id,
-      third.id,
-    ]);
-  });
-
-  it("asks the reasoning models for an answer without a thinking phase", async () => {
-    const bodies = {};
-    const fetchImpl = async (_url, options) => {
-      const body = JSON.parse(options.body);
-      bodies[body.model] = body;
-      return failure(503);
-    };
-
-    await requestReview(input, "key", { fetchImpl, sleep: async () => {} }).catch(
-      () => {},
-    );
-
-    const noThinking = { enable_thinking: false };
-    expect(bodies[secondary.id].chat_template_kwargs).toEqual(noThinking);
-    expect(bodies[REVIEW_MODELS[2].id].chat_template_kwargs).toEqual(noThinking);
-    expect(bodies[primary.id].chat_template_kwargs).toBeUndefined();
-  });
-
-  it("tells an outage apart from a rejected key", async () => {
-    const outage = await scripted({}).result().catch((error) => error);
-    const rejected = await scripted({ [primary.id]: [failure(401)] })
-      .result()
-      .catch((error) => error);
-
-    expect(outage).toBeInstanceOf(ReviewUnavailableError);
-    expect(rejected).not.toBeInstanceOf(ReviewUnavailableError);
-    expect(rejected.status).toBe(401);
   });
 });
 
@@ -249,19 +274,23 @@ describe("AI review job outcome", () => {
     PR_NUMBER: "7",
   };
 
-  // Serves the pull-request diff from GitHub and answers every NVIDIA call with
-  // `nvidia`; records the URLs it was asked for.
-  function job(nvidia) {
+  // Serves the pull-request diff from GitHub and answers every provider call
+  // with `provider`; records the URLs it was asked for.
+  function job(provider) {
     const urls = [];
     const fetchImpl = async (url) => {
       urls.push(String(url));
       if (new URL(String(url)).hostname === "api.github.com") {
         return { ok: true, status: 200, text: async () => "diff --git a/x b/x" };
       }
-      return nvidia;
+      return provider;
     };
     return { urls, fetchImpl };
   }
+  const options = (run) => ({
+    fetchImpl: run.fetchImpl,
+    review: { sleep: async () => {} },
+  });
 
   beforeEach(() => {
     for (const [name, value] of Object.entries(reviewEnv)) vi.stubEnv(name, value);
@@ -275,9 +304,7 @@ describe("AI review job outcome", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const run = job({ ok: false, status: 503 });
 
-    await expect(
-      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
-    ).resolves.toBeUndefined();
+    await expect(runReview(options(run))).resolves.toBeUndefined();
 
     expect(log.mock.calls.flat().join("\n")).toContain(
       "::warning title=AI review unavailable::",
@@ -290,17 +317,24 @@ describe("AI review job outcome", () => {
     vi.stubEnv("GITHUB_STEP_SUMMARY", "/nonexistent-directory/summary.md");
     const run = job({ ok: false, status: 503 });
 
-    await expect(
-      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
-    ).resolves.toBeUndefined();
+    await expect(runReview(options(run))).resolves.toBeUndefined();
   });
 
-  it("still fails the job when the NVIDIA key is rejected", async () => {
+  it("still fails the job when the only configured key is rejected", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const run = job({ ok: false, status: 401 });
 
-    await expect(
-      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
-    ).rejects.toThrow("failed with HTTP 401");
+    await expect(runReview(options(run))).rejects.toThrow(
+      "failed with HTTP 401",
+    );
+  });
+
+  it("fails with a clear message when no provider key is set", async () => {
+    vi.stubEnv("NVIDIA_API_KEY", "");
+    const run = job({ ok: false, status: 503 });
+
+    await expect(runReview(options(run))).rejects.toThrow(
+      "No review provider key is set; set at least one of: GROQ_API_KEY",
+    );
   });
 });
