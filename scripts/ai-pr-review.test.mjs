@@ -333,8 +333,11 @@ describe("AI review job outcome", () => {
     vi.stubEnv("NVIDIA_API_KEY", "");
     const run = job({ ok: false, status: 503 });
 
-    await expect(runReview(options(run))).rejects.toThrow(
-      "No review provider key is set; set at least one of: GROQ_API_KEY",
-    );
+    const error = await runReview(options(run)).catch((caught) => caught);
+
+    expect(error.message).toContain("No review provider key is set");
+    for (const model of REVIEW_MODELS) {
+      expect(error.message).toContain(model.keyEnv);
+    }
   });
 });
