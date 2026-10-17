@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import App from "../App";
+import { boardLifecycle } from "../content/board-lifecycle";
 
 describe("App shell", () => {
   it("renders the hero heading", () => {
@@ -48,6 +49,19 @@ describe("App shell", () => {
     expect(
       screen.getByText("Embedded Linux & BSP Development"),
     ).toBeInTheDocument();
+  });
+
+  it("preserves every lifecycle stage and its evidence in page flow", () => {
+    render(<App />);
+    const journey = within(screen.getByLabelText("Systems journey"));
+    for (const stage of boardLifecycle) {
+      expect(journey.getByRole("heading", { name: stage.title })).toBeInTheDocument();
+      expect(journey.getByText(stage.description)).toBeInTheDocument();
+      expect(journey.getByText(stage.signal)).toBeInTheDocument();
+      for (const evidence of stage.evidence) {
+        expect(journey.getByText(evidence)).toBeInTheDocument();
+      }
+    }
   });
 
   it("renders career timeline entries", () => {

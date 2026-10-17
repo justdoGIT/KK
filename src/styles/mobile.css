@@ -25,6 +25,7 @@ button,
   .footer-links a,
   .showcase-action-link,
   html .board-lifecycle-nav button,
+  .services-deck-tab,
   .terminal-tab {
     display: inline-flex;
     align-items: center;
