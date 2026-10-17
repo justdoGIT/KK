@@ -115,17 +115,28 @@ function githubHeaders(token, accept = "application/vnd.github+json") {
 }
 
 export class HttpError extends Error {
-  constructor(operation, status) {
-    super(`${operation} failed with HTTP ${status}`);
+  constructor(operation, status, detail = "") {
+    super(`${operation} failed with HTTP ${status}${detail ? `: ${detail}` : ""}`);
     this.name = "HttpError";
     this.status = status;
+  }
+}
+
+// The first 200 characters of an error response (GitHub and NVIDIA put the
+// reason there, for example "Resource not accessible by integration").
+async function errorDetail(response) {
+  if (typeof response.text !== "function") return "";
+  try {
+    return (await response.text()).replace(/\s+/g, " ").trim().slice(0, 200);
+  } catch {
+    return "";
   }
 }
 
 async function checkedFetch(url, options, operation, fetchImpl = fetch) {
   const response = await fetchImpl(url, options);
   if (!response.ok) {
-    throw new HttpError(operation, response.status);
+    throw new HttpError(operation, response.status, await errorDetail(response));
   }
   return response;
 }
