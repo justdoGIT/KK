@@ -19,15 +19,25 @@ export class ReviewUnavailableError extends Error {
   }
 }
 
+// Super and the vision-language model are reasoning models. With thinking on, a
+// 9,759-character diff made Super time out after 150 s and the vision-language
+// model spend all 8,000 tokens on reasoning and return an empty answer
+// (finish_reason: length); reasoning_effort "low" did not help. With thinking
+// off the vision-language model wrote a full review in 12 s and Super answered
+// in under a second, so they are asked for an answer without a thinking phase.
+const NO_THINKING = { chat_template_kwargs: { enable_thinking: false } };
+
 export const REVIEW_MODELS = [
   { id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
-  // A reasoning model: part of max_tokens is spent on reasoning, so it gets a
-  // larger budget than Ultra, otherwise the answer can come back empty.
-  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 8_000 },
-  // A vision-language Nemotron that answered a text-only 16,000-character review
-  // in about 10 s on 2026-10-17; the third choice for when both models above are
-  // down (on that day a pull request saw Ultra 503 and Super time out together).
-  { id: "nvidia/nemotron-3.5-super-vl-120b-a12b", maxTokens: 8_000 },
+  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 3_000, body: NO_THINKING },
+  // A vision-language Nemotron, used on text only; the third choice for when
+  // both models above are down (a pull request saw Ultra 503 and Super time out
+  // in the same run).
+  {
+    id: "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    maxTokens: 3_000,
+    body: NO_THINKING,
+  },
 ];
 const GITHUB_API = "https://api.github.com";
 const NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -210,6 +220,7 @@ async function requestReviewOnce(model, input, token, fetchImpl) {
         max_tokens: model.maxTokens,
         temperature: 0,
         stream: false,
+        ...model.body,
       }),
     },
     "Requesting AI review",
@@ -293,10 +304,14 @@ function reportUnavailable(message) {
     .replace(/\n/g, "%0A");
   console.log(`::warning title=AI review unavailable::${annotation}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
-    appendFileSync(
-      process.env.GITHUB_STEP_SUMMARY,
-      `### AI review unavailable\n\n${text}\n`,
-    );
+    try {
+      appendFileSync(
+        process.env.GITHUB_STEP_SUMMARY,
+        `### AI review unavailable\n\n${text}\n`,
+      );
+    } catch {
+      // Best effort: the warning annotation above already carries the message.
+    }
   }
 }
 

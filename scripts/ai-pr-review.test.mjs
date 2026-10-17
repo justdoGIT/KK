@@ -211,6 +211,24 @@ describe("AI review model fallback", () => {
     ]);
   });
 
+  it("asks the reasoning models for an answer without a thinking phase", async () => {
+    const bodies = {};
+    const fetchImpl = async (_url, options) => {
+      const body = JSON.parse(options.body);
+      bodies[body.model] = body;
+      return failure(503);
+    };
+
+    await requestReview(input, "key", { fetchImpl, sleep: async () => {} }).catch(
+      () => {},
+    );
+
+    const noThinking = { enable_thinking: false };
+    expect(bodies[secondary.id].chat_template_kwargs).toEqual(noThinking);
+    expect(bodies[REVIEW_MODELS[2].id].chat_template_kwargs).toEqual(noThinking);
+    expect(bodies[primary.id].chat_template_kwargs).toBeUndefined();
+  });
+
   it("tells an outage apart from a rejected key", async () => {
     const outage = await scripted({}).result().catch((error) => error);
     const rejected = await scripted({ [primary.id]: [failure(401)] })
@@ -265,6 +283,16 @@ describe("AI review job outcome", () => {
       "::warning title=AI review unavailable::",
     );
     expect(run.urls.some((url) => url.includes("/comments"))).toBe(false);
+  });
+
+  it("passes even when the job summary file cannot be written", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.stubEnv("GITHUB_STEP_SUMMARY", "/nonexistent-directory/summary.md");
+    const run = job({ ok: false, status: 503 });
+
+    await expect(
+      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
+    ).resolves.toBeUndefined();
   });
 
   it("still fails the job when the NVIDIA key is rejected", async () => {
