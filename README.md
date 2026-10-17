@@ -1,5 +1,7 @@
 # Embedded Systems Portfolio
 
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/justdoGIT/KK?utm_source=badge)
+
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
 
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
@@ -12,6 +14,7 @@ npm run dev                    # development server
 npm run build                  # production build
 npm test                       # unit tests
 npm run validate:publication   # publication provenance check
+npm run bench                  # performance benchmarks (CodSpeed)
 node scripts/immersive-kit.mjs validate
 ```
 
