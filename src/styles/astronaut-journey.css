@@ -97,7 +97,9 @@
 
 .aj-intro {
   position: absolute;
-  top: 11%;
+  /* 11% is too close to the 3.5rem sticky nav on short stages (320–664px);
+     the floor keeps the intro below it, desktop (>=727px tall) stays at 11%. */
+  top: max(5rem, 11%);
   left: 50%;
   z-index: 3;
   width: min(92vw, 900px);

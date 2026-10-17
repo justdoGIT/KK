@@ -399,6 +399,9 @@
    and ease scale/opacity up to 1 once the row scrolls into view. */
 .system-showcase-card.card-pending-reveal {
   opacity: 0;
+  /* Also hidden from hit-testing and the a11y tree until the row reveals, so
+     its (scaled-down) link is never measured as a sub-44px tap target. */
+  visibility: hidden;
   transform: scale(0.55);
   will-change: transform, opacity;
 }
