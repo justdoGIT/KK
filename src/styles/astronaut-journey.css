@@ -13,7 +13,7 @@
 .aj-stage {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   width: 100%;
   overflow: hidden;
   isolation: isolate;

@@ -21,7 +21,7 @@
   position: sticky;
   top: 0;
   width: 100%;
-  height: 100vh;
+  height: var(--vh100);
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -958,7 +958,7 @@
   top: 3.5rem;
   right: 0;
   left: 0;
-  height: calc(100vh - 3.5rem);
+  height: calc(var(--vh100) - 3.5rem);
   z-index: 0;
   pointer-events: none;
 }
@@ -970,7 +970,7 @@
   top: 3.5rem;
   right: 0;
   left: 0;
-  height: calc(100vh - 3.5rem);
+  height: calc(var(--vh100) - 3.5rem);
   z-index: 0;
   pointer-events: none;
   display: flex;
@@ -1642,7 +1642,7 @@ main::before {
 .lusion-deck-sticky-stage {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2828,7 +2828,7 @@ main::before {
 .skill-domains-pinned .skill-domains-stage {
   position: sticky;
   top: 4.5rem;
-  min-height: calc(100vh - 4.5rem);
+  min-height: calc(var(--vh100) - 4.5rem);
   padding: 1rem 0;
 }
 .skill-domains-stage .skills-filter-row {
@@ -3436,7 +3436,7 @@ main::before {
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: var(--vh100);
   pointer-events: none;
   z-index: 0;
   overflow: hidden;

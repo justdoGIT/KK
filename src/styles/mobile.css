@@ -1,0 +1,50 @@
+/*
+ * Touch and small-screen rules that apply across sections. Section layout fixes
+ * live with their section's stylesheet; this file is imported last so these
+ * rules win over equal-specificity rules there.
+ */
+
+a,
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Footer clears the home indicator and landscape cutouts (viewport-fit=cover). */
+.footer {
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+  padding-bottom: max(2rem, calc(1rem + env(safe-area-inset-bottom)));
+}
+
+/* Tap targets: at least 44 x 44 CSS px on touch screens (WCAG 2.5.5, Apple HIG). */
+@media (pointer: coarse) {
+  .nav-brand,
+  .nav-cta,
+  .nav-menu-toggle,
+  .footer-links a,
+  .showcase-action-link,
+  html .board-lifecycle-nav button,
+  .terminal-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .nav-menu-toggle,
+  html .board-lifecycle-nav button {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* The traffic-light dots stay 10px; their hit area grows around them. */
+  .window-btn {
+    position: relative;
+  }
+
+  .window-btn::after {
+    content: "";
+    position: absolute;
+    inset: -17px -3px;
+  }
+}
