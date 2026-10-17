@@ -7,6 +7,7 @@ import { CareerEntryList } from "./career/CareerEntryList.tsx";
 import { useCareerDriver } from "./career/useCareerDriver.ts";
 import { WallFollowerHud, type HudRefs } from "./career/WallFollowerHud.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 
 const CareerJourneyCanvas = lazy(() =>
@@ -24,7 +25,12 @@ const JOURNEY_ENTRIES = CAREER_STAGE_META.map((meta) => {
 export function CareerTimeline(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
   const [webgl] = useState(checkWebGL);
-  const isStatic = !enhanced || !webgl;
+  // Full role details need natural page flow on phones and short screens.
+  // Tall tablets retain the journey; standard desktop layout is unchanged.
+  const flowLayout = useMediaQuery(
+    "(max-width: 767px), (max-height: 719px), (min-width: 768px) and (max-width: 1023px) and (max-height: 1023px)",
+  );
+  const isStatic = !enhanced || !webgl || flowLayout;
   const section = useRef<HTMLElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const clock = useRef<CareerClock>(createCareerClock());
