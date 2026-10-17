@@ -143,6 +143,22 @@ describe("AI review model fallback", () => {
     expect(run.asked).toEqual([primary.id]);
   });
 
+  it("puts the reason from the response body into the error", async () => {
+    const rejected = {
+      ok: false,
+      status: 403,
+      text: async () => '{"message":\n  "Resource not accessible by integration"}',
+    };
+    const run = scripted({
+      [primary.id]: [rejected],
+      [secondary.id]: [answer("never reached")],
+    });
+
+    await expect(run.result()).rejects.toThrow(
+      'failed with HTTP 403: {"message": "Resource not accessible by integration"}',
+    );
+  });
+
   it("names every model's last failure when all of them fail", async () => {
     const run = scripted({
       [primary.id]: [failure(503)],
