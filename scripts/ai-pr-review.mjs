@@ -3,12 +3,20 @@ import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const REVIEW_MARKER = "<!-- ai-code-review -->";
-// NVIDIA's free-credit endpoint is shared and overloads. The 550B Ultra model
-// answered "503 Service temporarily overloaded" even to a one-line prompt on
-// 2026-10-17, which failed the check after a single retry; it also measured
-// ~100s at 16,000 diff characters and was unreliable at 40,000 (one 503, one
-// hung connection). The cap stays at the proven-safe size, every request has a
-// timeout, and the models below are tried in order.
+// The review runs in GitHub Actions on free-tier models. NVIDIA's endpoint is
+// shared and overloads: Ultra answered "503 Service temporarily overloaded" even
+// to a one-line prompt on 2026-10-17, measured ~100s at 16,000 diff characters
+// and was unreliable at 40,000 (one 503, one hung connection), and on one pull
+// request Ultra 503 and Super timing out together failed the check. So the
+// chain spans several providers. On 2026-10-17 each model reviewed a real diff
+// with a known defect (an unguarded appendFileSync) using this script's prompt:
+//   found it: Gemini 3 Flash (6 s), Mistral Codestral (3 s)
+//   missed it ("No issues found"): Groq qwen3.8-27b (0.4 s), Groq gpt-oss-120b
+// Models are ordered by that result, then by speed; the NVIDIA models were
+// unreliable (see above) and come last. Left out: Cerebras (HTTP 402, payment
+// required), SambaNova (120 s timeouts) and the free OpenRouter models (they
+// spend the token budget on reasoning or are restricted to agentic clients).
+// A model whose provider key is not set is skipped.
 export const MAX_DIFF_CHARS = 16_000;
 export const MAX_COMMENT_BYTES = 60_000;
 
@@ -19,35 +27,64 @@ export class ReviewUnavailableError extends Error {
   }
 }
 
-// Super and the vision-language model are reasoning models. With thinking on, a
-// 9,759-character diff made Super time out after 150 s and the vision-language
-// model spend all 8,000 tokens on reasoning and return an empty answer
-// (finish_reason: length); reasoning_effort "low" did not help. With thinking
-// off the vision-language model wrote a full review in 12 s and Super answered
-// in under a second, so they are asked for an answer without a thinking phase.
+// Reasoning models spend max_tokens on hidden reasoning. With thinking on, a
+// 9,759-character diff made Nemotron Super time out after 150 s and the
+// vision-language Nemotron use all 8,000 tokens and return an empty answer
+// (finish_reason: length); reasoning_effort "low" did not help there. With
+// thinking off the vision-language model wrote a full review in 12 s and Super
+// answered in under a second.
 const NO_THINKING = { chat_template_kwargs: { enable_thinking: false } };
+const LOW_EFFORT = { reasoning_effort: "low" };
+
+const GROQ = {
+  label: "Groq",
+  baseUrl: "https://api.groq.com/openai/v1",
+  keyEnv: "GROQ_API_KEY",
+};
+const GEMINI = {
+  label: "Google Gemini",
+  baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+  keyEnv: "GEMINI_API_KEY",
+};
+const NVIDIA = {
+  label: "NVIDIA",
+  baseUrl: "https://integrate.api.nvidia.com/v1",
+  keyEnv: "NVIDIA_API_KEY",
+};
+const MISTRAL = {
+  label: "Mistral",
+  baseUrl: "https://api.mistral.ai/v1",
+  keyEnv: "MISTRAL_API_KEY",
+};
 
 export const REVIEW_MODELS = [
-  { id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
-  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 3_000, body: NO_THINKING },
-  // A vision-language Nemotron, used on text only; the third choice for when
-  // both models above are down (a pull request saw Ultra 503 and Super time out
-  // in the same run).
+  { ...GEMINI, id: "gemini-3-flash-preview", maxTokens: 3_000, body: LOW_EFFORT },
+  { ...MISTRAL, id: "codestral-latest", maxTokens: 3_000 },
+  { ...GROQ, id: "qwen/qwen3.8-27b", maxTokens: 3_000 },
+  { ...NVIDIA, id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
   {
+    ...NVIDIA,
+    id: "nvidia/nemotron-3-super-120b-a12b",
+    maxTokens: 3_000,
+    body: NO_THINKING,
+  },
+  { ...GROQ, id: "openai/gpt-oss-120b", maxTokens: 3_000, body: LOW_EFFORT },
+  // A vision-language Nemotron, used on text only.
+  {
+    ...NVIDIA,
     id: "nvidia/nemotron-3.5-super-vl-120b-a12b",
     maxTokens: 3_000,
     body: NO_THINKING,
   },
 ];
 const GITHUB_API = "https://api.github.com";
-const NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
 // Attempts per model, then the next model.
 const REVIEW_RETRY_ATTEMPTS = 2;
 const REVIEW_RETRY_DELAY_MS = 5_000;
 const REVIEW_REQUEST_TIMEOUT_MS = 150_000;
 // No new attempt starts after this, so posting still fits the workflow timeout.
 const REVIEW_BUDGET_MS = 420_000;
-// The key or the request is rejected: no other model would accept it.
+// The provider refuses the key.
 const FATAL_STATUSES = new Set([401, 403]);
 
 export function buildReviewInput(diff, limit = MAX_DIFF_CHARS) {
@@ -105,7 +142,10 @@ export function formatReviewComment(review, model = REVIEW_MODELS[0].id) {
     model === REVIEW_MODELS[0].id
       ? ""
       : ` (fallback: ${REVIEW_MODELS[0].id} was unavailable)`;
-  const footer = `\n\n---\n_Model: \`${model}\` via NVIDIA's free inference credits${fallbackNote}._`;
+  const provider =
+    REVIEW_MODELS.find((candidate) => candidate.id === model)?.label ??
+    "its provider";
+  const footer = `\n\n---\n_Model: \`${model}\` via ${provider}'s free tier${fallbackNote}._`;
   const complete = `${header}${safeReview}${footer}`;
 
   if (Buffer.byteLength(complete, "utf8") <= MAX_COMMENT_BYTES) {
@@ -197,14 +237,17 @@ function delay(ms) {
   });
 }
 
-async function requestReviewOnce(model, input, token, fetchImpl) {
+async function requestReviewOnce(model, input, key, fetchImpl) {
   const response = await checkedFetch(
-    NVIDIA_API,
+    `${model.baseUrl}/chat/completions`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        // Groq and Cerebras answered 403 to Python's default User-Agent (they sit
+        // behind Cloudflare); send an explicit one.
+        "User-Agent": "kk-ai-pr-review",
       },
       signal: AbortSignal.timeout(REVIEW_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
@@ -244,12 +287,16 @@ function describeFailure(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-// Tries each model in order. A model that is overloaded (503/429), unreachable
-// or answers with no content is retried REVIEW_RETRY_ATTEMPTS times in all, then
-// the next model is used; a model that times out is not retried. A rejected key
-// (401/403) stops at once: no other model would accept it. Returns the review
+// Tries each model in order, skipping those whose provider key is not set. A
+// model that is overloaded (503/429), unreachable or answers with no content is
+// retried REVIEW_RETRY_ATTEMPTS times in all, then the next model is used; a
+// model that times out is not retried. A provider that refuses its key
+// (401/403) is skipped for the rest of the run, because its other models would
+// be refused too, but the next provider is still tried. If every provider
+// refused its key the run is misconfigured and that error is thrown; otherwise
+// a complete failure is an outage (ReviewUnavailableError). Returns the review
 // and the id of the model that wrote it.
-export async function requestReview(input, token, options = {}) {
+export async function requestReview(input, keys, options = {}) {
   const {
     fetchImpl = fetch,
     sleep = delay,
@@ -258,23 +305,32 @@ export async function requestReview(input, token, options = {}) {
   } = options;
   const startedAt = now();
   const lastFailure = new Map();
+  const refusedKeys = new Set();
+  let refusal = null;
+  let sawOutage = false;
 
   for (const model of models) {
+    const key = keys[model.keyEnv];
+    if (!key || refusedKeys.has(model.keyEnv)) continue;
     for (let attempt = 1; attempt <= REVIEW_RETRY_ATTEMPTS; attempt += 1) {
       if (now() - startedAt > REVIEW_BUDGET_MS) {
         lastFailure.set(model.id, "skipped, time budget used up");
+        sawOutage = true;
         break;
       }
       try {
         return {
-          content: await requestReviewOnce(model, input, token, fetchImpl),
+          content: await requestReviewOnce(model, input, key, fetchImpl),
           model: model.id,
         };
       } catch (error) {
-        if (error instanceof HttpError && FATAL_STATUSES.has(error.status)) {
-          throw error;
-        }
         lastFailure.set(model.id, describeFailure(error));
+        if (error instanceof HttpError && FATAL_STATUSES.has(error.status)) {
+          refusedKeys.add(model.keyEnv);
+          refusal = error;
+          break;
+        }
+        sawOutage = true;
         // A model that hung once will usually hang again, and each wait costs a
         // full request timeout: go to the next model instead of retrying.
         if (error?.name === "TimeoutError") break;
@@ -285,6 +341,10 @@ export async function requestReview(input, token, options = {}) {
     }
   }
 
+  if (lastFailure.size === 0) {
+    throw new Error("No review model has a provider key set");
+  }
+  if (refusal && !sawOutage) throw refusal;
   const summary = [...lastFailure]
     .map(([id, reason]) => `${id}: ${reason}`)
     .join("; ");
@@ -367,11 +427,29 @@ async function upsertReviewComment(
   );
 }
 
+// The review keys that are set, by environment variable name. Each model in
+// REVIEW_MODELS names the variable that holds its provider's key; a model whose
+// key is not set is skipped, so a provider is enabled by adding its secret.
+function collectReviewKeys(environment) {
+  const keys = {};
+  for (const { keyEnv } of REVIEW_MODELS) {
+    const value = environment[keyEnv]?.trim();
+    if (value) keys[keyEnv] = value;
+  }
+  return keys;
+}
+
 export async function runReview(options = {}) {
   const { fetchImpl = fetch, review: reviewOptions = {} } = options;
   const repository = requiredEnvironment("GITHUB_REPOSITORY");
   const githubToken = requiredEnvironment("GITHUB_TOKEN");
-  const nvidiaToken = requiredEnvironment("NVIDIA_API_KEY");
+  const reviewKeys = collectReviewKeys(process.env);
+  if (Object.keys(reviewKeys).length === 0) {
+    const names = [...new Set(REVIEW_MODELS.map((model) => model.keyEnv))];
+    throw new Error(
+      `No review provider key is set; set at least one of: ${names.join(", ")}`,
+    );
+  }
   const pullNumber = Number.parseInt(requiredEnvironment("PR_NUMBER"), 10);
 
   if (!/^[-\w.]+\/[-\w.]+$/.test(repository)) {
@@ -390,7 +468,7 @@ export async function runReview(options = {}) {
   const input = buildReviewInput(diff);
   let result;
   try {
-    result = await requestReview(input, nvidiaToken, {
+    result = await requestReview(input, reviewKeys, {
       fetchImpl,
       ...reviewOptions,
     });

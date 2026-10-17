@@ -45,10 +45,15 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Review changed code with NVIDIA Nemotron Ultra
+      # Every provider whose secret exists is used, in the order of REVIEW_MODELS
+      # in scripts/ai-pr-review.mjs; an unset secret just skips that provider.
+      - name: Review changed code with free-tier models
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
         run: node scripts/ai-pr-review.mjs
