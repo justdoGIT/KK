@@ -101,6 +101,8 @@ Required negative fixtures include a local path, repository name, commit message
 
 The enhanced career view is a twelve-viewport pinned film, ordered from the oldest role to the newest. The active disclosure scrolls to the center of its own list viewport so the SYMX.AI finale cannot leave the screen before its content is readable. The right-hand WebGL screen uses overview, chase, tracking, and orbit lenses. Apache-2.0/BSD/CC0 robot models rebuild through a reversible clean-room panel choreography: shells fold into a mechanical core, actuator lines extend, and new panels hinge and lock with sparks. The sequence is wall follower → rover → quadruped → humanoid → rocket. The quadruped becomes a walking humanoid for Vestel; the humanoid becomes an original procedural launch vehicle for SYMX.AI, with the astronaut walking toward it. No supercar transformation or proprietary transformation geometry, animation, or media is included.
 
+Career uses the same natural-flow disclosure list as reduced-motion/no-WebGL mode on phones below 768px wide, screens below 720px tall, and tablets 768–1023px wide below 1024px tall. This keeps every role's summary, accomplishments, and technology tags available without an inner scrolling list or a fixed viewport-height container. Tall tablets (768–1023px wide and at least 1024px tall) keep the pinned film with a 30% screen / 70% text split and only the current role laid out; the existing scroll driver still visits all five roles. The desktop layout at 1024px or wider and 720px or taller is unchanged.
+
 ### Case studies and approval records
 
 The launch target is four studies; a fifth is optional only after an approved record exists. The renderer consumes **only** `publication-records/*.json`, never arbitrary README text or repository traversal. Each record contains:
@@ -132,7 +134,28 @@ Planned study candidates:
 
 `SkillMatrix` is an accessible disclosure/list styled as a terminal. Categories are Languages, OS/platforms, Protocols/hardware, and Tooling. Resume-backed values include C, C++, Python, Bash, Qt/QML; Qualcomm/TI/NXP/Xilinx platforms; CAN/J1939, HaLow Wi-Fi, MQTT, WebRTC, RTSP/RTP, TCP/IP; and JTAG, UART, ftrace, Valgrind, GDB, oscilloscopes, logic analyzers, Yocto, OSTree, Jenkins, GitLab, and Docker.
 
+The interactive console pins and types its script only at widths of at least
+1024px and heights of at least 720px with enhanced motion. Narrower or shorter
+screens use normal document flow and display the complete selected command.
+The output body scrolls independently within 60% of the small viewport height,
+with no discarded lines; its scroll events bypass the page's smooth-scroll
+driver. Numbered tabs retain filename accessible names, and touch controls
+have real 44px boxes rather than overlapping pseudo-element hit areas.
+
+The layout gate samples every scroll stage on iPhone SE, iPhone 13 portrait
+and landscape, Pixel 7, and a 1024×500 short viewport. It rejects horizontal
+document overflow, visible text cut by the screen or a pinned stage, and
+sub-44px touch targets. Coarse-pointer screens up to 900px wide use the
+hamburger menu, including phone landscape, so each navigation choice remains
+individually targetable.
+
 Contact uses user-triggered static links: email from the resume, GitHub `https://github.com/justdoGIT`, and the LinkedIn profile URL derived from the resume identifier, subject to final URL verification. No phone number is displayed by default. External links use consistent `target="_blank" rel="noreferrer"` only when new-tab behavior is intentionally chosen, with accessible labels that state the destination; same-tab links omit both attributes.
+
+On phones below 768px wide and screens below 720px tall the contact card is not
+pinned in the journey. Fitting it to the stage height scaled it to 0.54 on an
+iPhone 13 (a 201px-wide card with 9px text and 32px buttons), so the journey
+still pins and plays and the card follows it in normal document flow at its
+natural size (`.aj-contact-flow`, rendered by `AstronautSpaceJourney`).
 
 The enhanced skill-domain grid mirrors scroll progress in its filter pills: each category highlights when its card is fully revealed, then the individual progress highlights clear and `All Domains` becomes active once the complete grid is open. The contact transition uses one pinned astronaut journey inspired by Lusion’s public sequence: a compact orbital card expands to fill the stage, a licensed NASA EMU (fitted with a dark mirrored visor material in place of its bare source texture) tumbles through free fall, then runs, crouches, jumps, and kicks the glass at a deterministic impact frame. Shards originate at the projected boot contact, and the same foreground astronaut continues through the screen opening onto the real contact card’s top ledge. The ledge is visible before touchdown, the impact briefly dips the card, and the astronaut waves palm-forward beside the site-font “Let’s innovate together” heading. Further scroll zooms the continuous scene out to reveal the complete “Ready to Build High-Reliability Embedded & Edge Systems?” card and its details. The post-zoom astronaut sits on the left end of the deck with its torso above the ledge and its hanging legs clear of the card content. Hovering or focusing “Start a Conversation” loops through a smooth recline, upright dance, and moonwalk; pointer exit resets the normal idle choreography, while the repository and LinkedIn actions use a seated wave. One shared clock owns the DOM card, camera framing, astronaut pose, and pointer interaction; no second banner, scroll timeline, canvas, or overlapping astronaut is rendered.
 
@@ -142,7 +165,7 @@ Section choreography (enhanced mode only; reduced motion and narrow viewports ke
 
 - **Metrics strip (≥1280px):** the six metric cards fold into a cube (`src/motion/metrics-dice.ts`), roll in from the left, then open right → left into the straight six-card row; the side flaps swing open and slide into the row ends. It plays when the strip is half visible and rewinds once it leaves the viewport.
 - **Systems Consultancy & Architecture (≥1024×700):** the heading and domain tabs stay pinned while six translucent service cards wait outside the stage, then enter nearly edge-on from alternating sides (`src/motion/throw-deck.ts`). Each card owns a separate scroll interval, lands skewed, and straightens before the next throw; landed cards stay stacked from the top (each rests 12px lower, so the edges of earlier cards remain visible while their content fades under the newest card). Tabs jump to a card's settled position. Short wide screens use focusable card-level vertical scrolling so no service details are hidden.
-- **Products with a pulse (≥1024px):** case-study cards retain the scroll-driven deal and reveal choreography at short desktop heights. Their compact faces expose native vertical scrolling when the viewport cannot show all evidence at once.
+- **Products with a pulse (≥1024×720):** case-study cards run the scroll-driven deal and reveal choreography on full-height desktop widths. Short viewports (under 720px tall, e.g. 1024×500 and 1280×600) and all widths under 1024px fall back to a static two-column grid of always-settled cards, so four full-width cards never have to squeeze into a pinned stage that cannot fit them.
 - **Career evolution:** the rover’s suspension preserves wheel-ground contact throughout its route. Generation 4 (Vestel) transforms the quadruped into a procedural chibi robot with an oversized cream-and-orange helmet, recessed dark visor, luminous cyan eyes, compact detailed torso, articulated black gloves, and horizontal armored boots (`humanoid-appearance.ts`, `HumanoidStage`). The hidden `RobotExpressive.glb` skeleton still drives Idle, Walking, and Running clips; procedural segments reorient from live bone positions after each sampled frame. Generation 5 (SYMX.AI) transforms that humanoid into a procedural rocket (`src/scene/career/rocket-model.ts`) beside a service tower; the site's astronaut walks toward it with a scroll-scrubbed stride (`RocketStage`, `sampleWalkPose`). Both transformations rewind with upward scroll.
 - **Silicon to Fleet (`#journey`):** seven scroll-linked stages explain silicon/PCB/power → flash programming → bootloader → kernel & drivers → userspace → applications → fleet control. Stages 1–5 stack labelled software layers onto the board (`BoardStackStage`), and stage 6 scales out to a monitored fleet. Content lives in `src/content/board-lifecycle.ts`.
 - **Headings:** `LusionKineticHeading` variants: `rise` (default), `cascade` (letters flip down in sequence with independently composited glyph fills, used by Products with a pulse, Proven Industrial Architectures, and High-Stakes Systems), and `scatter` (letters fly in from all around the viewport, used by How We Can Collaborate).

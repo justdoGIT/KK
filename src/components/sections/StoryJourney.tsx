@@ -2,6 +2,7 @@ import { useRef, useState, type JSX } from "react";
 import { SiliconFleetCanvas } from "../../scene/journey/SiliconFleetCanvas.tsx";
 import { boardLifecycle } from "../../content/board-lifecycle.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
@@ -11,7 +12,8 @@ import "../../styles/board-lifecycle.css";
 export function StoryJourney(): JSX.Element {
   const section = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
-  const enhanced = useMotionMode() === "enhanced";
+  const roomy = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
+  const enhanced = useMotionMode() === "enhanced" && roomy;
   useGuidedScroll(section, enhanced, { target: 0.94, seconds: 18 });
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
@@ -49,7 +51,7 @@ export function StoryJourney(): JSX.Element {
           <div className="board-lifecycle-canvas" aria-hidden="true"><SiliconFleetCanvas currentStage={index} /></div>
         </div>
         <div className="board-lifecycle-progress" aria-hidden="true"><span ref={barRef} style={{ transform: "scaleX(0)" }} /></div>
-      </> : <ol className="board-lifecycle-static">{boardLifecycle.map((item) => <li key={item.id}><span className="board-lifecycle-label">{item.label}</span><h3>{item.title}</h3><p>{item.description}</p><code>{item.signal}</code></li>)}</ol>}
+      </> : <ol className="board-lifecycle-static">{boardLifecycle.map((item) => <li key={item.id}><span className="board-lifecycle-label">{item.label}</span><h3>{item.title}</h3><p>{item.description}</p><ul>{item.evidence.map((evidence) => <li key={evidence}>{evidence}</li>)}</ul><code>{item.signal}</code></li>)}</ol>}
     </div>
   </section>;
 }

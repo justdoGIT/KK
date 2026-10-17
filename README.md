@@ -62,6 +62,10 @@ repository secret.
 - **Progressive enhancement**: persistent R3F canvases, Lenis smooth scroll,
   guided pinned-section playback, and the magnetic cursor are gated by motion
   preference, viewport proximity, and WebGL capability.
+- **Small-screen reading**: below 1024px wide or 720px tall, services and
+  board lifecycle use normal page flow rather than clipping long content
+  inside pinned stages. All capabilities, silicon targets, deliverables,
+  lifecycle evidence, and signals remain available without nested scrolling.
 - **Rendering continuity**: immediate SVG scene covers remain until both
   journey canvases paint; WebGL context loss restores the cover and remounts
   the affected canvas.

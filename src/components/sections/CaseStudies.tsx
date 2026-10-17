@@ -39,7 +39,11 @@ const CARD_CONFIGS = [
 export function CaseStudies(): JSX.Element {
   const studies = getApprovedCaseStudies();
   const enhanced = useMotionMode() === "enhanced";
-  const wide = useMediaQuery("(min-width: 1024px)");
+  // The 3D flying/flipping deck only engages on full-height desktop widths;
+  // short screens (< 720px tall, e.g. 1024x500 and 1280x600 laptops) fall
+  // back to the static 2-col grid (`.is-static`) so four cards never have to
+  // squeeze into a pinned stage they can't fit — same as narrower widths.
+  const wide = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
   const animated = enhanced && wide;
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const sectionRef = useRef<HTMLElement>(null);

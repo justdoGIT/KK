@@ -4,7 +4,7 @@
 .services-throw-stage {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   display: flex;
   flex-direction: column;
   padding: 5.25rem 0 1.5rem;
@@ -57,25 +57,3 @@
   .services-throw .service-card-watermark { font-size: 1.6rem; }
 }
 
-@media (max-height: 699px) and (min-width: 981px) {
-  .service-card-deck-item {
-    max-height: calc(100dvh - 6.5rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(56, 189, 248, 0.55) rgba(2, 6, 23, 0.45);
-  }
-
-  .service-card-deck-item:focus-visible {
-    outline: 2px solid #38bdf8;
-    outline-offset: -3px;
-  }
-
-  .service-card-deck-item::-webkit-scrollbar { width: 8px; }
-  .service-card-deck-item::-webkit-scrollbar-track { background: rgba(2, 6, 23, 0.45); }
-  .service-card-deck-item::-webkit-scrollbar-thumb {
-    border: 2px solid rgba(2, 6, 23, 0.45);
-    border-radius: 999px;
-    background: rgba(56, 189, 248, 0.55);
-  }
-}

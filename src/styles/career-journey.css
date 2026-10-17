@@ -9,7 +9,7 @@
 .career-sticky {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   display: grid;
   grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr) 2.25rem;
   gap: clamp(1rem, 2vw, 2rem);
@@ -358,31 +358,72 @@
   overflow: visible;
 }
 
-@media (max-width: 900px) {
-  .career-sticky {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1.05fr) minmax(0, 1fr);
-    padding-top: 3.75rem;
-    gap: 0.75rem;
+/* Phones and short screens use the existing natural-flow layout. Tall
+   tablets retain the pinned journey with one complete role at a time. */
+@media (max-width: 1023px), (max-height: 719px) {
+  .career-header .lusion-kinetic-kicker,
+  .career-screen-chapter {
+    font-size: 0.7rem;
+  }
+
+  .career-header .lusion-kinetic-kicker {
+    letter-spacing: 0.1em;
+    overflow-wrap: anywhere;
+  }
+
+  .career-header .kicker-pulse-dot {
+    flex-shrink: 0;
+  }
+
+  .career-journey--static .career-sticky {
+    padding-top: clamp(4.25rem, 10svh, 6rem);
+    padding-bottom: clamp(2rem, 6svh, 4rem);
+  }
+
+  .career-journey--static .career-entries {
+    padding-bottom: 1rem;
+  }
+
+  .career-entry {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+
+  .career-entry .tag {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) and (min-height: 1024px) {
+  .career-journey:not(.career-journey--static) .career-sticky {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.3fr) minmax(0, 0.7fr);
+    padding-top: 4.25rem;
+    gap: 1rem;
   }
 
   .career-screen {
     grid-row: 1;
+    transform: none;
   }
 
   .career-column {
     grid-row: 2;
+    transform: none;
   }
 
-  .career-header .lusion-kinetic-subtitle,
-  .career-rail {
-    display: none;
-  }
-
-  /* Two dense sensor readouts plus the caption text leave no room for the
-     robot itself on a short mobile screen box; the caption already carries
-     the story in words, so drop the decorative HUD here entirely. */
+  .career-rail,
   .career-hud {
     display: none;
+  }
+
+  .career-journey:not(.career-journey--static) .career-entry:not(.is-active) {
+    display: none;
+  }
+
+  .career-journey:not(.career-journey--static) .career-entries {
+    overflow: visible;
+    padding: 0;
+    margin-top: 0.75rem;
   }
 }

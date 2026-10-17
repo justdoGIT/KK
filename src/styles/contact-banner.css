@@ -172,6 +172,15 @@
   -webkit-text-fill-color: currentColor;
   text-align: center;
   transform: none;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-right: 0;
+}
+
+@media (max-width: 768px) {
+  .contact-banner--static {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
