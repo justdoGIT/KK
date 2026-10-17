@@ -63,3 +63,50 @@ button,
     box-shadow: none;
   }
 }
+
+/*
+ * FitRest slice (hero/contact/deck/metrics/showcase/nav/footer) — short-screen
+ * content minimums. Scoped to <1024px so desktop (>=1024 wide, >=720 tall) is
+ * unchanged. Real-content text is raised to >=11px and touch targets to >=44px.
+ */
+@media (max-width: 1023px) {
+  .card-front-category,
+  .card-front-badge,
+  .diagram-title-bar,
+  .diagram-popout-badge,
+  .details-heading,
+  .card-metric-label,
+  .card-footer-number,
+  .card-footer-hint,
+  .metric-strip-label,
+  .contact-status-pill,
+  .showcase-tag,
+  .showcase-badge,
+  .showcase-chip,
+  .impact-label {
+    font-size: 0.69rem;
+  }
+
+  .nav-brand,
+  .skills-filter-pill,
+  .card-study-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* Short labels ("Email", "GitHub") also need a 44px-wide hit area. */
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* Slightly over 44px so the card's reveal scale-easing never dips it below
+     the touch threshold mid-animation. */
+  .showcase-action-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+  }
+}
