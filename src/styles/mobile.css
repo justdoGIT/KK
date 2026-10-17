@@ -20,6 +20,7 @@ button,
 /* Tap targets: at least 44 x 44 CSS px on touch screens (WCAG 2.5.5, Apple HIG). */
 @media (pointer: coarse) {
   .nav-brand,
+  .nav-link,
   .nav-cta,
   .nav-menu-toggle,
   .footer-links a,
@@ -33,6 +34,7 @@ button,
     min-height: 44px;
   }
 
+  .nav-link,
   .nav-menu-toggle,
   html .board-lifecycle-nav button,
   .terminal-tab,
@@ -61,6 +63,15 @@ button,
   .step-dot.active {
     background: radial-gradient(circle 4px, #38bdf8 0 4px, transparent 4px);
     box-shadow: none;
+  }
+}
+
+/* A phone in landscape is wide enough for the desktop breakpoint but not for
+   eight individually targetable links beside the brand and CTA. */
+@media (pointer: coarse) and (max-width: 900px) {
+  .nav-list .nav-link {
+    display: flex;
+    min-width: 44px;
   }
 }
 

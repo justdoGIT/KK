@@ -142,6 +142,13 @@ with no discarded lines; its scroll events bypass the page's smooth-scroll
 driver. Numbered tabs retain filename accessible names, and touch controls
 have real 44px boxes rather than overlapping pseudo-element hit areas.
 
+The layout gate samples every scroll stage on iPhone SE, iPhone 13 portrait
+and landscape, Pixel 7, and a 1024×500 short viewport. It rejects horizontal
+document overflow, visible text cut by the screen or a pinned stage, and
+sub-44px touch targets. Coarse-pointer screens up to 900px wide use the
+hamburger menu, including phone landscape, so each navigation choice remains
+individually targetable.
+
 Contact uses user-triggered static links: email from the resume, GitHub `https://github.com/justdoGIT`, and the LinkedIn profile URL derived from the resume identifier, subject to final URL verification. No phone number is displayed by default. External links use consistent `target="_blank" rel="noreferrer"` only when new-tab behavior is intentionally chosen, with accessible labels that state the destination; same-tab links omit both attributes.
 
 On phones below 768px wide and screens below 720px tall the contact card is not

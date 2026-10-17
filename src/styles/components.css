@@ -3521,7 +3521,7 @@ main::before {
   .offers-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 640px), (pointer: coarse) and (max-width: 900px) {
   .nav-menu-toggle {
     display: block;
     margin-left: auto;
