@@ -110,3 +110,9 @@ button,
     min-height: 48px;
   }
 }
+
+/* Contact finale flows after the pinned journey on small screens. */
+.aj-contact-flow {
+  margin-top: 3rem;
+  padding-bottom: env(safe-area-inset-bottom);
+}
