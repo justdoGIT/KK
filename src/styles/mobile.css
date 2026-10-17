@@ -25,26 +25,40 @@ button,
   .footer-links a,
   .showcase-action-link,
   html .board-lifecycle-nav button,
-  .terminal-tab {
+  .terminal-tab,
+  .terminal-tool-btn {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
   }
 
   .nav-menu-toggle,
-  html .board-lifecycle-nav button {
+  html .board-lifecycle-nav button,
+  .terminal-tab,
+  .terminal-tool-btn {
     min-width: 44px;
     justify-content: center;
   }
 
-  /* The traffic-light dots stay 10px; their hit area grows around them. */
+  /* Traffic-light window dots and the terminal step pager: grow the real
+     hit box to 44px (the audit measures getBoundingClientRect, which a
+     bigger-but-transparent ::after hit area does not change) while
+     keeping the small painted dot the same visual size via a sized
+     radial-gradient instead of a full-box background-color. */
   .window-btn {
-    position: relative;
+    width: 44px;
+    height: 44px;
+    background: radial-gradient(circle 5px, var(--dot-color, currentColor) 0 5px, transparent 5px);
   }
 
-  .window-btn::after {
-    content: "";
-    position: absolute;
-    inset: -17px -3px;
+  .step-dot {
+    width: 44px;
+    height: 44px;
+    background: radial-gradient(circle 4px, rgba(255, 255, 255, 0.35) 0 4px, transparent 4px);
+  }
+
+  .step-dot.active {
+    background: radial-gradient(circle 4px, #38bdf8 0 4px, transparent 4px);
+    box-shadow: none;
   }
 }
