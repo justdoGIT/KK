@@ -237,7 +237,7 @@ describe("AI review job outcome", () => {
     const urls = [];
     const fetchImpl = async (url) => {
       urls.push(String(url));
-      if (String(url).startsWith("https://api.github.com")) {
+      if (new URL(String(url)).hostname === "api.github.com") {
         return { ok: true, status: 200, text: async () => "diff --git a/x b/x" };
       }
       return nvidia;
