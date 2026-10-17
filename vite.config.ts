@@ -1,12 +1,14 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import codspeedPlugin from "@codspeed/vitest-plugin";
 
 export default defineConfig({
   base: "./",
   plugins: [
     react(),
     tailwindcss(),
+    codspeedPlugin(),
     {
       name: "development-csp",
       apply: "serve",
