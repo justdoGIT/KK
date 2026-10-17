@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const REVIEW_MARKER = "<!-- ai-code-review -->";
@@ -11,11 +12,32 @@ export const REVIEW_MARKER = "<!-- ai-code-review -->";
 export const MAX_DIFF_CHARS = 16_000;
 export const MAX_COMMENT_BYTES = 60_000;
 
+export class ReviewUnavailableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ReviewUnavailableError";
+  }
+}
+
+// Super and the vision-language model are reasoning models. With thinking on, a
+// 9,759-character diff made Super time out after 150 s and the vision-language
+// model spend all 8,000 tokens on reasoning and return an empty answer
+// (finish_reason: length); reasoning_effort "low" did not help. With thinking
+// off the vision-language model wrote a full review in 12 s and Super answered
+// in under a second, so they are asked for an answer without a thinking phase.
+const NO_THINKING = { chat_template_kwargs: { enable_thinking: false } };
+
 export const REVIEW_MODELS = [
   { id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
-  // A reasoning model: part of max_tokens is spent on reasoning, so it gets a
-  // larger budget than Ultra, otherwise the answer can come back empty.
-  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 8_000 },
+  { id: "nvidia/nemotron-3-super-120b-a12b", maxTokens: 3_000, body: NO_THINKING },
+  // A vision-language Nemotron, used on text only; the third choice for when
+  // both models above are down (a pull request saw Ultra 503 and Super time out
+  // in the same run).
+  {
+    id: "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    maxTokens: 3_000,
+    body: NO_THINKING,
+  },
 ];
 const GITHUB_API = "https://api.github.com";
 const NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -141,13 +163,14 @@ async function checkedFetch(url, options, operation, fetchImpl = fetch) {
   return response;
 }
 
-async function fetchPullRequestDiff(repository, pullNumber, token) {
+async function fetchPullRequestDiff(repository, pullNumber, token, fetchImpl) {
   const response = await checkedFetch(
     `${GITHUB_API}/repos/${repository}/pulls/${pullNumber}`,
     {
       headers: githubHeaders(token, "application/vnd.github.v3.diff"),
     },
     "Fetching pull-request diff",
+    fetchImpl,
   );
   return response.text();
 }
@@ -197,6 +220,7 @@ async function requestReviewOnce(model, input, token, fetchImpl) {
         max_tokens: model.maxTokens,
         temperature: 0,
         stream: false,
+        ...model.body,
       }),
     },
     "Requesting AI review",
@@ -264,15 +288,40 @@ export async function requestReview(input, token, options = {}) {
   const summary = [...lastFailure]
     .map(([id, reason]) => `${id}: ${reason}`)
     .join("; ");
-  throw new Error(`Requesting AI review failed on every model (${summary})`);
+  throw new ReviewUnavailableError(
+    `Requesting AI review failed on every model (${summary})`,
+  );
 }
 
-async function findExistingComment(repository, pullNumber, token) {
+// A complete outage of the free endpoint is not a defect in the pull request:
+// say so as a warning annotation and in the job summary, and let the check pass.
+// Rejected credentials and GitHub API errors still fail the job.
+function reportUnavailable(message) {
+  const text = `AI review skipped, no model answered: ${message}. Re-run the job to retry.`;
+  const annotation = text
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+  console.log(`::warning title=AI review unavailable::${annotation}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      appendFileSync(
+        process.env.GITHUB_STEP_SUMMARY,
+        `### AI review unavailable\n\n${text}\n`,
+      );
+    } catch {
+      // Best effort: the warning annotation above already carries the message.
+    }
+  }
+}
+
+async function findExistingComment(repository, pullNumber, token, fetchImpl) {
   for (let page = 1; ; page += 1) {
     const response = await checkedFetch(
       `${GITHUB_API}/repos/${repository}/issues/${pullNumber}/comments?per_page=100&page=${page}`,
       { headers: githubHeaders(token) },
       "Listing pull-request comments",
+      fetchImpl,
     );
     const comments = await response.json();
     const existing = comments.find(
@@ -286,8 +335,19 @@ async function findExistingComment(repository, pullNumber, token) {
   }
 }
 
-async function upsertReviewComment(repository, pullNumber, body, token) {
-  const commentId = await findExistingComment(repository, pullNumber, token);
+async function upsertReviewComment(
+  repository,
+  pullNumber,
+  body,
+  token,
+  fetchImpl,
+) {
+  const commentId = await findExistingComment(
+    repository,
+    pullNumber,
+    token,
+    fetchImpl,
+  );
   const target = commentId
     ? `${GITHUB_API}/repos/${repository}/issues/comments/${commentId}`
     : `${GITHUB_API}/repos/${repository}/issues/${pullNumber}/comments`;
@@ -303,10 +363,12 @@ async function upsertReviewComment(repository, pullNumber, body, token) {
       body: JSON.stringify({ body }),
     },
     commentId ? "Updating AI review comment" : "Creating AI review comment",
+    fetchImpl,
   );
 }
 
-export async function runReview() {
+export async function runReview(options = {}) {
+  const { fetchImpl = fetch, review: reviewOptions = {} } = options;
   const repository = requiredEnvironment("GITHUB_REPOSITORY");
   const githubToken = requiredEnvironment("GITHUB_TOKEN");
   const nvidiaToken = requiredEnvironment("NVIDIA_API_KEY");
@@ -319,14 +381,30 @@ export async function runReview() {
     throw new Error("PR_NUMBER must be a positive integer");
   }
 
-  const diff = await fetchPullRequestDiff(repository, pullNumber, githubToken);
+  const diff = await fetchPullRequestDiff(
+    repository,
+    pullNumber,
+    githubToken,
+    fetchImpl,
+  );
   const input = buildReviewInput(diff);
-  const { content, model } = await requestReview(input, nvidiaToken);
+  let result;
+  try {
+    result = await requestReview(input, nvidiaToken, {
+      fetchImpl,
+      ...reviewOptions,
+    });
+  } catch (error) {
+    if (!(error instanceof ReviewUnavailableError)) throw error;
+    reportUnavailable(error.message);
+    return;
+  }
   await upsertReviewComment(
     repository,
     pullNumber,
-    formatReviewComment(content, model),
+    formatReviewComment(result.content, result.model),
     githubToken,
+    fetchImpl,
   );
 
   console.log(

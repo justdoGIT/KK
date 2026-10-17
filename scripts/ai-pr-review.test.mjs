@@ -1,12 +1,14 @@
 import { Buffer } from "node:buffer";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MAX_COMMENT_BYTES,
   REVIEW_MARKER,
   REVIEW_MODELS,
+  ReviewUnavailableError,
   buildReviewInput,
   formatReviewComment,
   requestReview,
+  runReview,
 } from "./ai-pr-review.mjs";
 
 describe("AI pull-request review boundaries", () => {
@@ -75,7 +77,8 @@ describe("AI review model fallback", () => {
       const id = JSON.parse(options.body).model;
       asked.push(id);
       const seen = asked.filter((asked_id) => asked_id === id).length;
-      const step = script[id][Math.min(seen, script[id].length) - 1];
+      const steps = script[id] ?? [failure(503)];
+      const step = steps[Math.min(seen, steps.length) - 1];
       if (step instanceof Error) throw step;
       return step;
     };
@@ -188,5 +191,116 @@ describe("AI review model fallback", () => {
     expect(fallback).toContain(`\`${secondary.id}\``);
     expect(fallback).toContain(`fallback: ${primary.id} was unavailable`);
     expect(normal).not.toContain("fallback");
+  });
+
+  it("uses the third model when the first two keep failing", async () => {
+    const third = REVIEW_MODELS[2];
+    const run = scripted({
+      [primary.id]: [failure(503)],
+      [secondary.id]: [failure(503)],
+      [third.id]: [answer("Finding: w")],
+    });
+
+    await expect(run.result()).resolves.toMatchObject({ model: third.id });
+    expect(run.asked).toEqual([
+      primary.id,
+      primary.id,
+      secondary.id,
+      secondary.id,
+      third.id,
+    ]);
+  });
+
+  it("asks the reasoning models for an answer without a thinking phase", async () => {
+    const bodies = {};
+    const fetchImpl = async (_url, options) => {
+      const body = JSON.parse(options.body);
+      bodies[body.model] = body;
+      return failure(503);
+    };
+
+    await requestReview(input, "key", { fetchImpl, sleep: async () => {} }).catch(
+      () => {},
+    );
+
+    const noThinking = { enable_thinking: false };
+    expect(bodies[secondary.id].chat_template_kwargs).toEqual(noThinking);
+    expect(bodies[REVIEW_MODELS[2].id].chat_template_kwargs).toEqual(noThinking);
+    expect(bodies[primary.id].chat_template_kwargs).toBeUndefined();
+  });
+
+  it("tells an outage apart from a rejected key", async () => {
+    const outage = await scripted({}).result().catch((error) => error);
+    const rejected = await scripted({ [primary.id]: [failure(401)] })
+      .result()
+      .catch((error) => error);
+
+    expect(outage).toBeInstanceOf(ReviewUnavailableError);
+    expect(rejected).not.toBeInstanceOf(ReviewUnavailableError);
+    expect(rejected.status).toBe(401);
+  });
+});
+
+describe("AI review job outcome", () => {
+  const reviewEnv = {
+    GITHUB_REPOSITORY: "owner/repo",
+    GITHUB_TOKEN: "github-token",
+    NVIDIA_API_KEY: "nvidia-key",
+    PR_NUMBER: "7",
+  };
+
+  // Serves the pull-request diff from GitHub and answers every NVIDIA call with
+  // `nvidia`; records the URLs it was asked for.
+  function job(nvidia) {
+    const urls = [];
+    const fetchImpl = async (url) => {
+      urls.push(String(url));
+      if (new URL(String(url)).hostname === "api.github.com") {
+        return { ok: true, status: 200, text: async () => "diff --git a/x b/x" };
+      }
+      return nvidia;
+    };
+    return { urls, fetchImpl };
+  }
+
+  beforeEach(() => {
+    for (const [name, value] of Object.entries(reviewEnv)) vi.stubEnv(name, value);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("warns and passes when no model answers, without posting a comment", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const run = job({ ok: false, status: 503 });
+
+    await expect(
+      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
+    ).resolves.toBeUndefined();
+
+    expect(log.mock.calls.flat().join("\n")).toContain(
+      "::warning title=AI review unavailable::",
+    );
+    expect(run.urls.some((url) => url.includes("/comments"))).toBe(false);
+  });
+
+  it("passes even when the job summary file cannot be written", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.stubEnv("GITHUB_STEP_SUMMARY", "/nonexistent-directory/summary.md");
+    const run = job({ ok: false, status: 503 });
+
+    await expect(
+      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("still fails the job when the NVIDIA key is rejected", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const run = job({ ok: false, status: 401 });
+
+    await expect(
+      runReview({ fetchImpl: run.fetchImpl, review: { sleep: async () => {} } }),
+    ).rejects.toThrow("failed with HTTP 401");
   });
 });

@@ -21,9 +21,14 @@ concurrency:
 
 jobs:
   ai-review:
+    # Dependabot pull requests are skipped: GitHub gives their workflow runs a
+    # restricted token, so the review could not post its comment (PR 58 failed
+    # with 403), and a dependency bump has no code of ours to review. A manual
+    # run (workflow_dispatch) can still review any pull request.
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.draft == false
+      (github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
