@@ -2,6 +2,8 @@
 
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
 
+**Live site:** https://justdogit.github.io/KK
+
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 
 ## Quick start
