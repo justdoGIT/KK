@@ -10,4 +10,4 @@ on:
 jobs:
   semgrep:
     runs-on: ci-standard
-    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@b7079eb3579ae146ae67b4faa3d29e1700011daa
+    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@32f561f73ed7bfbac574ea6c4d0ba7a7a0a60601
