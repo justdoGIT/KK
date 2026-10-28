@@ -48,4 +48,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-        run: node scripts/ai-pr-review.mjs
+        run: |
+          if [ "${GITHUB_SERVER_URL:-}" != "https://github.com" ]; then
+            echo "Skipping GitHub-only AI review on ${GITHUB_SERVER_URL:-unknown server}."
+            exit 0
+          fi
+          node scripts/ai-pr-review.mjs
