@@ -14,8 +14,8 @@ on:
 jobs:
   performance:
     runs-on: ci-rust
-    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-performance.yml@6c42ef1d2066b2d0ac37743c3bc00bbfad0b5222
+    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-performance.yml@83ac654c9b72024842eb7ea1163a3c403acf90d4
     with:
       runner_label: ci-rust
-      templates_ref: 6c42ef1d2066b2d0ac37743c3bc00bbfad0b5222
+      templates_ref: 83ac654c9b72024842eb7ea1163a3c403acf90d4
       seed_baseline: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_baseline }}
