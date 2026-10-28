@@ -1,0 +1,12 @@
+name: Code Scan
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '47 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    uses: http://lenovo.local:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@9bf9ceb455ca0d4e577d87d4974cabc1d67d7e74

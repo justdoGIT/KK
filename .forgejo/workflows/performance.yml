@@ -1,0 +1,19 @@
+name: Performance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      seed_baseline:
+        description: Seed the performance baseline
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  performance:
+    uses: http://lenovo.local:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-performance.yml@9bf9ceb455ca0d4e577d87d4974cabc1d67d7e74
+    with:
+      templates_ref: 9bf9ceb455ca0d4e577d87d4974cabc1d67d7e74
+      seed_baseline: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_baseline }}
