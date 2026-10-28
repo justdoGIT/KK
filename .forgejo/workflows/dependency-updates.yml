@@ -13,6 +13,6 @@ on:
 
 jobs:
   update:
-    uses: http://lenovo.local:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-dependency-updates.yml@d6783383d1d566ff6ea0b803a869bb5766e81c78
+    uses: http://lenovo.local:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-dependency-updates.yml@adc59dff91d1749cf4d66c58581ad37fb175bc1b
     with:
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
