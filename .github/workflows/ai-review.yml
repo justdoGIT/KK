@@ -21,7 +21,10 @@ concurrency:
 
 jobs:
   ai-review:
-    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false) }}
+    if: >-
+      startsWith(github.event.repository.url, 'https://api.github.com/') &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 8
     permissions:
@@ -46,8 +49,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
         run: |
-          if [ "${GITHUB_SERVER_URL:-}" != "https://github.com" ]; then
-            echo "Skipping GitHub-only AI review on ${GITHUB_SERVER_URL:-unknown server}."
+          if [ "${{ github.event.repository.url }}" != "https://api.github.com/repos/${{ github.repository }}" ]; then
+            echo "Skipping GitHub-only AI review on non-GitHub server."
             exit 0
           fi
           node scripts/ai-pr-review.mjs
