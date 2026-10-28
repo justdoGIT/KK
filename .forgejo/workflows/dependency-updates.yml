@@ -1,12 +1,12 @@
-name: Dependency Updates
+name: Dependency updates
 
 on:
   schedule:
-    - cron: '27 4 * * 1'
+    - cron: "27 4 * * 1"
   workflow_dispatch:
     inputs:
       dry_run:
-        description: Run without applying dependency updates
+        description: Resolve updates without creating pull requests.
         required: false
         type: boolean
         default: true
