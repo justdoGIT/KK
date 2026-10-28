@@ -21,10 +21,7 @@ concurrency:
 
 jobs:
   ai-review:
-    if: >-
-      github.server_url == 'https://github.com' &&
-      (github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.draft == false)
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false) }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     permissions:
