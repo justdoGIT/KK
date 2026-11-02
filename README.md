@@ -34,7 +34,7 @@ after leaving draft state. The gate rejects moderate-or-higher dependency risk,
 runs the Chromium runtime and smoke suites serially, and retains browser
 artifacts on failure.
 
-`.github/workflows/ai-review.yml` sends at most 16,000 characters from every
+The AI reviewer is GitHub-only; Forgejo reviews use the shared workflow. `.github/workflows/ai-review.yml` sends at most 16,000 characters from every
 non-draft pull-request diff, including forks, to the free
 `nvidia/nemotron-3-ultra-550b-a55b` model (550B-parameter MoE) through
 NVIDIA's free inference-credit API. That diff cap is the largest size this
