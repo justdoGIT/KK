@@ -11,7 +11,7 @@ import "../../styles/services-throw.css";
 
 // Viewport height of scroll spent per thrown card.
 const SCROLL_PER_CARD_VH = 95;
-const THROW_QUERY = "(min-width: 1024px) and (min-height: 700px)";
+const THROW_QUERY = "(min-width: 1024px) and (min-height: 720px)";
 
 function ServiceCardBody({ service, index }: { service: Service; index: number }): JSX.Element {
   return (
@@ -154,7 +154,7 @@ export function Services(): JSX.Element {
     const card = cardRefs.current[index];
     if (card) {
       const rect = card.getBoundingClientRect();
-      scrollToY(rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2);
+      scrollToY(rect.top + window.scrollY - Math.max(72, (window.innerHeight - rect.height) / 2));
     }
   };
 

@@ -21,16 +21,19 @@ concurrency:
 
 jobs:
   ai-review:
+    # Dependabot pull requests are skipped: GitHub gives their workflow runs a
+    # restricted token, so the review could not post its comment (PR 58 failed
+    # with 403), and a dependency bump has no code of ours to review. A manual
+    # run (workflow_dispatch) can still review any pull request.
     if: >-
-      github.server_url == 'https://github.com' &&
-      (github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.draft == false)
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     permissions:
       contents: read
-      pull-requests: read
-      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,15 +45,15 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Review changed code with NVIDIA Nemotron Ultra
+      # Every provider whose secret exists is used, in the order of REVIEW_MODELS
+      # in scripts/ai-pr-review.mjs; an unset secret just skips that provider.
+      - name: Review changed code with free-tier models
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-        run: |
-          if [ "${{ github.event.repository.url }}" != "https://api.github.com/repos/${{ github.repository }}" ]; then
-            echo "Skipping GitHub-only AI review on non-GitHub server."
-            exit 0
-          fi
-          node scripts/ai-pr-review.mjs
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: node scripts/ai-pr-review.mjs

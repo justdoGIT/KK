@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, JSX, PointerEvent, ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { checkWebGL } from "../../scene/useCapability.ts";
 import type { JourneyClock } from "../../scene/astronaut/journey-clock.ts";
 import { createFinaleClock } from "../../scene/astronaut/journey-clock.ts";
@@ -63,6 +64,12 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
     [],
   );
   const { near, active } = useJourneyDriver(els);
+  // On phones and short screens the card cannot be shown at readable size
+  // inside the pinned stage: fitting it to the stage height scaled it to 0.54
+  // on an iPhone 13 (201px wide, 9px text, 32px buttons). Show the contact
+  // banner in normal page flow after the journey instead, as the other
+  // pinned sections do below 1024x720.
+  const flowContact = useMediaQuery("(max-width: 767px), (max-height: 719px)");
 
   const setInteraction = (interaction: ContactInteraction) => {
     const finale = clock.current.finale;
@@ -100,73 +107,83 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   };
 
   return (
-    <div
-      ref={section}
-      className="aj-section"
-      style={{ height: `${JOURNEY_VIEWPORTS * 100}vh` }}
-      aria-label="Mission launch sequence"
-      role="region"
-   >
-      <div ref={stage} className="aj-stage" data-phase="cardShow">
-        <div ref={backdrop} className="aj-backdrop" aria-hidden="true" />
-        <div ref={theme} className="aj-theme" aria-hidden="true" />
-        <div ref={world} className="aj-layer aj-world" aria-hidden="true">
-          {near ? (
-            <Suspense fallback={null}>
-              <WorldCanvas clock={clock} active={active} onAvailabilityChange={setWorldReady} />
-            </Suspense>
-          ) : null}
-        </div>
-        <div ref={cardEdge} className="aj-card-edge" aria-hidden="true" />
-        <div ref={bezel} className="aj-bezel" aria-hidden="true" />
-        <div ref={intro} className="aj-intro">
-          <span className="aj-kicker">Mission control</span>
-          <p className="aj-intro-title">Where embedded ideas become immersive missions</p>
-        </div>
-        <div ref={hero} className="aj-layer aj-hero" aria-hidden="true">
-          {near ? (
-            <Suspense fallback={null}>
-              <HeroCanvas clock={clock} active={active} onAvailabilityChange={setHeroReady} />
-            </Suspense>
-          ) : null}
-          <AstronautStandbyArtwork idPrefix="journey-standby" visible={!worldReady || !heroReady} />
-        </div>
-        {children ? (
-          <div
-            ref={contact}
-            className="contact-banner contact-banner--animated"
-            data-astronaut-mode="landing"
-            data-finale-progress="0"
-            onPointerMove={onPointerMove}
-            onPointerLeave={onPointerLeave}
-            onPointerDown={onPointerDown}
-            onFocus={onFocus}
-            onBlur={onBlur}
-          >
-            <div className="contact-banner-stage">
-              <h2 ref={contactHeading} className="contact-journey-heading">
-                Let’s <span className="contact-heading-innovate">innovate</span> together
-              </h2>
-              <div ref={contactMover} className="contact-banner-mover">
-                <div className="contact-card">{children}</div>
+    <>
+      <div
+        ref={section}
+        className="aj-section"
+        style={{ height: `${JOURNEY_VIEWPORTS * 100}vh` }}
+        aria-label="Mission launch sequence"
+        role="region"
+     >
+        <div ref={stage} className="aj-stage" data-phase="cardShow">
+          <div ref={backdrop} className="aj-backdrop" aria-hidden="true" />
+          <div ref={theme} className="aj-theme" aria-hidden="true" />
+          <div ref={world} className="aj-layer aj-world" aria-hidden="true">
+            {near ? (
+              <Suspense fallback={null}>
+                <WorldCanvas clock={clock} active={active} onAvailabilityChange={setWorldReady} />
+              </Suspense>
+            ) : null}
+          </div>
+          <div ref={cardEdge} className="aj-card-edge" aria-hidden="true" />
+          <div ref={bezel} className="aj-bezel" aria-hidden="true" />
+          <div ref={intro} className="aj-intro">
+            <span className="aj-kicker">Mission control</span>
+            <p className="aj-intro-title">Where embedded ideas become immersive missions</p>
+          </div>
+          <div ref={hero} className="aj-layer aj-hero" aria-hidden="true">
+            {near ? (
+              <Suspense fallback={null}>
+                <HeroCanvas clock={clock} active={active} onAvailabilityChange={setHeroReady} />
+              </Suspense>
+            ) : null}
+            <AstronautStandbyArtwork idPrefix="journey-standby" visible={!worldReady || !heroReady} />
+          </div>
+          {children && !flowContact ? (
+            <div
+              ref={contact}
+              className="contact-banner contact-banner--animated"
+              data-astronaut-mode="landing"
+              data-finale-progress="0"
+              onPointerMove={onPointerMove}
+              onPointerLeave={onPointerLeave}
+              onPointerDown={onPointerDown}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            >
+              <div className="contact-banner-stage">
+                <h2 ref={contactHeading} className="contact-journey-heading">
+                  Let’s <span className="contact-heading-innovate">innovate</span> together
+                </h2>
+                <div ref={contactMover} className="contact-banner-mover">
+                  <div className="contact-card">{children}</div>
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
-        <p className="aj-title">
-          {TITLE_LINES.map((line, i) => (
-            <span
-              key={line}
-              ref={(el) => {
-                titleLines.current[i] = el;
-              }}
-            >
-              {line}
-            </span>
-          ))}
-        </p>
+          ) : null}
+          <p className="aj-title">
+            {TITLE_LINES.map((line, i) => (
+              <span
+                key={line}
+                ref={(el) => {
+                  titleLines.current[i] = el;
+                }}
+              >
+                {line}
+              </span>
+            ))}
+          </p>
+        </div>
       </div>
-    </div>
+    {children && flowContact ? (
+      <div className="contact-banner contact-banner--static aj-contact-flow">
+        <h2 className="contact-journey-heading">
+          Let’s <span className="contact-heading-innovate">innovate</span> together
+        </h2>
+        <div className="contact-card">{children}</div>
+      </div>
+    ) : null}
+    </>
   );
 }
 

@@ -48,6 +48,9 @@ jobs:
       - name: Review runtime behavior
         run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts --workers=1
 
+      - name: Review phone and short-screen layout
+        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1
+
       - name: Upload browser review failures
         if: failure()
         uses: actions/upload-artifact@v4

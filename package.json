@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "vitest bench --run",
     "validate:publication": "node scripts/validate-publication.mjs",
     "test:e2e": "env -u NO_COLOR playwright test"
   },
@@ -29,6 +30,7 @@
     "three": "0.186.0"
   },
   "devDependencies": {
+    "@codspeed/vitest-plugin": "6.1.0",
     "@eslint/js": "9.15.0",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",

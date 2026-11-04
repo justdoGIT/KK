@@ -4,6 +4,7 @@
 @import "./astronaut-journey.css";
 @import "./contact-banner.css";
 @import "./metrics-dice.css";
+@import "./mobile.css";
 
 /*
  * Dark editorial palette.
@@ -36,25 +37,47 @@
   padding: 0;
 }
 
+/*
+ * 100vh is the viewport with the browser toolbar retracted on iOS and Android,
+ * so a stage that is 100vh tall is cut off at the bottom while the toolbar is
+ * showing. svh is the smallest viewport, which always fits. vh is the fallback
+ * for browsers without svh.
+ */
+:root {
+  --vh100: 100vh;
+}
+
+@supports (height: 100svh) {
+  :root {
+    --vh100: 100svh;
+  }
+}
+
 html {
   font-size: 16px;
   scroll-behavior: auto;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Decorative layers (backdrops, scattered letters) extend past the viewport.
+     clip, unlike hidden, adds no scroll container, so sticky stages still work. */
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--color-bg);
   color: var(--color-fg);
-  min-height: 100vh;
+  min-height: var(--vh100);
   line-height: 1.6;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: var(--vh100);
 }
 
 /* Skip link */
@@ -82,7 +105,7 @@ body {
   background: rgba(10, 10, 11, 0.8);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-surface-border);
-  padding: 0 1.5rem;
+  padding: 0 max(1.5rem, env(safe-area-inset-right)) 0 max(1.5rem, env(safe-area-inset-left));
   height: 3.5rem;
   display: flex;
   align-items: center;

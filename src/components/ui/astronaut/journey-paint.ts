@@ -67,7 +67,7 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   // settled scale just enough to keep the card's bottom edge inside the
   // pinned stage instead of being clipped by `.contact-banner`'s overflow.
   const fitScale = layout.moverHeight > 0
-    ? Math.max(0.55, Math.min(1, (height - layout.moverTop - 24) / layout.moverHeight))
+    ? Math.max(0.36, Math.min(1, (height - layout.moverTop - 24) / layout.moverHeight))
     : 1;
   const base = Math.min(layout.cssScale, fitScale);
   const baseDeckWidth = Math.max(1, layout.moverWidth * base);
@@ -76,6 +76,15 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   const shiftX = (STAND_AT - 0.5) * layout.moverWidth * (base - scale);
   const translatedY = frame.offset + frame.closeUp * (height * CLOSE_UP_DECK - layout.moverTop);
   const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
+  // On narrow screens the close-up zoom scales the card and finale heading
+  // wider than the viewport, so their text would render half off-screen while
+  // the camera pulls back. Hold them invisible until the zoom lands and fade
+  // them again just before the stage unpins, so they never slide under the
+  // sticky nav as the section ends. Desktop text fits at every zoom step and
+  // the desktop card sits clear of the nav, so the original timing stays.
+  const settledGate = width < 1024
+    ? smoothstep(ZOOM_OUT_END, ZOOM_OUT_END + 0.05, progress) * (1 - smoothstep(0.94, 1, progress))
+    : 1;
 
   // Card rect for this frame, derived from the same scale/shift values as the
   // mover transform below (transform-origin top-centre, centred by margin).
@@ -104,19 +113,25 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
     delete mover.dataset.settled;
   }
   mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
-  mover.style.opacity = attach.toFixed(3);
-  mover.style.visibility = attach > 0.001 ? "visible" : "hidden";
+  mover.style.opacity = (attach * settledGate).toFixed(3);
+  mover.style.visibility = attach * settledGate > 0.001 ? "visible" : "hidden";
 
   // The close-up heading sits beside the astronaut; as the card settles it
   // glides over the card's right two thirds (the astronaut owns the left
   // third), or the card's centre when it is too wide for that, and never past
   // the card's right edge.
-  const settledCentre = layout.headingWidth > cardWidth * 0.68
+  let settledCentre = layout.headingWidth > cardWidth * 0.68
     ? cardLeft + cardWidth / 2
     : Math.min(cardLeft + cardWidth * HEADING_ON_CARD, cardLeft + cardWidth - layout.headingWidth / 2 - 8);
+  // Keep the heading's centre inside the stage so a wide finale heading can
+  // never hang past the screen's left or right edge on narrow viewports.
+  const minCentre = layout.headingWidth / 2 + 8;
+  const maxCentre = width - layout.headingWidth / 2 - 8;
+  settledCentre = Math.max(minCentre, Math.min(maxCentre, settledCentre));
   const shift = (1 - frame.closeUp) * (settledCentre - layout.headingCentre);
-  heading.style.opacity = frame.heading.toFixed(3);
-  heading.style.visibility = frame.heading > 0.001 ? "visible" : "hidden";
+  const headingReveal = frame.heading * settledGate;
+  heading.style.opacity = headingReveal.toFixed(3);
+  heading.style.visibility = headingReveal > 0.001 ? "visible" : "hidden";
   heading.style.transform = `translate3d(calc(-50% + ${shift.toFixed(1)}px), ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`;
 }
 
@@ -193,8 +208,12 @@ export function paintJourney(els: JourneyElements, layout: JourneyLayout, t: num
   const intro = els.intro.current;
   if (intro) {
     const fade = smoothstep(0, 0.4, frameIn);
+    // Keep the intro below the sticky nav while it fades out: cap the upward
+    // drift to the room between the intro's rest position and the nav bar.
+    const introTop = Math.max(80, height * 0.11);
+    const drift = Math.max(0, Math.min(60, introTop - layout.navBottom - 16));
     intro.style.opacity = (1 - fade).toFixed(3);
-    intro.style.transform = `translate3d(0, ${(-60 * fade).toFixed(1)}px, 0)`;
+    intro.style.transform = `translate3d(0, ${(-drift * fade).toFixed(1)}px, 0)`;
   }
 
   const title = phaseRatio(t, "title");

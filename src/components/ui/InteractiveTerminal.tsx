@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, type CSSProperties, type JSX } from "react";
 import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 import { TERMINAL_COMMANDS } from "../../content/terminal.ts";
@@ -18,7 +19,9 @@ const INITIAL_REVEAL_STYLE: CSSProperties = {
 };
 
 export function InteractiveTerminal(): JSX.Element {
-  const enhanced = useMotionMode() === "enhanced";
+  const motionMode = useMotionMode();
+  const desktopStage = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
+  const enhanced = motionMode === "enhanced" && desktopStage;
   const [activeCmdIdx, setActiveCmdIdx] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -122,7 +125,7 @@ export function InteractiveTerminal(): JSX.Element {
   const visibleOutput = enhanced ? activeCommand.output.slice(0, visibleLineCount) : activeCommand.output;
 
   return (
-    <div ref={sectionRef} className="terminal-scroll-section" style={enhanced ? { height: `${TOTAL_SCROLL * 100}vh` } : undefined}>
+    <div ref={sectionRef} className={`terminal-scroll-section${enhanced ? "" : " terminal-flow"}`} style={enhanced ? { height: `${TOTAL_SCROLL * 100}vh` } : undefined}>
       <div className="terminal-sticky-stage">
         <div className="section-header terminal-pinned-heading">
           <LusionKineticHeading
@@ -153,6 +156,7 @@ export function InteractiveTerminal(): JSX.Element {
                     type="button"
                     role="tab"
                     aria-selected={activeCmdIdx === idx}
+                    aria-label={cmd.tabTitle}
                     className={`terminal-tab ${activeCmdIdx === idx ? "tab-active" : ""}`}
                     onClick={() => handleTabClick(idx)}
                   >
@@ -200,7 +204,7 @@ export function InteractiveTerminal(): JSX.Element {
               </div>
             ) : (
               <>
-                <div className="terminal-body" tabIndex={0} aria-label="Interactive developer console">
+                <div className="terminal-body" tabIndex={0} aria-label="Interactive developer console" data-lenis-prevent={!enhanced || undefined}>
                   <div className="terminal-system-banner">
                     <span>Kamal Pandey -- Staff Embedded Architect Environment [Void Linux x86_64 / AArch64]</span>
                     <span className="banner-uptime">UPTIME: 99.9% // KERNEL: 6.18.54_1</span>
