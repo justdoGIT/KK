@@ -1,0 +1,20 @@
+name: Validate feature push
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  validate:
+    uses: justdoGIT/ci-templates/.forgejo/workflows/reusable-validate.yml@36352c1fbfec21af9623af956f3a186aa976637a
+    with:
+      runner_label: ci-standard
+      validate_command: >-
+        npm ci &&
+        npm run typecheck &&
+        npm run lint &&
+        npm run build &&
+        npm test &&
+        npm run validate:publication &&
+        node scripts/immersive-kit.mjs validate
