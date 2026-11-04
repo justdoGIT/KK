@@ -4,6 +4,8 @@
 
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
 
+**Live site:** https://justdogit.github.io/KK
+
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 
 ## Quick start
@@ -86,6 +88,24 @@ node scripts/immersive-kit.mjs list
 node scripts/immersive-kit.mjs export \
   --bundle astronaut-journey,tooling --out ../immersive-export
 ```
+
+## Deployed baseline and preserved work
+
+The application baseline is the successful GitHub Pages deployment of
+`08829666c96e93c53289de234f635cfe0620ded3`. Reconciliation retains that
+application, dependency lockfile, tests, assets, and deployment configuration;
+intermediate implementations must not replace the deployed experience.
+
+Earlier work remains available in these GitHub archive branches:
+
+- `archive/forgejo-main-20261104`: Forgejo automation and its full history.
+- `archive/readme-live-link-20261104`: the original live-site README change.
+- `archive/validation-workflows-20261104`: validation-only worktree workflows.
+- `archive/vite-upgrade-20261104`: the unapplied Vite dependency upgrade.
+
+The Forgejo and validation histories are consolidated without activating their
+intermediate workflows. The Vite upgrade remains separate in PR #64 for later
+evaluation; it is not claimed as applied to this baseline.
 
 ## Publication identity
 

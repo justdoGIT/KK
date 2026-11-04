@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, type CSSProperties, type JSX } from "react";
 import { services, type Service } from "../../content/services.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
@@ -77,11 +77,40 @@ function ServiceCardBody({ service, index }: { service: Service; index: number }
 export function Services(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
   const wide = useMediaQuery(THROW_QUERY);
-  const throwMode = enhanced && wide;
+  const [cardsFit, setCardsFit] = useState(true);
+  const throwMode = enhanced && wide && cardsFit;
   const [activeCard, setActiveCard] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   useGuidedScroll(sectionRef, throwMode, { target: 0.94, seconds: 20 });
+
+  // A viewport breakpoint alone cannot account for wrapped chips and deliverables.
+  // If any card exceeds the pinned budget, let every card grow in page flow.
+  useLayoutEffect(() => {
+    if (!throwMode) return;
+    let active = true;
+    const measure = () => {
+      if (active && cardRefs.current.some((card) => card && card.scrollHeight > card.clientHeight + 1)) {
+        setCardsFit(false);
+      }
+    };
+    const observer = new ResizeObserver(measure);
+    cardRefs.current.forEach((card) => {
+      if (card) observer.observe(card);
+    });
+    measure();
+    void document.fonts.ready.then(measure);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [throwMode]);
+
+  useEffect(() => {
+    const retryFit = () => setCardsFit(true);
+    window.addEventListener("resize", retryFit);
+    return () => window.removeEventListener("resize", retryFit);
+  }, []);
 
   // Stacked layout: the most visible card is the active tab.
   useEffect(() => {
@@ -162,7 +191,7 @@ export function Services(): JSX.Element {
     <section
       ref={sectionRef}
       aria-label="Services"
-      className={`services-section${throwMode ? " services-throw" : ""}`}
+      className={`services-section${throwMode ? " services-throw" : enhanced && wide && !cardsFit ? " services-readable" : ""}`}
       id="services"
       style={throwMode ? { height: `${services.length * SCROLL_PER_CARD_VH + 100}vh` } : undefined}
     >

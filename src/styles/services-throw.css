@@ -57,3 +57,12 @@
   .services-throw .service-card-watermark { font-size: 1.6rem; }
 }
 
+/* Content that cannot fit the pinned stage keeps its natural card height. */
+.services-readable .service-card-deck-item {
+  position: static;
+  scroll-margin-top: 4.5rem;
+}
+.services-section.services-readable .services-deck-container .service-card-deck-item > * {
+  opacity: 1;
+}
+
