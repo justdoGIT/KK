@@ -71,10 +71,10 @@ export function SceneCanvas(): JSX.Element | null {
         }}
         style={{ position: "absolute", inset: 0 }}
       >
-        <SchedulerFrames active={active} />
         {monitor}
         <Suspense fallback={null}>
           <SceneContent />
+          <SchedulerFrames active={active} />
         </Suspense>
       </Canvas>
     </div>

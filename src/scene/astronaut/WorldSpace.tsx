@@ -133,7 +133,7 @@ function buildStars(): BufferGeometry {
   return geometry;
 }
 
-export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
+export function WorldSpace({ clock, onAssetsReady }: { clock: JourneyClockRef; onAssetsReady: () => void }): JSX.Element {
   const earthGroup = useRef<Group>(null);
   const starsRef = useRef<Points>(null);
   const haloRef = useRef<Mesh>(null);
@@ -195,6 +195,10 @@ export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
     const loader = new TextureLoader();
     const owned: Texture[] = [];
     let alive = true;
+    let pending = 2;
+    const settled = () => {
+      if (alive && --pending === 0) onAssetsReady();
+    };
     const load = (url: string, apply: (texture: Texture) => void) => {
       loader.load(url, (texture) => {
         if (!alive) {
@@ -207,7 +211,8 @@ export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
         texture.anisotropy = 4;
         owned.push(texture);
         apply(texture);
-      });
+        settled();
+      }, undefined, settled);
     };
     load(`${import.meta.env.BASE_URL}textures/earth-day-2048.jpg`, (texture) => {
       kit.earth.uniforms.uDayMap.value = texture;
@@ -222,7 +227,7 @@ export function WorldSpace({ clock }: { clock: JourneyClockRef }): JSX.Element {
       alive = false;
       for (const texture of owned) texture.dispose();
     };
-  }, [kit]);
+  }, [kit, onAssetsReady]);
 
   useFrame((state) => {
     const { t } = clock.current;

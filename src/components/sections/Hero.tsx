@@ -1,7 +1,10 @@
 import { useState, type JSX, type PointerEvent } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { InteractionHint } from "../ui/InteractionHint.tsx";
+import { useMotionMode } from "../../motion/use-motion-mode.ts";
 
 export function Hero(): JSX.Element {
+  const enhanced = useMotionMode() === "enhanced";
   const [headingHoverPos, setHeadingHoverPos] = useState<{ x: number; y: number } | null>(null);
 
   const handleHeadingMove = (e: PointerEvent<HTMLHeadingElement>) => {
@@ -79,6 +82,10 @@ export function Hero(): JSX.Element {
             <span>Robotics &amp; Actuators</span>
             <span>Edge AI &amp; NPU Acceleration</span>
           </div>
+          {enhanced ? <InteractionHint className="hero-tour-hint"
+            pointer="Take your time. The tour pauses to let you read. Scroll or click to take control; resume beneath my name."
+            touch="Take your time. The tour reads through every board. Touch to pause; resume in the header." />
+            : <p className="interaction-hint hero-tour-hint">Explore at your own pace, or start the reading tour in the header.</p>}
         </div>
 
         {/* Bottom Technical Coordinate Watermark */}

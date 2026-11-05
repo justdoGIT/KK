@@ -25,7 +25,7 @@ export function ColdSiliconBringupStage({ active }: ColdSiliconBringupStageProps
       return;
     }
     groupRef.current.scale.lerp(scaleTarget.set(1, 1, 1), Math.min(1, delta * 4.0));
-    const time = state.clock.getElapsedTime();
+    const time = state.clock.elapsedTime;
 
     // Cascading PMIC Power Rail pulse wave (3.3V -> 1.8V -> 0.85V Core)
     if (powerPulseRef.current) {

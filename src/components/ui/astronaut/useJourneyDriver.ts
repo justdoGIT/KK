@@ -67,10 +67,11 @@ function measure(els: JourneyElements, layout: JourneyLayout): void {
  * write phase paints every DOM layer and the clock the canvases render from.
  * Returns whether the section is near (mount canvases) and on screen (render).
  */
-export function useJourneyDriver(els: JourneyElements): { near: boolean; active: boolean } {
+export function useJourneyDriver(els: JourneyElements, ready: boolean): { near: boolean; active: boolean; worldActive: boolean } {
   const [near, setNear] = useState(false);
   const [active, setActive] = useState(false);
-  useGuidedScroll(els.section, near, { target: CRUISE_TARGET, seconds: CRUISE_SECONDS });
+  const [worldNeeded, setWorldNeeded] = useState(true);
+  useGuidedScroll(els.section, near && ready, { target: CRUISE_TARGET, seconds: CRUISE_SECONDS });
 
   useEffect(() => {
     const section = els.section.current;
@@ -109,6 +110,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
     let target = 0;
     let painted = -1;
     let appliedClearance = -1;
+    let previousWorldNeeded: boolean | undefined;
 
     const invalidate = () => {
       dirty = true;
@@ -126,7 +128,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
         painted = -1;
       }
       const scrolled = (getLenis()?.scroll ?? window.scrollY) - layout.sectionTop;
-      target = layout.scrollable > 0 ? clamp01(scrolled / layout.scrollable) : 0;
+      target = ready && layout.scrollable > 0 ? clamp01(scrolled / layout.scrollable) : 0;
     });
     const stopWrite = onFrame("write", (time) => {
       if (appliedClearance !== layout.headingClearance) {
@@ -138,6 +140,11 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
         return;
       }
       const clock = els.clock.current;
+      const needsWorld = phaseRatio(target, "drop") < 1;
+      if (needsWorld !== previousWorldNeeded) {
+        setWorldNeeded(needsWorld);
+        previousWorldNeeded = needsWorld;
+      }
       clock.t = target;
       clock.width = layout.width;
       clock.height = layout.height;
@@ -152,7 +159,7 @@ export function useJourneyDriver(els: JourneyElements): { near: boolean; active:
       resizeObserver.disconnect();
       window.removeEventListener("resize", invalidate);
     };
-  }, [near, els]);
+  }, [near, els, ready]);
 
-  return { near, active };
+  return { near, active, worldActive: active && worldNeeded };
 }

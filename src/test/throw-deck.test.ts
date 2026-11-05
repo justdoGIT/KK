@@ -38,15 +38,16 @@ describe("services throw deck", () => {
     expect(straight.transform).not.toMatch(/rotate/);
   });
 
-  it("keeps thrown cards stacked, each resting one step lower than the last", () => {
+  it("lands each card at its stack offset, then releases its text transform", () => {
     const restY = (i: number) => {
-      const t = throwPose(i, throwFrame(1, COUNT), COUNT).transform;
-      return t === "none" ? 0 : Number(/translate3d\(0, (-?[\d.]+)px/.exec(t)?.[1]);
+      const t = throwPose(i, i + 0.95, COUNT).transform;
+      return Number(/translate3d\(-?[\d.]+vw, (-?[\d.]+)px/.exec(t)?.[1]);
     };
     for (let i = 0; i < COUNT; i++) {
       const pose = throwPose(i, throwFrame(1, COUNT), COUNT);
       expect(pose.visible).toBe(true);
       expect(restY(i)).toBe(i * STACK_STEP_PX);
+      expect(pose.transform).toBe("none");
       // Only the top card shows its content; covered cards fade theirs.
       expect(pose.covered).toBe(i === COUNT - 1 ? 0 : 1);
     }
@@ -58,6 +59,12 @@ describe("services throw deck", () => {
       expect(frame).toBeCloseTo(i + 1, 6);
       expect(throwPose(i, frame, COUNT).settled).toBe(true);
     }
+  });
+
+  it("releases the transform when pixel-rounded scrolling stops just before landing", () => {
+    const pose = throwPose(2, 3 - 0.0005, COUNT);
+    expect(pose.settled).toBe(true);
+    expect(pose.transform).toBe("none");
   });
 
   it("ends the section with the last card straight, uncovered, and fully visible", () => {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { contactInfo } from "../../content/contact.ts";
+import { ReadingTourControl } from "./ReadingTourControl.tsx";
 
 const navItems = [
   { href: "#services", label: "Services" },
@@ -20,15 +21,6 @@ export function NavBar() {
   return (
     <header className="nav-bar" role="banner">
       <nav aria-label="Primary navigation" className="nav-inner">
-        <a
-          href="#main"
-          className="nav-brand"
-          aria-label="Home — Kamal Pandey"
-          onClick={closeMenu}
-        >
-          <span className="nav-brand-mark" aria-hidden="true">KP</span>
-          <span>Kamal Pandey</span>
-        </a>
         <button
           type="button"
           className="nav-menu-toggle"
@@ -39,6 +31,18 @@ export function NavBar() {
         >
           <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
         </button>
+        <div className="nav-identity">
+          <a
+            href="#main"
+            className="nav-brand"
+            aria-label="Home — Kamal Pandey"
+            onClick={closeMenu}
+          >
+            <span className="nav-brand-mark" aria-hidden="true">KP</span>
+            <span>Kamal Pandey</span>
+          </a>
+          <ReadingTourControl />
+        </div>
         <ul id="primary-menu" className={`nav-list ${menuOpen ? "nav-list-open" : ""}`}>
           {navItems.map((item) => (
             <li key={item.href}>
@@ -48,8 +52,10 @@ export function NavBar() {
             </li>
           ))}
         </ul>
-        <a href={`mailto:${contactInfo.email}`} className="nav-cta">
-          Start a conversation <span aria-hidden="true">↗</span>
+        <a href={`mailto:${contactInfo.email}`} className="nav-cta" aria-label="Start a conversation">
+          <span className="nav-cta-label">Start a conversation</span>
+          <span className="nav-cta-short" aria-hidden="true">Contact</span>
+          <span aria-hidden="true">↗</span>
         </a>
       </nav>
     </header>

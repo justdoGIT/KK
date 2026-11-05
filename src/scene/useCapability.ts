@@ -2,9 +2,9 @@
  * WebGL capability detection.
  * Returns true only when the browser supports WebGL and a context
  * can be created. Used to gate the scene chunk dynamic import.
- * The probe context is expensive to create repeatedly and each one leaks
- * until GC unless explicitly lost, so the result is cached at module scope
- * and the probe context is released immediately after checking.
+ * Cache the result so all scenes share one tiny, unreferenced probe. Forcing
+ * a context loss here emits a misleading graphics failure warning in Firefox.
+ * With no buffers/textures or retained references, the browser can collect it.
  */
 let webglSupported: boolean | null = null;
 
@@ -12,14 +12,13 @@ export function checkWebGL(): boolean {
   if (webglSupported !== null) return webglSupported;
   if (typeof window === "undefined") return false;
   const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
   const gl =
     canvas.getContext("webgl2") ??
     canvas.getContext("webgl") ??
     canvas.getContext("experimental-webgl");
   webglSupported = gl !== null;
-  if (gl && "getExtension" in gl) {
-    (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context")?.loseContext();
-  }
   return webglSupported;
 }
 

@@ -15,3 +15,10 @@ no other changes were made to the upstream designs.
 The BSD-3-Clause and Apache-2.0 notices of the upstream robot description
 packages apply to the derived meshes. Robot names are trademarks of their
 respective owners and are used here only to identify the source models.
+
+### Mission loading poster
+
+`public/images/mission-standby.webp` is a capture of this site's opening 3D
+mission scene, using the NASA astronaut and Earth artwork credited here and in
+`public/textures/CREDITS.md`. It is used while the live scene loads and when
+WebGL or animation is unavailable.

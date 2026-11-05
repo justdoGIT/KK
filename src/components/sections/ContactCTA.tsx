@@ -1,6 +1,7 @@
 import { useEffect, useRef, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 import { AstronautSpaceJourney } from "../ui/AstronautSpaceJourney.tsx";
+import { AstronautInvitation } from "../ui/InteractionHint.tsx";
 
 export function ContactCTA(): JSX.Element {
   const assurancesRef = useRef<HTMLDivElement>(null);
@@ -76,6 +77,7 @@ export function ContactCTA(): JSX.Element {
                 </a>
               </div>
 
+              <AstronautInvitation />
               {/* Client Assurance Invariants */}
               <div ref={assurancesRef} className="contact-assurances-grid" aria-label="Client service guarantees">
                 <div className="assurance-item">

@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import { onFrame } from "./frame.ts";
 import { cruiseTo, getLenis, stopCruise } from "./smooth-scroll.ts";
+import { tourOwnsMotion } from "./reading-tour-state.ts";
 
 // Guided playback for pinned, scroll-driven stories. When a visitor scrolls
 // down into one and stops, the story keeps playing forward at its authored
@@ -68,6 +69,7 @@ function takeOver(): void {
 
 /** Read phase, only while armed: once the page settles, play the pinned story it rests in. */
 function watch(_time: number, delta: number): void {
+  if (tourOwnsMotion()) { disarm(); return; }
   const now = performance.now();
   const lenis = getLenis();
   if (!lenis || lenis.isStopped) {
@@ -101,6 +103,7 @@ function watch(_time: number, delta: number): void {
 }
 
 function arm(): void {
+  if (tourOwnsMotion()) return;
   const now = performance.now();
   armedAt = now;
   observedScroll = getLenis()?.actualScroll ?? window.scrollY;
@@ -128,6 +131,12 @@ function onTouchStart(event: TouchEvent): void {
 
 function onTouchMove(event: TouchEvent): void {
   lastInputAt = performance.now();
+  // A gesture that began inside a native scroller stays there for its whole
+  // duration; later move events must not arm the page's guided playback.
+  if (touchStartY === null) {
+    disarm();
+    return;
+  }
   const y = event.touches.length === 1 ? (event.touches[0]?.clientY ?? null) : null;
   if (y === null || touchY === null) {
     disarm();

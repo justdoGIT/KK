@@ -29,7 +29,8 @@ for (const viewport of [
         const deliverable = card.locator(".service-deliv-pill").last();
         await deliverable.scrollIntoViewIfNeeded();
         await expect(deliverable).toBeVisible();
-        await expect(card).toHaveCSS("position", "static");
+        await expect(deliverable).toBeInViewport();
+        await expect(card).toHaveCSS("overflow-y", "visible");
         await expect(card.locator(".service-card-side")).toHaveCSS("opacity", "1");
       }
     }

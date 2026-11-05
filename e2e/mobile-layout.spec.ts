@@ -78,7 +78,11 @@ function probeLayout(): string[] {
     const rect = element.getBoundingClientRect();
     if (!shown(element, rect)) continue;
     const style = getComputedStyle(element);
-    const pinned = style.position === "sticky" || style.position === "fixed";
+    // Sticky content leaving its containing block scrolls under the nav like
+    // normal page content. Audit clipping only while it is at its pinned top.
+    const pinnedTop = parseFloat(style.top) || 0;
+    const pinned = style.position === "fixed" || (style.position === "sticky"
+      && pinnedTop >= 0 && Math.abs(rect.top - pinnedTop) <= 2);
     if (pinned && rect.height >= vh * 0.6 && rect.top <= 2 && rect.bottom > vh * 0.3) {
       stages.push({ element, rect });
     }

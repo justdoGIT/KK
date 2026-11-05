@@ -137,7 +137,7 @@ export function CardFrontContent({
 
       <div className="card-front-bottom">
         <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
-        <span className="card-footer-hint">CLICK DIAGRAM TO EXPAND</span>
+        <span className="card-footer-hint">SELECT DIAGRAM TO EXPAND</span>
       </div>
     </>
   );

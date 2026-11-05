@@ -6,6 +6,7 @@ import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 import { TERMINAL_COMMANDS } from "../../content/terminal.ts";
 import { REVEAL_FRACTION, terminalState, type TerminalState } from "./terminal-runner.ts";
+import { getReadingTour, subscribeReadingTour } from "../../motion/reading-tour-state.ts";
 
 const TOTAL_SCROLL = 5.5;
 
@@ -33,16 +34,23 @@ export function InteractiveTerminal(): JSX.Element {
 
   const sectionRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const manualOverrideRef = useRef(false);
-  const manualTimerRef = useRef<number | null>(null);
+  useEffect(() => subscribeReadingTour(() => {
+    if (getReadingTour().status !== "playing") return;
+    manualOverrideRef.current = false;
+    setIsMinimized(false);
+    setIsExpanded(false);
+  }), []);
   useGuidedScroll(sectionRef, enhanced, { target: 0.94, seconds: 12 });
 
   const activeCommand = TERMINAL_COMMANDS[activeCmdIdx];
   const scriptRef = useRef<TerminalState>({ cmdIndex: 0, typedChars: null, lines: 0 });
 
-  useEffect(() => () => {
-    clearTimeout(manualTimerRef.current ?? undefined);
-  }, []);
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (body) { body.scrollTop = 0; body.scrollLeft = 0; }
+  }, [activeCmdIdx]);
 
   // Scroll-linked reveal (opacity/transform/clipPath) is a continuous per-frame
   // value written straight to the wrapper's style — it never needs a React
@@ -64,7 +72,7 @@ export function InteractiveTerminal(): JSX.Element {
       const { raw, pop: popProgress } = progressRef.current;
 
       const wrapper = wrapperRef.current;
-      if (wrapper && !isMinimized) {
+      if (wrapper && !isMinimized && !isExpanded) {
         const invReveal = 1 - popProgress;
         if (popProgress >= 0.999) {
           wrapper.style.opacity = "1";
@@ -97,18 +105,21 @@ export function InteractiveTerminal(): JSX.Element {
   );
 
   const handleTabClick = (idx: number) => {
+    // Reading takes precedence over the scroll-driven demo until the next
+    // visit. Never replace a selected tab on a timer while it is being read.
     manualOverrideRef.current = true;
-    clearTimeout(manualTimerRef.current ?? undefined);
-
     setActiveCmdIdx(idx);
     setTypedText(TERMINAL_COMMANDS[idx].command);
     setIsTyping(false);
     setShowOutput(true);
     setVisibleLineCount(TERMINAL_COMMANDS[idx].output.length);
+    setCopyStatus("idle");
+    const body = bodyRef.current;
+    if (body) { body.scrollTop = 0; body.scrollLeft = 0; }
+  };
 
-    manualTimerRef.current = window.setTimeout(() => {
-      manualOverrideRef.current = false;
-    }, 4000);
+  const handleReadOutput = () => {
+    if (!manualOverrideRef.current) handleTabClick(activeCmdIdx);
   };
 
   const copyOutput = async () => {
@@ -123,6 +134,7 @@ export function InteractiveTerminal(): JSX.Element {
   };
 
   const visibleOutput = enhanced ? activeCommand.output.slice(0, visibleLineCount) : activeCommand.output;
+  const outputComplete = visibleOutput.length >= activeCommand.output.length && (!enhanced || showOutput);
 
   return (
     <div ref={sectionRef} className={`terminal-scroll-section${enhanced ? "" : " terminal-flow"}`} style={enhanced ? { height: `${TOTAL_SCROLL * 100}vh` } : undefined}>
@@ -145,22 +157,25 @@ export function InteractiveTerminal(): JSX.Element {
               <div className="terminal-window-buttons">
                 <button type="button" className="window-btn btn-close" onClick={() => setIsMinimized(true)} aria-label="Minimize terminal" />
                 <button type="button" className="window-btn btn-min" onClick={() => setIsMinimized((prev) => !prev)} aria-label="Minimize or restore terminal" />
-                <button type="button" className="window-btn btn-max" onClick={() => setIsExpanded((prev) => !prev)} aria-label="Expand terminal" />
+                <button type="button" className="window-btn btn-max" onClick={() => { handleReadOutput(); setIsExpanded((prev) => !prev); }} aria-label={isExpanded ? "Restore terminal size" : "Expand terminal"} aria-pressed={isExpanded} />
               </div>
 
               {/* Terminal Tabs */}
-              <div className="terminal-tabs-list" role="tablist">
+              <div className="terminal-tabs-list" role="tablist" aria-label="Toolchain consoles">
                 {TERMINAL_COMMANDS.map((cmd, idx) => (
                   <button
                     key={cmd.id}
                     type="button"
                     role="tab"
-                    aria-selected={activeCmdIdx === idx}
+                    id={`terminal-tab-${cmd.id}`}
                     aria-label={cmd.tabTitle}
+                    aria-controls="terminal-output-panel"
+                    aria-selected={activeCmdIdx === idx}
+                    title={cmd.description}
                     className={`terminal-tab ${activeCmdIdx === idx ? "tab-active" : ""}`}
                     onClick={() => handleTabClick(idx)}
                   >
-                    <span className="tab-icon">❯_</span>
+                    <span className="tab-icon" aria-hidden="true">❯_</span>
                     <span className="tab-index" aria-hidden="true">{String(idx + 1).padStart(2, "0")}</span>
                     <span className="tab-label">{cmd.tabTitle}</span>
                   </button>
@@ -204,42 +219,61 @@ export function InteractiveTerminal(): JSX.Element {
               </div>
             ) : (
               <>
-                <div className="terminal-body" tabIndex={0} aria-label="Interactive developer console" data-lenis-prevent={!enhanced || undefined}>
+                <div
+                  ref={bodyRef}
+                  id="terminal-output-panel"
+                  className="terminal-body"
+                  role="tabpanel"
+                  tabIndex={0}
+                  aria-labelledby={`terminal-tab-${activeCommand.id}`}
+                  data-lenis-prevent
+                  onPointerDown={handleReadOutput}
+                  onWheel={handleReadOutput}
+                  onFocus={handleReadOutput}
+                >
                   <div className="terminal-system-banner">
-                    <span>Kamal Pandey -- Staff Embedded Architect Environment [Void Linux x86_64 / AArch64]</span>
+                    <span>Void Linux · x86_64 / AArch64</span>
                     <span className="banner-uptime">UPTIME: 99.9% // KERNEL: 6.18.54_1</span>
                   </div>
 
                   {/* Command Prompt Line */}
-                  <div className="terminal-prompt-line">
+                  <div className="terminal-prompt-context">
                     <span className="prompt-user">kamal@void-x64</span>
                     <span className="prompt-sep">:</span>
                     <span className="prompt-dir">~/portfolio</span>
-                    <span className="prompt-symbol">$</span>
+                  </div>
+                  <div className="terminal-prompt-line">
+                    <span className="prompt-symbol">$ </span>
                     <span className="prompt-typed-text">{enhanced ? typedText : activeCommand.command}</span>
-                    <span className={`prompt-cursor ${enhanced && (isTyping || !showOutput) ? "cursor-typing" : "cursor-blink"}`}>█</span>
+                    {enhanced && (isTyping || !showOutput) && <span className="prompt-cursor cursor-blink" aria-hidden="true">█</span>}
                   </div>
 
                   {/* Command Output Container */}
                   <div className={`terminal-output-container ${!enhanced || showOutput ? "output-active" : "output-hidden"}`}>
                     {visibleOutput.map((line, idx) => (
-                      <div key={idx} className="terminal-output-line">
+                      <div
+                        key={idx}
+                        className={`terminal-output-line${/^\[(OK|SUCCESS|STATUS)\]/.test(line) ? " terminal-output-success" : ""}`}
+                        style={{ "--terminal-indent": `${line.length - line.trimStart().length}ch` } as CSSProperties}
+                      >
                         {line}
                       </div>
                     ))}
-                    {visibleOutput.length >= activeCommand.output.length && (
+                    {outputComplete && (
                       <div className="terminal-exit-code">
-                        <span className="exit-badge">exit 0</span>
-                        <span className="exit-time">executed in 2.4ms</span>
+                        <span className="exit-badge">exit {activeCommand.exitCode}</span>
+                        <span className="exit-time">process complete</span>
                       </div>
                     )}
+                    {outputComplete && <div className="terminal-ready-prompt" aria-hidden="true"><span className="prompt-symbol">$ </span><span className="prompt-cursor cursor-blink">█</span></div>}
                   </div>
                 </div>
 
                 {/* Terminal Footer Navigation Bar */}
                 <div className="terminal-footer-bar">
                   <span className="footer-tip">
-                    TIP: Scroll or click tabs to inspect verified languages, silicon targets, wireless RF, and custom DB engines
+                    <span className="terminal-session-name">{activeCommand.tabTitle}</span>
+                    <span>Scroll inside for more · Select a tab to explore</span>
                   </span>
                   <div className="terminal-step-pills">
                     {TERMINAL_COMMANDS.map((cmd, idx) => (

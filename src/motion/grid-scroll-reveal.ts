@@ -49,7 +49,7 @@ export function useGridScrollReveal(
     const ro = new ResizeObserver(measure);
     ro.observe(grid);
     return () => ro.disconnect();
-  }, [gridRef]);
+  }, [gridRef, enabled]);
 
   useScrollFrame(
     () => {
