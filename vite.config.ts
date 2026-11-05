@@ -22,30 +22,12 @@ export default defineConfig({
     },
   ],
   build: {
+    manifest: true,
     target: "es2020",
     cssCodeSplit: true,
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (
-              id.includes("three") ||
-              id.includes("@react-three/fiber") ||
-              id.includes("@react-three/drei")
-            ) {
-              return "scene-vendor";
-            }
-            if (id.includes("@react-three/postprocessing")) {
-              return "postprocessing";
-            }
-            if (id.includes("lenis")) {
-              return "motion";
-            }
-          }
-        },
-      },
-    },
+    // Let dynamic scene imports define sharing. Grouping every "three" module
+    // together pulled the career's postprocessing into the opening scene.
   },
   test: {
     globals: true,
