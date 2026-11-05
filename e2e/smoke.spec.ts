@@ -189,7 +189,7 @@ test.describe("Portfolio smoke tests", () => {
     await expect(banner).toHaveAttribute("data-astronaut-mode", "wait");
   });
 
-  test("cruises the journey automatically after a downward gesture", async ({ page }) => {
+  test("keeps the journey under manual control after a downward gesture", async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/");
@@ -202,14 +202,15 @@ test.describe("Portfolio smoke tests", () => {
     });
     await expect(stage).toHaveAttribute("data-phase", "cardShow");
 
-    // One downward gesture while the pinned card is centred arms the cruise;
-    // the journey then advances through its phases without further input.
+    // Deliberate scrolling pauses the complete reading tour.
     await page.waitForTimeout(800);
     await page.mouse.move(720, 500);
     await page.mouse.wheel(0, 120);
-    await expect
-      .poll(async () => stage.getAttribute("data-phase"), { timeout: 25_000 })
-      .not.toBe("cardShow");
+    await expect(page.locator(".reading-tour-control")).toHaveAttribute("data-tour-status", "paused");
+    await page.waitForTimeout(1500);
+    const held = await page.evaluate(() => scrollY);
+    await page.waitForTimeout(800);
+    expect(Math.abs(await page.evaluate(() => scrollY) - held)).toBeLessThan(3);
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {

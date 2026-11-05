@@ -64,17 +64,22 @@ repository secret.
 - **Progressive enhancement**: persistent R3F canvases, Lenis smooth scroll,
   guided pinned-section playback, and the magnetic cursor are gated by motion
   preference, viewport proximity, and WebGL capability.
-- **Small-screen reading**: below 1024px wide or 720px tall, services and
-  board lifecycle use normal page flow rather than clipping long content
-  inside pinned stages. All capabilities, silicon targets, deliverables,
-  lifecycle evidence, and signals remain available without nested scrolling.
-- **Rendering continuity**: immediate SVG scene covers remain until both
-  journey canvases paint; WebGL context loss restores the cover and remounts
-  the affected canvas.
+- **Reading tour**: automatic playback allows 150 words per minute with
+  reading pauses. Scroll, touch, keyboard input, and text selection pause it;
+  the header control resumes it. Reduced motion keeps the tour opt-in.
+- **Small-screen reading**: phones use swipeable boards with scrollable long
+  content and a reversible metrics document. Service cards share a measured
+  frame on larger screens and return to page flow when they cannot fit.
+  Terminal tabs expose complete transcripts with independent scrolling.
+- **Rendering continuity**: a mission scene poster remains until both journey
+  canvases and Earth textures are ready. Nearby scenes load once and retain
+  their WebGL contexts while rendering pauses outside the viewport.
 - **Shared frame scheduler**: ordered `scroll → read → write → render` phases
   keep DOM and WebGL motion synchronized and stop when no work remains.
-- **Adaptive quality**: Drei performance monitoring reduces DPR from 2 to
-  1.25, then 1 after sustained frame-time pressure.
+- **Adaptive quality**: drawing buffers respect native display density, capped
+  at 2x on desktop and 1.5x on mobile. Performance monitoring lowers DPR in
+  0.25 steps under sustained frame-time pressure. Scene shaders compile
+  asynchronously where supported.
 - **Reusable immersive kit**: `reuse/immersive-kit/catalog.json` describes
   transitive rendering, motion, astronaut, and tooling bundles. The CLI
   validates or exports deterministic bundles with checksums; the included
