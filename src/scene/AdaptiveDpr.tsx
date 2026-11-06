@@ -13,5 +13,5 @@ export function useAdaptiveDpr(): { dpr: number; monitor: JSX.Element } {
   const onDecline = useCallback(() => {
     setDpr((current) => Math.max(min, current - 0.25));
   }, [min]);
-  return { dpr: Math.min(dpr, max), monitor: <PerformanceMonitor onDecline={onDecline} /> };
+  return { dpr: Math.min(dpr, max), monitor: <PerformanceMonitor iterations={5} onDecline={onDecline} /> };
 }

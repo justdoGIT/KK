@@ -44,7 +44,7 @@ test("service readability adapts when the viewport shrinks and grows", async ({ 
   const services = page.locator("#services");
   await expect(services).toHaveClass(/services-throw/);
 
-  await page.setViewportSize({ width: 1024, height: 720 });
+  await page.setViewportSize({ width: 1024, height: 500 });
   await expect(services).not.toHaveClass(/services-throw/);
   const finalDeliverable = services.locator("article").last().locator(".service-deliv-pill").last();
   await finalDeliverable.scrollIntoViewIfNeeded();

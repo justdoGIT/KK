@@ -15,7 +15,9 @@ async function scrollSection(page: Page, selector: string, progress = 0) {
 }
 
 test("scrolls every scene without runtime warnings and retains the career renderer", async ({ page, browserName }) => {
-  test.setTimeout(240_000);
+  // This verifies every scene and renderer lifecycle, including cold shader
+  // preparation on software GPUs; frame responsiveness is profiled separately.
+  test.setTimeout(480_000);
   await page.setViewportSize({ width: 1280, height: 800 });
   const issues: string[] = [];
   page.on("console", message => {

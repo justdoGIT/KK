@@ -214,11 +214,11 @@ export function WorldSpace({ clock, onAssetsReady }: { clock: JourneyClockRef; o
         settled();
       }, undefined, settled);
     };
-    load(`${import.meta.env.BASE_URL}textures/earth-day-2048.jpg`, (texture) => {
+    load(`${import.meta.env.BASE_URL}textures/earth-day-2048.webp`, (texture) => {
       kit.earth.uniforms.uDayMap.value = texture;
       kit.earth.uniforms.uHasDay.value = 1;
     });
-    load(`${import.meta.env.BASE_URL}textures/earth-clouds-2048.jpg`, (texture) => {
+    load(`${import.meta.env.BASE_URL}textures/earth-clouds-2048.webp`, (texture) => {
       texture.wrapS = RepeatWrapping;
       kit.earth.uniforms.uCloudMap.value = texture;
       kit.earth.uniforms.uHasCloud.value = 1;

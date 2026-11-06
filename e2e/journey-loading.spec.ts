@@ -23,7 +23,7 @@ test("keeps the opening scene poster until delayed Earth textures have rendered"
   await page.setViewportSize({ width: 1280, height: 800 });
   let release!: () => void;
   const delayed = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/earth-clouds-2048.jpg", async route => { await delayed; await route.continue(); });
+  await page.route("**/earth-clouds-2048.webp", async route => { await delayed; await route.continue(); });
   try {
     await page.goto(url);
     await showJourney(page, 0.02);

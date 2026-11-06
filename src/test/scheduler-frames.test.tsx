@@ -30,6 +30,21 @@ afterEach(cleanup);
 const frame = (time: number, delta = 0.016) => act(() => fixture.callbacks.forEach(callback => callback(time, delta)));
 
 describe("scene rendering lifecycle", () => {
+  it("stops drawing immediately while visibility props cross the canvas root", () => {
+    const visible = { current: true };
+    render(<SchedulerFrames active visible={visible} />);
+    frame(1000);
+    visible.current = false;
+    frame(1016);
+    frame(90000, 0.1);
+    expect(advance).toHaveBeenCalledTimes(1);
+    visible.current = true;
+    frame(90016);
+    expect(advance).toHaveBeenLastCalledWith(0);
+    frame(90032);
+    expect(advance).toHaveBeenLastCalledWith(0.016);
+  });
+
   it("uses the normal draw path when parallel compilation is unavailable", () => {
     render(<SchedulerFrames active />);
     frame(1000);

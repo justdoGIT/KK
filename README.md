@@ -78,7 +78,8 @@ repository secret.
   keep DOM and WebGL motion synchronized and stop when no work remains.
 - **Adaptive quality**: drawing buffers respect native display density, capped
   at 2x on desktop and 1.5x on mobile. Performance monitoring lowers DPR in
-  0.25 steps under sustained frame-time pressure. Scene shaders compile
+  0.25 steps under sustained frame-time pressure, down to 0.75x without
+  changing HTML text resolution. Scene shaders compile
   asynchronously where supported.
 - **Reusable immersive kit**: `reuse/immersive-kit/catalog.json` describes
   transitive rendering, motion, astronaut, and tooling bundles. The CLI
@@ -101,11 +102,12 @@ The application baseline is the successful GitHub Pages deployment of
 application, dependency lockfile, tests, assets, and deployment configuration;
 intermediate implementations must not replace the deployed experience.
 
-Earlier work remains available in these GitHub archive branches:
+Earlier work remains preserved in the merged history, even after its branches
+are removed:
 
-- `archive/forgejo-main-20261104`: Forgejo automation and its full history.
-- `archive/readme-live-link-20261104`: the original live-site README change.
-- `archive/validation-workflows-20261104`: validation-only worktree workflows.
+- [66eb787](https://github.com/justdoGIT/KK/commit/66eb7876bc2ef0321f1ce5996fc7b17ea90c799f): Forgejo automation and its full history.
+- [552a0a9](https://github.com/justdoGIT/KK/commit/552a0a9679e67fb01af0b6bcf42a81bfc85fccf2): the original live-site README change.
+- [489e76a](https://github.com/justdoGIT/KK/commit/489e76a4a6847cff5940d4e754acb004ac6ae3cf): validation-only worktree workflows.
 - `archive/vite-upgrade-20261104`: the unapplied Vite dependency upgrade.
 
 The Forgejo and validation histories are consolidated without activating their
@@ -126,6 +128,8 @@ The personal agent harness case study uses a strict public identity contract:
   browser-verification decisions.
 - `docs/review-remediation.md`: full-site defect, performance, and browser
   verification record.
+- `docs/performance-review.md`: measured graphics and asset savings, remaining
+  bottlenecks, and a reproducible browser profiling command.
 
 ## License
 

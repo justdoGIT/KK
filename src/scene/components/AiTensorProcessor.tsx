@@ -1,6 +1,7 @@
 import { useEffect, useMemo, type JSX } from "react";
 import * as THREE from "three";
 import { createChipTexture } from "../textures.ts";
+import { StaticInstances, type InstanceTransform } from "./StaticInstances.tsx";
 
 type AiTensorProcessorProps = {
   position?: [number, number, number];
@@ -27,7 +28,7 @@ export function AiTensorProcessor({
 
   // Matrix of BGA solder balls (6x6 array)
   const bgaGrid = useMemo(() => {
-    const coords: [number, number][] = [];
+    const coords: InstanceTransform[] = [];
     const size = 6;
     const spacing = 0.22;
     const start = -((size - 1) * spacing) / 2;
@@ -35,7 +36,7 @@ export function AiTensorProcessor({
       for (let c = 0; c < size; c++) {
         // Skip some inner corners for realistic pattern
         if ((r === 2 || r === 3) && (c === 2 || c === 3)) continue;
-        coords.push([start + c * spacing, start + r * spacing]);
+        coords.push({ position: [start + c * spacing, start + r * spacing, -0.12] });
       }
     }
     return coords;
@@ -72,12 +73,10 @@ export function AiTensorProcessor({
       </mesh>
 
       {/* BGA Solder Balls (Metallic chrome spheres) */}
-      {bgaGrid.map(([bx, by], idx) => (
-        <mesh key={idx} position={[bx, by, -0.12]}>
-          <sphereGeometry args={[0.045, 12, 12]} />
-          <meshStandardMaterial color="#94a3b8" metalness={0.98} roughness={0.08} />
-        </mesh>
-      ))}
+      <StaticInstances name="tensor-solder-balls" transforms={bgaGrid}>
+        <sphereGeometry args={[0.045, 12, 12]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.98} roughness={0.08} />
+      </StaticInstances>
 
       {/* Neural Core Emissive Activity Circuit (Cyan glowing ring) */}
       <mesh position={[0, 0, 0.126]}>

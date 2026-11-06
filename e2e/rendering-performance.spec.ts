@@ -2,7 +2,10 @@ import { test, expect, type Locator } from "@playwright/test";
 import { createServer, type ViteDevServer } from "vite";
 
 declare global {
-  interface Window { gpuDraws: WeakMap<HTMLCanvasElement | OffscreenCanvas, number> }
+  interface Window {
+    gpuDraws: WeakMap<HTMLCanvasElement | OffscreenCanvas, number>;
+    gpuInstanceCounts: Set<number>;
+  }
 }
 
 let server: ViteDevServer;
@@ -27,6 +30,12 @@ test("renders at native resolution and preserves idle offscreen WebGL contexts",
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.addInitScript(() => {
     window.gpuDraws = new WeakMap();
+    window.gpuInstanceCounts = new Set();
+    const drawInstances = WebGL2RenderingContext.prototype.drawElementsInstanced;
+    WebGL2RenderingContext.prototype.drawElementsInstanced = function (mode, count, type, offset, instances) {
+      window.gpuInstanceCounts.add(instances);
+      return drawInstances.call(this, mode, count, type, offset, instances);
+    };
     for (const proto of [WebGLRenderingContext.prototype, WebGL2RenderingContext.prototype]) {
       const original = proto.clear;
       proto.clear = function (mask: number) {
@@ -39,8 +48,16 @@ test("renders at native resolution and preserves idle offscreen WebGL contexts",
   const hero = page.locator(".scene-container canvas");
   await expect(hero).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => hero.evaluate(canvas => window.gpuDraws.get(canvas as HTMLCanvasElement) ?? 0), { timeout: 45000 }).toBeGreaterThan(3);
+  expect(await page.evaluate(() => [...window.gpuInstanceCounts])).toEqual(expect.arrayContaining([48, 32]));
   expect(await hero.evaluate(canvas => (canvas as HTMLCanvasElement).width / canvas.clientWidth)).toBeLessThanOrEqual(1.01);
   await page.screenshot({ path: test.info().outputPath("hero-webgl.png") });
+
+  await show(page.locator(".client-metrics-strip"));
+  await expect(hero).not.toBeInViewport();
+  await page.waitForTimeout(300);
+  const metricsDraws = await hero.evaluate(canvas => window.gpuDraws.get(canvas as HTMLCanvasElement));
+  await page.waitForTimeout(700);
+  expect(await hero.evaluate(canvas => window.gpuDraws.get(canvas as HTMLCanvasElement))).toBe(metricsDraws);
 
   await show(page.locator("#journey"));
   const fleet = page.locator(".sand-canvas-container canvas");

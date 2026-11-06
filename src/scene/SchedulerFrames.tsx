@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { onFrame } from "../motion/frame.ts";
 
 /** Place inside the scene's Suspense boundary, after its assets and lights. */
-export function SchedulerFrames({ active }: { active: boolean }): null {
+export function SchedulerFrames({ active, visible }: { active: boolean; visible?: RefObject<boolean> }): null {
   const { advance, gl, scene, camera } = useThree();
   const [prepared, setPrepared] = useState(false);
   const elapsed = useRef(0);
@@ -44,12 +44,15 @@ export function SchedulerFrames({ active }: { active: boolean }): null {
     if (!active || !prepared) return;
     let first = true;
     return onFrame("render", (_time, delta) => {
+      // The DOM observer can hide a canvas before its separate React/R3F root
+      // commits new props. Stop expensive draws during that handoff too.
+      if (visible && !visible.current) { first = true; return; }
       // Paused scenes retain their pose. A return to the viewport must not
       // inject several seconds into a spring or jump an idle animation.
       elapsed.current += first ? 0 : delta;
       first = false;
       advance(elapsed.current);
     });
-  }, [active, prepared, advance]);
+  }, [active, prepared, advance, visible]);
   return null;
 }

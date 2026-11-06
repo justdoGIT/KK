@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-06",
+  "baselineCommit": "40de1b4",
+  "conditions": "Production preview; Chromium SwiftShader software rendering; no network throttling; single runs per profile.",
+  "before": {
+    "url": "http://127.0.0.1:4173",
+    "browser": "Chromium",
+    "results": [
+      {
+        "profile": "desktop",
+        "observedMs": 18134,
+        "domContentLoadedMs": 178,
+        "largestContentfulPaintMs": 912,
+        "layoutShiftSum": 0,
+        "longTaskCount": 19,
+        "longestTaskMs": 5415,
+        "blockingExcessMs": 15868,
+        "resourceCount": 7,
+        "resourceBodyBytes": 426749,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "bufferSize": [
+          1280,
+          744
+        ],
+        "heroDrawsWhileReadingMetrics": 3
+      },
+      {
+        "profile": "phone",
+        "observedMs": 15863,
+        "domContentLoadedMs": 223,
+        "largestContentfulPaintMs": 1208,
+        "layoutShiftSum": 0,
+        "longTaskCount": 31,
+        "longestTaskMs": 4413,
+        "blockingExcessMs": 13151,
+        "resourceCount": 7,
+        "resourceBodyBytes": 426749,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "bufferSize": [
+          487,
+          985
+        ],
+        "heroDrawsWhileReadingMetrics": 14
+      }
+    ]
+  },
+  "after": {
+    "url": "http://127.0.0.1:4174",
+    "browser": "Chromium",
+    "results": [
+      {
+        "profile": "desktop",
+        "observedMs": 19627,
+        "domContentLoadedMs": 197,
+        "largestContentfulPaintMs": 904,
+        "layoutShiftSum": 0,
+        "longTaskCount": 19,
+        "longestTaskMs": 5685,
+        "blockingExcessMs": 17493,
+        "resourceCount": 7,
+        "resourceBodyBytes": 426747,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "bufferSize": [
+          960,
+          558
+        ],
+        "heroDrawsWhileReadingMetrics": 0
+      },
+      {
+        "profile": "phone",
+        "observedMs": 17092,
+        "domContentLoadedMs": 162,
+        "largestContentfulPaintMs": 688,
+        "layoutShiftSum": 0,
+        "longTaskCount": 29,
+        "longestTaskMs": 4636,
+        "blockingExcessMs": 14575,
+        "resourceCount": 7,
+        "resourceBodyBytes": 426747,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "bufferSize": [
+          390,
+          788
+        ],
+        "heroDrawsWhileReadingMetrics": 0
+      }
+    ]
+  }
+}

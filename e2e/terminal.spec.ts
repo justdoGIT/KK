@@ -28,7 +28,9 @@ test.describe("Mobile terminal output", () => {
       await expect(panel.locator(".terminal-output-line").last()).toBeInViewport({ ratio: 1 });
       await expect(panel.locator(".terminal-exit-code")).toBeInViewport({ ratio: 1 });
       await expect(page.locator(".terminal-titlebar")).toBeInViewport({ ratio: 1 });
-      await expect(page.locator(".terminal-footer-bar")).toBeInViewport({ ratio: 1 });
+      // Mobile keeps navigation in the titlebar and omits the duplicate footer.
+      await expect(page.locator(".terminal-footer-bar")).toBeHidden();
+      await expect(page.getByRole("button", { name: "Copy", exact: true })).toBeInViewport({ ratio: 1 });
     }
 
     // The scroll script is on the first command at this page position. A
@@ -41,19 +43,23 @@ test.describe("Mobile terminal output", () => {
     const heightBefore = await panel.evaluate((element) => element.clientHeight);
     await page.getByRole("button", { name: "Expand terminal", exact: true }).click();
     await expect.poll(() => panel.evaluate((element) => element.clientHeight)).toBeGreaterThan(heightBefore + 100);
-    await expect(page.locator(".terminal-footer-bar")).toBeInViewport({ ratio: 1 });
+    await expect(page.locator(".terminal-footer-bar")).toBeHidden();
     await page.getByRole("button", { name: "Restore terminal size", exact: true }).click();
   });
 
   test("scrolls the transcript with touch and wheel without advancing the page", async ({ page, context }) => {
+    // Use a short screen so this transcript actually has content to scroll.
+    await page.setViewportSize({ width: 320, height: 480 });
     await revealTerminal(page);
     await page.getByRole("tab", { name: "platforms-silicon.sh", exact: true }).click();
     const panel = page.getByRole("tabpanel");
+    await expect.poll(() => panel.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(50);
+    await panel.scrollIntoViewIfNeeded();
     const before = await page.evaluate(() => scrollY);
     const box = (await panel.boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const points = (y: number) => [{ x: box.x + box.width / 2, y, radiusX: 1, radiusY: 1, force: 1, id: 1 }];
-    const start = box.y + box.height - 30;
+    const start = Math.min(box.y + box.height, page.viewportSize()!.height) - 30;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points(start) });
     for (const distance of [40, 80, 120, 160, 200]) {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points(start - distance) });
@@ -87,7 +93,7 @@ test.describe("Mobile terminal output", () => {
       await panel.focus();
       await page.keyboard.press("Control+End");
       await expect(panel.locator(".terminal-exit-code")).toBeInViewport({ ratio: 1 });
-      await expect(page.locator(".terminal-footer-bar")).toBeInViewport({ ratio: 1 });
+      await expect(page.locator(".terminal-footer-bar")).toBeHidden();
       await expect(page.getByRole("button", { name: "Copy", exact: true })).toBeInViewport({ ratio: 1 });
     }
   });

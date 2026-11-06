@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import React, { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, JSX, PointerEvent, ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
@@ -220,7 +220,10 @@ function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
   );
 }
 
-class JourneySceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+class JourneySceneBoundary extends React.Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }

@@ -162,6 +162,7 @@ test.describe("Portfolio smoke tests", () => {
     };
 
     await scrollFinaleTo(0.08);
+    await expect(journey.locator(".aj-stage")).toHaveAttribute("data-scene-ready", "true", { timeout: 60000 });
     await expect(banner).toHaveAttribute("data-astronaut-mode", "landing");
     const heroCanvas = await journey.locator(".aj-hero canvas").elementHandle();
     expect(heroCanvas).not.toBeNull();
@@ -239,7 +240,7 @@ test.describe("Portfolio smoke tests", () => {
   });
 
   test("shows every career robot stage and scrubs the active role content", async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(180_000);
     await page.goto("/");
     const section = page.locator("section#career");
     await section.scrollIntoViewIfNeeded();
@@ -258,7 +259,7 @@ test.describe("Portfolio smoke tests", () => {
         window.scrollTo({ top: base + scrollable * progress, behavior: "instant" as ScrollBehavior });
       }, { base: sectionTop, progress: expected.progress });
       await expect(section).toHaveAttribute("data-career-stage", expected.stage);
-      await expect(page.locator(".career-screen-codename")).toContainText(expected.codename);
+      await expect(page.locator(".career-screen-codename")).toContainText(expected.codename, { timeout: 30000 });
       await expect(page.locator(".career-entry.is-active")).toContainText(expected.company);
     }
 

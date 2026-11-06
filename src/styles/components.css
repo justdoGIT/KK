@@ -2911,7 +2911,7 @@ main::before {
   max-height: calc(var(--vh100) * 0.6);
   flex: 0 1 auto;
   overflow: auto;
-  overscroll-behavior: auto;
+  overscroll-behavior: contain;
   padding: clamp(0.5rem, 2vh, 1rem) clamp(0.5rem, 2vw, 1.8rem);
   font-size: clamp(11px, 1.8vw, 13.6px);
   line-height: 1.5;
@@ -2966,7 +2966,8 @@ main::before {
   inset: calc(3.5rem + 0.25rem) max(0.25rem, env(safe-area-inset-right)) max(0.25rem, env(safe-area-inset-bottom)) max(0.25rem, env(safe-area-inset-left));
   clip-path: none !important;
 }
-.terminal-flow .terminal-expanded-mode .terminal-window { max-height: 100%; }
+.terminal-flow .terminal-expanded-mode .terminal-window { height: 100%; max-height: 100%; }
+.terminal-flow .terminal-expanded-mode .terminal-body { flex: 1; min-height: 0; max-height: none; }
 .terminal-flow .terminal-minimized-bar {
   flex-wrap: wrap;
   gap: 0.5rem;
