@@ -1919,6 +1919,8 @@ main::before {
 .card-front-scroll-body {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior-y: contain;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;

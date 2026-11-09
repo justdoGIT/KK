@@ -99,6 +99,27 @@ test.describe("Mobile terminal output", () => {
   });
 });
 
+test("advances through all terminal pages when scrolling over the transcript", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const section = page.locator(".terminal-scroll-section");
+  await section.evaluate(element => {
+    const top = element.getBoundingClientRect().top + scrollY;
+    scrollTo({ top: top + (element.clientHeight - innerHeight) * 0.22, behavior: "instant" });
+  });
+  const panel = page.getByRole("tabpanel");
+  const box = (await panel.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+  for (let step = 0; step < 12; step++) {
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(100);
+  }
+
+  await expect(page.getByRole("tab", { name: TERMINAL_COMMANDS.at(-1)!.tabTitle, exact: true }))
+    .toHaveAttribute("aria-selected", "true");
+});
+
 test("keeps the desktop terminal size and exposes the final result for all tabs", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await revealTerminal(page);

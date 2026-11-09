@@ -31,6 +31,7 @@ export function InteractiveTerminal(): JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [manualOverride, setManualOverride] = useState(false);
 
   const sectionRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -39,6 +40,7 @@ export function InteractiveTerminal(): JSX.Element {
   useEffect(() => subscribeReadingTour(() => {
     if (getReadingTour().status !== "playing") return;
     manualOverrideRef.current = false;
+    setManualOverride(false);
     setIsMinimized(false);
     setIsExpanded(false);
   }), []);
@@ -107,6 +109,7 @@ export function InteractiveTerminal(): JSX.Element {
   const handleTabClick = (idx: number) => {
     // Reading takes precedence over the scroll-driven demo until the next
     // visit. Never replace a selected tab on a timer while it is being read.
+    setManualOverride(true);
     manualOverrideRef.current = true;
     setActiveCmdIdx(idx);
     setTypedText(TERMINAL_COMMANDS[idx].command);
@@ -226,9 +229,8 @@ export function InteractiveTerminal(): JSX.Element {
                   role="tabpanel"
                   tabIndex={0}
                   aria-labelledby={`terminal-tab-${activeCommand.id}`}
-                  data-lenis-prevent
+                  data-lenis-prevent={manualOverride || !enhanced ? "" : undefined}
                   onPointerDown={handleReadOutput}
-                  onWheel={handleReadOutput}
                   onFocus={handleReadOutput}
                 >
                   <div className="terminal-system-banner">

@@ -334,6 +334,7 @@ export function CaseStudies(): JSX.Element {
                         idx={idx}
                         category={categories[idx]}
                         onExpand={() => openArchitectureModal(study, idx)}
+                        nestedScroll={animated}
                       />
                     </div>
                   </div>
@@ -355,6 +356,7 @@ export function CaseStudies(): JSX.Element {
                         idx={idx}
                         category={categories[idx]}
                         onExpand={() => openArchitectureModal(study, idx)}
+                        nestedScroll={animated}
                       />
                     </div>
 

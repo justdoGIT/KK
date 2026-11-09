@@ -92,8 +92,12 @@ the sky and ended in a hard ring at the shell's silhouette.
   async and fallback copy instead of claiming success; successful fallback
   copy restores focus.
 * Terminal: restoring from minimized repaints the live reveal instead of
-  leaving the wrapper at its initial 10 %-opacity state; clipboard failures
-  surface as button feedback instead of an unhandled rejection.
+  leaving the wrapper at its initial 10 %-opacity state. Wheel input keeps the
+  desktop script advancing through all five consoles until the visitor
+  explicitly selects or focuses a transcript; clipboard failures surface as
+  button feedback instead of an unhandled rejection.
+* Mission cards: a hovered animated card owns wheel input and scrolls its
+  evidence body without moving the pinned page behind it.
 * Reduced motion: the terminal renders its script statically (full command and
   output, no pinned height, no scroll-linked zoom), matching the library
   window controls' semantics as real buttons.

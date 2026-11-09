@@ -97,6 +97,45 @@ test("reflows the deck when resized or when text is enlarged", async ({ page }) 
   }
 });
 
+test("scrolls a hovered mission card without moving the page", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(url);
+  await page.locator(".lusion-deck-header").scrollIntoViewIfNeeded();
+  const cards = page.locator(".lusion-card-isolated-cell--settled");
+  const stage = page.locator(".lusion-cards-stage");
+  const box = (await stage.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let step = 0; step < 20 && await cards.count() < 4; step++) {
+    await page.mouse.wheel(0, 400);
+    await page.waitForTimeout(100);
+  }
+  await expect(cards).toHaveCount(4);
+  const body = cards.first().locator(".card-front-scroll-body");
+  await expect.poll(() => body.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+  await body.evaluate(element => { element.scrollTop = 0; });
+  await body.hover();
+  let stableFrames = 0;
+  let previous = await page.evaluate(() => scrollY);
+  for (let attempt = 0; attempt < 50 && stableFrames < 3; attempt++) {
+    await page.waitForTimeout(100);
+    const current = await page.evaluate(() => scrollY);
+    stableFrames = Math.abs(current - previous) < 1 ? stableFrames + 1 : 0;
+    previous = current;
+  }
+  expect(stableFrames).toBe(3);
+  const pageBefore = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 360);
+  await expect.poll(() => body.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect(Math.abs(await page.evaluate(() => scrollY) - pageBefore)).toBeLessThan(2);
+
+  await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const pageAtBottom = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 360);
+  await page.waitForTimeout(300);
+  expect(Math.abs(await page.evaluate(() => scrollY) - pageAtBottom)).toBeLessThan(2);
+});
+
 test("settled card text stays flat while hovered, with no idle style churn", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(url);
