@@ -38,7 +38,11 @@ export function SiliconFleetCanvas({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const nearObserver = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+    const nearObserver = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setNear(true);
+      nearObserver.disconnect();
+    }, {
       rootMargin: "100% 0px",
     });
     const activeObserver = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting));

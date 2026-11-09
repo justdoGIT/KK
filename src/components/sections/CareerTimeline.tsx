@@ -32,7 +32,6 @@ export function CareerTimeline(): JSX.Element {
   );
   const isStatic = !enhanced || !webgl || flowLayout;
   const section = useRef<HTMLElement>(null);
-  const flash = useRef<HTMLDivElement>(null);
   const clock = useRef<CareerClock>(createCareerClock());
   const depth = useRef<HTMLCanvasElement>(null);
   const correction = useRef<HTMLCanvasElement>(null);
@@ -41,7 +40,7 @@ export function CareerTimeline(): JSX.Element {
   const left = useRef<HTMLSpanElement>(null);
   const right = useRef<HTMLSpanElement>(null);
   const hud = useMemo<HudRefs>(() => ({ depth, correction, top, mode, left, right }), []);
-  const elements = useMemo(() => ({ section, flash, clock, hud }), [hud]);
+  const elements = useMemo(() => ({ section, clock, hud }), [hud]);
   const { near, active, stage } = useCareerDriver(elements, !isStatic);
   const [override, setOverride] = useState<{ stage: number; id: string | null } | null>(null);
 
@@ -98,7 +97,6 @@ export function CareerTimeline(): JSX.Element {
                 leftRef={left}
                 rightRef={right}
               />
-              <div ref={flash} className="career-screen-flash" />
             </div>
           </div>
         )}

@@ -24,6 +24,7 @@ export const services: Service[] = [
       "Watchdog timers, fault handlers & crashdump telemetry",
       "JTAG/SWD, UART, logic analyzer & oscilloscope diagnosis",
       "Sensor fusion, ADC/DAC calibration & precision timing control",
+      "Interrupt latency profiling, DMA scheduling & RTOS task budget analysis",
     ],
     protocolsAndRf: [
       "SPI", "I2C", "UART", "CAN 2.0B / CAN-FD", "GPIO / PWM", "I2S", "1-Wire",
@@ -53,6 +54,7 @@ export const services: Service[] = [
       "Kernel device driver development (V4L2, IIO, net, crypto, input)",
       "Secure Boot, Root-of-Trust, Hardware Security Modules (HSM) & SELinux",
       "OSTree atomic OTA upgrade pipelines & dual-partition redundancy",
+      "Boot-time profiling, root filesystem size reduction & kernel latency tuning",
     ],
     protocolsAndRf: [
       "PCIe Gen3/Gen4", "USB 3.2 / USB-C PD", "SDIO 3.0", "MIPI CSI-2 / DSI", "Ethernet PHY (RGMII)",
@@ -82,6 +84,7 @@ export const services: Service[] = [
       "Wall-following, path-planning & SLAM algorithms in C++",
       "Field-oriented motor control (BLDC, Steppers, Servo actuators)",
       "Heterogeneous asymmetric multiprocessing (AMP) with OpenAMP & rpmsg-lite",
+      "Sensor synchronization, encoder calibration & control-loop validation",
     ],
     protocolsAndRf: [
       "EtherCAT", "CANopen / CAN-FD", "Modbus RTU/TCP", "OPC-UA", "RS-485", "PWM Motion",
@@ -111,6 +114,7 @@ export const services: Service[] = [
       "LoRaWAN & Sub-1GHz industrial long-range sensor mesh networks",
       "Cellular 5G/LTE-M modem AT command interfaces & PPP/QMI daemon",
       "Antenna matching analysis, RF co-existence & EMC certification support",
+      "Connection recovery, roaming validation & RF link-budget characterization",
     ],
     protocolsAndRf: [
       "Wi-Fi 6/7 (802.11ax/be)", "BLE 5.3 / Mesh", "Iridium Satellite SBD", "LoRa / LoRaWAN", "5G / LTE-M", "UWB", "RFID / NFC",
@@ -140,6 +144,7 @@ export const services: Service[] = [
       "MIPI CSI-2 camera sensor bring-up with V4L2 subdevices & ISP tuning",
       "GStreamer & FFMPEG hardware accelerated video pipelines (H.264/H.265/AV1)",
       "High-speed SPI, I2C Fast-Mode Plus (1MHz) & multi-drop RS-485",
+      "DMA cache coherency, buffer lifecycle & end-to-end throughput profiling",
     ],
     protocolsAndRf: [
       "PCIe Gen4 DMA", "USB 3.2 / Type-C", "MIPI CSI-2 / DSI", "RTSP / WebRTC", "V4L2", "GStreamer",
@@ -169,6 +174,7 @@ export const services: Service[] = [
       "Hardware-in-the-Loop (HIL) automated test rigs with power glitching & UART probes",
       "Autonomous dev-machine fleet agents with distributed sccache & Slurm clustering",
       "Multi-arch containerized CI/CD pipelines (Jenkins, GitLab CI, Docker multi-arch)",
+      "Inference accuracy, latency & memory regression checks on target hardware",
     ],
     protocolsAndRf: [
       "Qualcomm SNPE", "TensorRT", "OpenVINO", "MicroTVM", "Slurm RPC", "Docker / QEMU",

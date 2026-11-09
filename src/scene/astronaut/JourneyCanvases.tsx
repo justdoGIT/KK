@@ -1,11 +1,11 @@
-import { Suspense, type JSX } from "react";
+import { Suspense, useCallback, useState, type JSX } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Color, Fog, NeutralToneMapping } from "three";
 import { phaseRatio } from "../../components/ui/astronaut/journey-timeline.ts";
 import { SchedulerFrames } from "../SchedulerFrames.tsx";
 import { CanvasAvailability } from "../CanvasAvailability.tsx";
-import { isMobile } from "../useCapability.ts";
+import { useAdaptiveDpr } from "../AdaptiveDpr.tsx";
 import { HeroScene } from "./HeroScene.tsx";
 import { WorldSpace } from "./WorldSpace.tsx";
 import { WorldTunnels } from "./WorldTunnels.tsx";
@@ -31,8 +31,7 @@ const SPACE = new Color("#03050d");
 const BLACK = new Color("#000000");
 const CORRIDOR = new Color("#2a39c9");
 
-// Module prefetch begins before the section is near; warm drei's parsed GLTF
-// cache at the same time so Suspense does not expose an empty black canvas.
+// Warm drei's parsed GLTF cache when the section approaches the viewport.
 useGLTF.preload(modelUrl("astronaut"), false, true);
 
 function WorldAtmosphere({ clock }: { clock: JourneyClockRef }): null {
@@ -58,28 +57,29 @@ function WorldAtmosphere({ clock }: { clock: JourneyClockRef }): null {
   return null;
 }
 
-function dpr(): [number, number] {
-  return isMobile() ? [1, 1.5] : [1, 2];
-}
-
 const RESIZE = { offsetSize: true } as const;
 
 export function WorldCanvas({ clock, active, onAvailabilityChange }: CanvasProps): JSX.Element {
+  const { dpr, monitor } = useAdaptiveDpr();
+  const [texturesReady, setTexturesReady] = useState(false);
+  const assetsReady = useCallback(() => setTexturesReady(true), []);
   return (
     <Canvas
       className="aj-canvas"
-      dpr={dpr()}
+      dpr={dpr}
       frameloop="never"
       resize={RESIZE}
       camera={CAMERA}
       gl={{ antialias: true, powerPreference: "high-performance" }}
     >
-      <SchedulerFrames active={active} />
+      {monitor}
+      <fog attach="fog" args={["#2533c2", 900, 1000]} />
       <WorldAtmosphere clock={clock} />
       <Suspense fallback={null}>
-        <WorldSpace clock={clock} />
+        <WorldSpace clock={clock} onAssetsReady={assetsReady} />
         <WorldTunnels clock={clock} />
-        <CanvasAvailability onChange={onAvailabilityChange} />
+        <SchedulerFrames active={active} />
+        <CanvasAvailability onChange={onAvailabilityChange} ready={texturesReady} />
       </Suspense>
     </Canvas>
   );
@@ -87,18 +87,20 @@ export function WorldCanvas({ clock, active, onAvailabilityChange }: CanvasProps
 
 /** Neutral tone mapping keeps the white suit and the cyan accents bright and on-hue. */
 export function HeroCanvas({ clock, active, onAvailabilityChange }: CanvasProps): JSX.Element {
+  const { dpr, monitor } = useAdaptiveDpr();
   return (
     <Canvas
       className="aj-canvas"
-      dpr={dpr()}
+      dpr={dpr}
       frameloop="never"
       resize={RESIZE}
       camera={CAMERA}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: NeutralToneMapping, toneMappingExposure: 1.05 }}
     >
-      <SchedulerFrames active={active} />
+      {monitor}
       <Suspense fallback={null}>
         <HeroScene clock={clock} />
+        <SchedulerFrames active={active} />
         <CanvasAvailability onChange={onAvailabilityChange} />
       </Suspense>
     </Canvas>

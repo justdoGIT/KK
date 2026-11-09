@@ -3,8 +3,9 @@ import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { clamp01 } from "../../motion/scroll-frame.ts";
 import { diceTimeline, diceTransforms } from "../../motion/metrics-dice.ts";
+import { MobileMetricsDocument } from "./MobileMetricsDocument.tsx";
 
-type MetricItem = {
+export type MetricItem = {
   value: string;
   label: string;
   subtext: string;
@@ -49,6 +50,7 @@ const DURATION_MS = 3400;
 export function ClientMetricsStrip(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
   const wide = useMediaQuery(DICE_QUERY);
+  const mobile = useMediaQuery("(max-width: 767px)");
   const dice = enhanced && wide;
   const row = useRef<HTMLDivElement>(null);
 
@@ -100,6 +102,8 @@ export function ClientMetricsStrip(): JSX.Element {
       cards.forEach((card) => { card.style.transform = ""; });
     };
   }, [dice]);
+
+  if (mobile) return <MobileMetricsDocument items={CLIENT_METRICS} />;
 
   return (
     <div className="client-metrics-strip" aria-label="Key engineering metrics">

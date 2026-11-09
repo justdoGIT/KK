@@ -29,9 +29,9 @@ export function CanvasImpl({ currentStage, active }: CanvasImplProps): JSX.Eleme
       style={{ position: "absolute", inset: 0 }}
     >
       {monitor}
-      <SchedulerFrames active={active} />
       <Suspense fallback={null}>
         <SiliconFleetScene currentStage={currentStage} />
+        <SchedulerFrames active={active} />
       </Suspense>
     </Canvas>
   );

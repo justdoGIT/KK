@@ -19,9 +19,11 @@ import { Reveal } from "./motion/Reveal.tsx";
 import { useSmoothScroll } from "./motion/smooth-scroll.ts";
 import { MagneticCursor } from "./motion/MagneticCursor.tsx";
 import { SceneEntry } from "./scene/SceneEntry.tsx";
+import { useReadingTourDriver } from "./motion/use-reading-tour.ts";
 
 function AppContent(): JSX.Element {
   useSmoothScroll();
+  useReadingTourDriver();
 
   return (
     <div className="app-shell">

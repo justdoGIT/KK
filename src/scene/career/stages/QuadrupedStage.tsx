@@ -113,7 +113,7 @@ export function QuadrupedStage({ clock, index }: StageProps): JSX.Element {
       <Course />
       <MorphPad radius={0.75} position={[QUAD_START, 0, 0]} />
       <group position={[QUAD_START, 0, 0]}>
-        <PartMorph source={source} target={target} clock={clock} seed={23} />
+        <PartMorph source={source} target={target} clock={clock} index={index} seed={23} />
       </group>
       <group ref={body}>
         <primitive object={go2.scene} />

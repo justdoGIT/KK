@@ -36,7 +36,7 @@ function layerTexture(label: string, step: number, color: string): THREE.CanvasT
  * The software stack built on the board: `built` layers (1–5) rest on the
  * hardware, the newest one drops into place, and earlier layers dim.
  */
-export function BoardStackStage({ built }: { built: number }): JSX.Element {
+export function BoardStackStage({ built, active }: { built: number; active: boolean }): JSX.Element {
   const layers = useRef<(THREE.Group | null)[]>([]);
   const textures = useMemo(
     () => softwareLayers.map((label, i) => layerTexture(label, i + 2, boardLifecycle[i + 1].color)),
@@ -45,6 +45,7 @@ export function BoardStackStage({ built }: { built: number }): JSX.Element {
   useEffect(() => () => textures.forEach((texture) => texture.dispose()), [textures]);
 
   useFrame((_, delta) => {
+    if (!active) return;
     layers.current.forEach((layer, i) => {
       if (!layer) return;
       const rest = STACK_BASE + i * (LAYER_H + LAYER_GAP);

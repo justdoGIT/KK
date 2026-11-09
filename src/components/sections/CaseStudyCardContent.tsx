@@ -74,11 +74,13 @@ export function CardFrontContent({
   idx,
   category,
   onExpand,
+  nestedScroll = false,
 }: {
   study: CaseStudyDetail;
   idx: number;
   category: string;
   onExpand: () => void;
+  nestedScroll?: boolean;
 }): JSX.Element {
   return (
     <>
@@ -90,7 +92,19 @@ export function CardFrontContent({
         <span className="card-front-badge">VERIFIED</span>
       </div>
 
-      <div className="card-front-scroll-body" tabIndex={0} role="region" aria-label={`${study.record.publicTitle} details`}>
+      <div
+        className="card-front-scroll-body"
+        tabIndex={0}
+        role="region"
+        aria-label={`${study.record.publicTitle} details`}
+        data-lenis-prevent={nestedScroll ? "" : undefined}
+        onWheel={nestedScroll ? (event) => {
+          if (event.ctrlKey) return;
+          event.stopPropagation();
+          event.preventDefault();
+          event.currentTarget.scrollTop += event.deltaY;
+        } : undefined}
+      >
         <p className="card-front-context">{study.context}</p>
 
         <div className="card-front-diagram-wrap">
@@ -137,7 +151,7 @@ export function CardFrontContent({
 
       <div className="card-front-bottom">
         <span className="card-footer-number">MISSION /{String(idx + 1).padStart(2, "0")}</span>
-        <span className="card-footer-hint">CLICK DIAGRAM TO EXPAND</span>
+        <span className="card-footer-hint">SELECT DIAGRAM TO EXPAND</span>
       </div>
     </>
   );

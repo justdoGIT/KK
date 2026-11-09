@@ -33,10 +33,10 @@ export function throwProgressFor(index: number, count: number): number {
   return clamp01((index + 1 - START_FRAME) / (count + 0.2 - START_FRAME));
 }
 
-export function throwPose(index: number, frame: number, count: number): ThrowPose {
+export function throwPose(index: number, frame: number, count: number, stackStep = STACK_STEP_PX): ThrowPose {
   const dir = index % 2 === 0 ? -1 : 1;
   const landTilt = dir * (7 + (index % 3) * 3); // skewed, facing the thrower
-  const rest = index * STACK_STEP_PX;
+  const rest = index * stackStep;
   const local = frame - index;
   if (local <= 0) return { transform: "", opacity: 0, visible: false, settled: false, covered: 0 };
 
@@ -51,7 +51,7 @@ export function throwPose(index: number, frame: number, count: number): ThrowPos
     const spin = landTilt + dir * 50 * (1 - e);
     const yaw = -dir * 45 * (1 - flight);
     return {
-      transform: `translate3d(${x.toFixed(2)}vw, ${y.toFixed(1)}px, 0) rotateY(${yaw.toFixed(1)}deg) rotateZ(${spin.toFixed(1)}deg) scale(${(0.88 + 0.12 * e).toFixed(3)})`,
+      transform: `perspective(1600px) translate3d(${x.toFixed(2)}vw, ${y.toFixed(1)}px, 0) rotateY(${yaw.toFixed(1)}deg) rotateZ(${spin.toFixed(1)}deg) scale(${(0.88 + 0.12 * e).toFixed(3)})`,
       // Text fades in only over the back half of the flight, once rotation
       // has mostly settled toward its resting tilt — never full-opacity text
       // on a steeply rotated card.
@@ -64,15 +64,18 @@ export function throwPose(index: number, frame: number, count: number): ThrowPos
 
   // Landed: the skew straightens out as the reader keeps scrolling.
   const straighten = easeOutCubic(clamp01((local - THROW_FLIGHT) / (1 - THROW_FLIGHT)));
+  // Scroll offsets are pixel-rounded. Release a visually finished transform
+  // even if the browser stops a fraction of a pixel before the exact keyframe.
+  const settled = straighten >= 0.9999;
   const tilt = landTilt * (1 - straighten);
   const shift = dir * 2.5 * (1 - straighten);
   return {
-    transform: straighten >= 1
-      ? (rest === 0 ? "none" : `translate3d(0, ${rest}px, 0)`)
+    transform: settled
+      ? "none" // Settled stack offsets belong to layout, so text has no transform ancestor.
       : `translate3d(${shift.toFixed(2)}vw, ${rest}px, 0) rotateZ(${tilt.toFixed(2)}deg)`,
     opacity: 1,
     visible: true,
-    settled: straighten >= 1,
+    settled,
     // The next card lands at local ≈ 1 + THROW_FLIGHT; fade this card's content
     // as it arrives so the translucent glass never shows two layers of text.
     covered: index < count - 1 ? clamp01((local - 1.3) / 0.3) : 0,

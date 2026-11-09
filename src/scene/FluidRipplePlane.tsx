@@ -1,4 +1,4 @@
-import { useRef, useEffect, type JSX } from "react";
+import { useRef, useEffect, useMemo, type JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RippleCanvas } from "./RippleCanvas.ts";
@@ -92,6 +92,8 @@ export function FluidRipplePlane(): JSX.Element {
   const simRef = useRef<RippleCanvas | null>(null);
   const textureRef = useRef<THREE.CanvasTexture | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
+  const uniforms = useMemo(() => THREE.UniformsUtils.clone(RippleShaderMaterial.uniforms), []);
   const lastPointer = useRef({ x: 0, y: 0 });
   const mousePointer = useRef({ x: 0, y: 0, active: false });
   const lastMoveTime = useRef(0);
@@ -137,7 +139,7 @@ export function FluidRipplePlane(): JSX.Element {
     const tex = textureRef.current;
     if (!sim) return;
 
-    const time = state.clock.getElapsedTime();
+    const time = state.clock.elapsedTime;
     const recentlyActive = performance.now() - lastMoveTime.current < IDLE_AFTER_MS;
     const ptr = mousePointer.current.active ? mousePointer.current : state.pointer;
 
@@ -160,6 +162,7 @@ export function FluidRipplePlane(): JSX.Element {
     lastPointer.current = { x: ptr.x, y: ptr.y };
 
     const updated = sim.update();
+    if (meshRef.current) meshRef.current.visible = recentlyActive || updated;
     if (updated && tex) {
       tex.needsUpdate = true;
     }
@@ -176,19 +179,17 @@ export function FluidRipplePlane(): JSX.Element {
   });
 
   return (
-    <mesh renderOrder={999}>
+    <mesh ref={meshRef} renderOrder={999}>
       <planeGeometry args={[2, 2]} />
       <shaderMaterial
         ref={materialRef}
-        args={[
-          {
-            ...RippleShaderMaterial,
-            transparent: true,
-            depthWrite: false,
-            depthTest: false,
-            blending: THREE.AdditiveBlending,
-          },
-        ]}
+        uniforms={uniforms}
+        vertexShader={RippleShaderMaterial.vertexShader}
+        fragmentShader={RippleShaderMaterial.fragmentShader}
+        transparent
+        depthWrite={false}
+        depthTest={false}
+        blending={THREE.AdditiveBlending}
       />
     </mesh>
   );

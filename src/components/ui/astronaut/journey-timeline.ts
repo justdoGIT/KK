@@ -90,7 +90,9 @@ export function cardRect(width: number, height: number): FrameRect {
     h = height * 0.56;
     w = h * 1.43;
   }
-  return { x: (width - w) / 2, y: height * 0.56 - h / 2, width: w, height: h, radius: 20, rotation: 0 };
+  // Centre the crop on the astronaut: the lower framing clipped the helmet
+  // on phones and spent too much of the opening card on the ground.
+  return { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h, radius: 20, rotation: 0 };
 }
 
 export function screenRect(width: number, height: number): FrameRect {

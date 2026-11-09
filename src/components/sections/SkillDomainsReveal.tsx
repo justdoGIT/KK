@@ -11,6 +11,9 @@ import {
   viewportEntry,
 } from "../../motion/scroll-frame.ts";
 import { SkillCategoryCard } from "./SkillCategoryCard.tsx";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
+import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 
 const ALL = "all";
 // Scroll travel per card (viewport-heights) while the domain grid is pinned.
@@ -47,9 +50,10 @@ function clearCardReveal(el: HTMLDivElement): void {
 
 export function SkillDomainsReveal(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const [selected, setSelected] = useState<string>(ALL);
   const [revealedCount, setRevealedCount] = useState(0);
-  const pinned = enhanced && selected === ALL;
+  const pinned = enhanced && selected === ALL && !mobile;
 
   const sectionRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -148,6 +152,17 @@ export function SkillDomainsReveal(): JSX.Element {
   };
 
   const sectionStyle = { "--domain-travel": `${total * TRAVEL_PER_CARD_VH}vh` } as CSSProperties;
+
+  if (mobile) {
+    return (
+      <div className="skill-domains-section mobile-board-section">
+        <div className="section-header"><LusionKineticHeading text="Technical skill domains" /></div>
+        <MobileBoardCarousel label="Skill categories">
+          {skillCategories.map((category) => <SkillCategoryCard key={category.id} category={category} interactive={false} />)}
+        </MobileBoardCarousel>
+      </div>
+    );
+  }
 
   return (
     <div

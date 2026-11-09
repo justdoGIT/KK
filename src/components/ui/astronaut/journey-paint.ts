@@ -67,9 +67,19 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   // settled scale just enough to keep the card's bottom edge inside the
   // pinned stage instead of being clipped by `.contact-banner`'s overflow.
   const fitScale = layout.moverHeight > 0
-    ? Math.max(0.36, Math.min(1, (height - layout.moverTop - 24) / layout.moverHeight))
+    ? Math.max(0.1, Math.min(1, (height - layout.moverTop - 24) / layout.moverHeight))
     : 1;
-  const base = Math.min(layout.cssScale, fitScale);
+  const widthFit = layout.moverWidth > 0
+    ? Math.min(1, (width - 16) / layout.moverWidth)
+    : 1;
+  const base = Math.min(layout.cssScale, fitScale, widthFit);
+  // The pinned viewport can be taller than the final card. Let the desktop
+  // footer use that empty tail while preserving the authored scroll length.
+  const tail = `${Math.max(0, Math.floor(height - layout.moverTop - layout.moverHeight * base - 24))}px`;
+  const sectionStyle = els.section.current?.style;
+  if (sectionStyle?.getPropertyValue("--journey-tail-space") !== tail) {
+    sectionStyle?.setProperty("--journey-tail-space", tail);
+  }
   const baseDeckWidth = Math.max(1, layout.moverWidth * base);
   const closeUpZoom = Math.max(1, (height * LANDING_BODY) / BODY_RATIO / baseDeckWidth);
   const scale = base * (1 + (closeUpZoom - 1) * frame.closeUp);

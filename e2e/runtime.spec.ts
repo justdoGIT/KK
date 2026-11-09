@@ -74,7 +74,7 @@ test("production limits connections to same-origin models and blocks injected st
   await expect(page.getByRole("main")).toBeVisible();
 });
 
-test("guided playback resumes after an upward touch gesture", async ({ browser }) => {
+test("a touch gesture pauses the tour until the reader resumes", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     viewport: { width: 1280, height: 800 },
@@ -91,7 +91,8 @@ test("guided playback resumes after an upward touch gesture", async ({ browser }
     await expect.poll(() => page.evaluate((y) => Math.abs(scrollY - y), target)).toBeLessThan(3);
 
     const cdp = await context.newCDPSession(page);
-    const point = (y: number) => [{ x: 640, y, radiusX: 1, radiusY: 1, force: 1, id: 1 }];
+    // Scroll the page gutter; gestures inside the console scroll its output.
+    const point = (y: number) => [{ x: 8, y, radiusX: 1, radiusY: 1, force: 1, id: 1 }];
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(600) });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(520) });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(440) });
@@ -101,7 +102,13 @@ test("guided playback resumes after an upward touch gesture", async ({ browser }
     expect(Math.abs(await page.evaluate(() => scrollY) - held)).toBeLessThanOrEqual(2);
 
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await expect.poll(() => page.evaluate(() => scrollY), { timeout: 3000 }).toBeGreaterThan(held + 20);
+    await expect(page.locator(".reading-tour-control")).toHaveAttribute("data-tour-status", "paused");
+    await page.waitForTimeout(1000);
+    const settled = await page.evaluate(() => scrollY);
+    await page.waitForTimeout(700);
+    expect(Math.abs(await page.evaluate(() => scrollY) - settled)).toBeLessThan(3);
+    await page.locator(".reading-tour-control").click();
+    await expect(page.locator(".reading-tour-control")).toHaveAttribute("data-tour-status", "playing");
     await cdp.detach();
   } finally {
     await context.close();
