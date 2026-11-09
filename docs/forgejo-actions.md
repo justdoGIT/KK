@@ -22,6 +22,9 @@ native binding; other setup errors remain failures. Benchmark output is
 retained even when a benchmark fails.
 Browser checks explicitly select Chromium's SwiftShader WebGL adapter so
 headless runners exercise the scenes as well as the static layout.
+The existing Forgejo Semgrep workflow is also restored for pull requests,
+main pushes, and the weekly scan. The old `code-review.yml` is replaced by
+the pinned `ai-review.yml` so each PR gets one automated code review.
 
 Every portable GitHub job has a Forgejo counterpart:
 
