@@ -46,10 +46,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Review runtime behavior
-        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1
+        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1 --reporter=line,html --max-failures=1
 
       - name: Review phone and short-screen layout
-        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1
+        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1 --reporter=line,html --max-failures=1
 
       - name: Upload browser review failures
         if: failure()

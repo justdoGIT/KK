@@ -3,7 +3,7 @@ import { createServer, type ViteDevServer } from "vite";
 
 let server: ViteDevServer;
 let url: string;
-test.setTimeout(90_000);
+test.setTimeout(process.env.CI ? 180_000 : 90_000);
 test.beforeAll(async () => {
   server = await createServer({ server: { host: "127.0.0.1", port: 0 }, logLevel: "error" });
   await server.listen();

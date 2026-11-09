@@ -32,9 +32,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Review runtime and card tour behavior
-        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1
+        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1 --reporter=line,html --max-failures=1
       - name: Review phone and short-screen layout
-        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1
+        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1 --reporter=line,html --max-failures=1
       - name: Upload browser reports
         if: always()
         uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
