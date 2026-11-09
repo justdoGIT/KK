@@ -70,6 +70,13 @@ test("finishes fanning before capturing wheel input and retains card content on 
   // Switching to a short-screen layout must clear retained imperative styles.
   await fanPosition(page, 0);
   await page.setViewportSize({ width: 1440, height: 600 });
+  // Device-metrics acknowledgement can precede Chromium's resize frame.
+  // Let media-query changes reach the page before checking React's layout.
+  await page.waitForFunction(
+    () => innerHeight === 600 && !matchMedia("(min-width: 1024px) and (min-height: 720px)").matches,
+    undefined,
+    { timeout: 20_000 },
+  );
   await expect(page.locator("#work")).toHaveClass(/is-static/);
   await expect(stage.locator(".lusion-card-isolated-cell--settled")).toHaveCount(4);
   for (const front of await stage.locator(".lusion-card-front").all()) {

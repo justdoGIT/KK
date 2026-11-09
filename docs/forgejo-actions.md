@@ -22,9 +22,10 @@ native binding; other setup errors remain failures. Benchmark output is
 retained even when a benchmark fails.
 Browser checks explicitly select Chromium's SwiftShader WebGL adapter so
 headless runners exercise the scenes as well as the static layout.
-CI gives software rendering additional test time. The card fanning
-regression takes about 80 seconds on the Lenovo CPU, close to its previous
-90-second limit. Browser jobs print failures immediately and retain HTML
+CI gives software rendering additional test time. The combined card fanning,
+reversal, and resize regression takes over a minute on the Lenovo CPU.
+Resize checks wait for Chromium's viewport frame before checking the static
+layout. Browser jobs print failures immediately and retain HTML
 reports; the first unrecovered failure stops the run for diagnosis.
 Responsive layouts subscribe synchronously to media-query changes so a
 short-screen resize does not retain an obsolete animated layout while React
