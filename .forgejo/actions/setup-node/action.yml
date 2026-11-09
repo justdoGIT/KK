@@ -13,3 +13,8 @@ runs:
     - name: Install dependencies
       shell: bash
       run: npm ci
+    - name: Select a supported Rolldown binding
+      shell: bash
+      run: |
+        ulimit -c 0
+        node scripts/select-rolldown-binding.mjs

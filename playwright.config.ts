@@ -10,6 +10,10 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    // Give headless runners a real software WebGL adapter for scene checks.
+    launchOptions: {
+      args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"],
+    },
   },
   webServer: {
     command: "npm run preview -- --port 4173",

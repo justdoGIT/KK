@@ -14,6 +14,15 @@ CI and browser review also warned that the npm cache service was unreachable.
 Forgejo dependency setup uses no GitHub cache service. Forgejo artifacts use
 the native upload action v3, rather than GitHub's artifact service v4.
 
+The first native runs also exposed a hardware failure: Rolldown's native
+binding exits with `SIGILL` on Lenovo's Intel i3-3110M, which lacks AVX2.
+Dependency setup probes Rolldown in a child process and selects its pinned,
+matching WASI binding only for this failure. Supported runners retain the
+native binding; other setup errors remain failures. Benchmark output is
+retained even when a benchmark fails.
+Browser checks explicitly select Chromium's SwiftShader WebGL adapter so
+headless runners exercise the scenes as well as the static layout.
+
 Every portable GitHub job has a Forgejo counterpart:
 
 | GitHub workflow/job | Forgejo workflow/job |
