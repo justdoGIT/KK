@@ -29,7 +29,9 @@ layout. Browser jobs print failures immediately and retain HTML
 reports; the first unrecovered failure stops the run for diagnosis.
 Responsive layouts subscribe synchronously to media-query changes so a
 short-screen resize does not retain an obsolete animated layout while React
-processes ongoing scroll updates.
+processes ongoing scroll updates. They read live query snapshots on resize
+and on the following frame, including when a retained query's notification
+is delayed.
 The existing Forgejo Semgrep workflow is also restored for pull requests,
 main pushes, and the weekly scan. The old `code-review.yml` is replaced by
 the pinned `ai-review.yml` so each PR gets one automated code review.
