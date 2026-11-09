@@ -71,10 +71,12 @@ test("finishes fanning before capturing wheel input and retains card content on 
   await fanPosition(page, 0);
   await page.setViewportSize({ width: 1440, height: 600 });
   await expect(page.locator("#work")).toHaveClass(/is-static/);
+  await expect(stage.locator(".lusion-card-isolated-cell--settled")).toHaveCount(4);
   for (const front of await stage.locator(".lusion-card-front").all()) {
     await expect(front).toHaveCSS("opacity", "1");
     await expect(front).toHaveCSS("pointer-events", "auto");
     await expect(front).not.toHaveAttribute("inert");
+    await expect(front).not.toHaveAttribute("aria-hidden", "true");
   }
 });
 

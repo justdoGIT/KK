@@ -26,6 +26,9 @@ CI gives software rendering additional test time. The card fanning
 regression takes about 80 seconds on the Lenovo CPU, close to its previous
 90-second limit. Browser jobs print failures immediately and retain HTML
 reports; the first unrecovered failure stops the run for diagnosis.
+Responsive layouts subscribe synchronously to media-query changes so a
+short-screen resize does not retain an obsolete animated layout while React
+processes ongoing scroll updates.
 The existing Forgejo Semgrep workflow is also restored for pull requests,
 main pushes, and the weekly scan. The old `code-review.yml` is replaced by
 the pinned `ai-review.yml` so each PR gets one automated code review.

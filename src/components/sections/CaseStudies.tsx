@@ -78,17 +78,21 @@ export function CaseStudies(): JSX.Element {
   }
   // The imperative scroll driver mutates settledRef.current in place every
   // frame; copy React's mask rather than mutating an array owned by state.
-  useEffect(() => {
+  useLayoutEffect(() => {
     settledRef.current = [...settledMask];
   }, [settledMask]);
 
   // Motion-mode changes must also flatten the retained nodes before paint.
   useLayoutEffect(() => {
+    const deckReady = settledMask.every(Boolean);
+    if (stageRef.current) toggleClass(stageRef.current, "is-settled", deckReady);
     settledMask.forEach((isSettled, idx) => {
       if (!isSettled) return;
       const card = cardRefs.current[idx];
       if (!card) return;
       const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
+      toggleClass(card, "lusion-card-isolated-cell--settled", true);
+      if (card.dataset.frontVisible !== "true") card.dataset.frontVisible = "true";
       card.style.transform = animated
         ? `translate(${Math.round(targetXsRef.current[idx] ?? 0)}px, ${Math.round(cfg.targetY)}px)`
         : "none";
@@ -96,8 +100,12 @@ export function CaseStudies(): JSX.Element {
       const front = frontRefs.current[idx];
       const back = backRefs.current[idx];
       if (front) {
+        toggleClass(front, "lusion-card-front--static", true);
+        if (front.inert === deckReady) front.inert = !deckReady;
+        if (deckReady) front.removeAttribute("aria-hidden");
+        else if (front.getAttribute("aria-hidden") !== "true") front.setAttribute("aria-hidden", "true");
         writeStyle(front, "opacity", "1");
-        writeStyle(front, "pointer-events", settledMask.every(Boolean) ? "auto" : "none");
+        writeStyle(front, "pointer-events", deckReady ? "auto" : "none");
       }
       if (back) { writeStyle(back, "opacity", "0"); writeStyle(back, "pointer-events", "none"); }
     });

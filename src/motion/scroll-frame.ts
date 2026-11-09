@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { onFrame } from "./frame.ts";
 
 export function clamp01(n: number): number {
@@ -44,12 +44,14 @@ export function gridColumnCount(el: Element): number {
 export function useScrollFrame(read: () => void, write: () => void, enabled = true): void {
   const readRef = useRef(read);
   const writeRef = useRef(write);
-  useEffect(() => {
+  useLayoutEffect(() => {
     readRef.current = read;
     writeRef.current = write;
   });
 
-  useEffect(() => {
+  // Remove disabled drivers before paint so a breakpoint or motion-mode
+  // change cannot leave an old frame overwriting the new static layout.
+  useLayoutEffect(() => {
     if (!enabled) return;
     let pending = true; // run once immediately on mount/enable
     let armed = false; // the read phase produced a frame for the write phase
