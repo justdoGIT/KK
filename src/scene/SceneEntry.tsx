@@ -1,5 +1,4 @@
 import React, {
-  Component,
   lazy,
   Suspense,
   useState,
@@ -27,7 +26,7 @@ type ErrorBoundaryProps = {
 
 type ErrorBoundaryState = { hasError: boolean };
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
