@@ -10,7 +10,6 @@ import type { HudRefs } from "./WallFollowerHud.tsx";
 
 export type CareerElements = {
   section: RefObject<HTMLElement | null>;
-  flash: RefObject<HTMLDivElement | null>;
   clock: RefObject<CareerClock>;
   hud: HudRefs;
 };
@@ -36,7 +35,11 @@ export function useCareerDriver(els: CareerElements, enabled: boolean): CareerDr
   useEffect(() => {
     const section = els.section.current;
     if (!section || !enabled) return;
-    const nearObserver = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+    const nearObserver = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setNear(true);
+      nearObserver.disconnect();
+    }, {
       rootMargin: "100% 0px 100% 0px",
     });
     const activeObserver = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting));
@@ -55,6 +58,7 @@ export function useCareerDriver(els: CareerElements, enabled: boolean): CareerDr
     const frame = createSensorFrame();
     let hud: Hud | null = null;
     let lastStage = -1;
+    let painted = "";
     // Populated in the read phase, consumed by the write phase of the same tick.
     const scratch = { t: 0, intro: 0, current: 0, local: 0, showHud: false };
 
@@ -79,17 +83,15 @@ export function useCareerDriver(els: CareerElements, enabled: boolean): CareerDr
       clock.t = scratch.t;
       clock.stage = scratch.current;
       clock.local = scratch.local;
-      section.style.setProperty("--career-intro", scratch.intro.toFixed(4));
-      section.style.setProperty("--career-t", scratch.t.toFixed(4));
-      section.dataset.careerStage = String(scratch.current);
-      section.dataset.careerLocal = scratch.local.toFixed(2);
+      const signature = `${scratch.intro.toFixed(4)}:${scratch.t.toFixed(4)}`;
+      if (signature !== painted) {
+        section.style.setProperty("--career-intro", scratch.intro.toFixed(4));
+        section.style.setProperty("--career-t", scratch.t.toFixed(4));
+        section.dataset.careerStage = String(scratch.current);
+        section.dataset.careerLocal = scratch.local.toFixed(2);
+        painted = signature;
+      }
       if (scratch.current !== lastStage) {
-        if (lastStage !== -1) {
-          const flash = els.flash.current;
-          flash?.classList.remove("is-flashing");
-          void flash?.offsetWidth;
-          flash?.classList.add("is-flashing");
-        }
         lastStage = scratch.current;
         setStage(scratch.current);
       }

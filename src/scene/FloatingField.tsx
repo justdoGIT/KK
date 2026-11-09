@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, type JSX } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { PcbModule } from "./components/PcbModule.tsx";
 import { MicrocontrollerQfp } from "./components/MicrocontrollerQfp.tsx";
@@ -122,7 +122,14 @@ type ItemDynamics = {
 };
 
 export function FloatingField(): JSX.Element {
+  const fieldRef = useRef<THREE.Group>(null);
   const groupRefs = useRef<(THREE.Group | null)[]>([]);
+  const { viewport, gl } = useThree();
+  // Fit the desktop composition into the available world-space viewport.
+  // Scaling the parent keeps the models and their spacing proportional as
+  // the canvas resizes, including when a phone changes orientation.
+  const fieldScale = Math.min(1, viewport.width / 7.2, viewport.height / 4);
+  const fieldOffsetX = -0.8 * (1 - fieldScale);
 
   // Physics dynamic state for each item (position & angular spring velocities)
   const dynamics = useMemo<ItemDynamics[]>(() => {
@@ -138,31 +145,37 @@ export function FloatingField(): JSX.Element {
   const pointerWorld = useRef(new THREE.Vector3(0, 0, 0));
   const mouseTarget = useRef(new THREE.Vector2(0, 0));
   const mouseWindow = useRef({ x: 0, y: 0, active: false });
+  const pointerRay = useMemo(() => new THREE.Raycaster(), []);
+  const interactionPlane = useMemo(
+    () => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
+    [],
+  );
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
-      const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+      const rect = gl.domElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       mouseWindow.current = { x: nx, y: ny, active: true };
     };
     window.addEventListener("pointermove", onMove, { passive: true });
     return () => window.removeEventListener("pointermove", onMove);
-  }, []);
+  }, [gl]);
 
   useFrame((state, delta) => {
-    const time = state.clock.getElapsedTime();
+    const time = state.clock.elapsedTime;
     const clampedDelta = Math.min(0.1, delta);
     const targetPtr = mouseWindow.current.active
       ? mouseTarget.current.set(mouseWindow.current.x, mouseWindow.current.y)
       : state.pointer;
 
-    // Map pointer coordinates to 3D interaction plane
+    // Project onto the scene plane, then undo the responsive field transform
+    // so the ripple impulse follows the pointer at every viewport size.
     pointerPos.current.lerp(targetPtr, 0.14);
-    pointerWorld.current.set(
-      pointerPos.current.x * 3.5,
-      pointerPos.current.y * 2.5,
-      0,
-    );
+    pointerRay.setFromCamera(pointerPos.current, state.camera);
+    pointerRay.ray.intersectPlane(interactionPlane, pointerWorld.current);
+    fieldRef.current?.worldToLocal(pointerWorld.current);
 
     ITEMS_CONFIG.forEach((cfg, idx) => {
       const group = groupRefs.current[idx];
@@ -237,7 +250,7 @@ export function FloatingField(): JSX.Element {
   });
 
   return (
-    <group>
+    <group ref={fieldRef} name="hero-floating-field" scale={fieldScale} position={[fieldOffsetX, 0, 0]}>
       {/* 0: Qualcomm / ARM SoC Microcontroller */}
       <group
         ref={(el) => {

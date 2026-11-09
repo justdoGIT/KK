@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, type CSSProperties, type JSX } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type JSX } from "react";
 import { services, type Service } from "../../content/services.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
@@ -7,11 +7,13 @@ import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { throwFrame, throwPose, throwProgressFor } from "../../motion/throw-deck.ts";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
+import { useServiceDeckFit } from "../../motion/service-deck-fit.ts";
 import "../../styles/services-throw.css";
+import { InteractionHint } from "../ui/InteractionHint.tsx";
 
 // Viewport height of scroll spent per thrown card.
 const SCROLL_PER_CARD_VH = 95;
-const THROW_QUERY = "(min-width: 1024px) and (min-height: 720px)";
 
 function ServiceCardBody({ service, index }: { service: Service; index: number }): JSX.Element {
   return (
@@ -76,45 +78,22 @@ function ServiceCardBody({ service, index }: { service: Service; index: number }
 
 export function Services(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
-  const wide = useMediaQuery(THROW_QUERY);
-  const [cardsFit, setCardsFit] = useState(true);
-  const throwMode = enhanced && wide && cardsFit;
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const [activeCard, setActiveCard] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
-  useGuidedScroll(sectionRef, throwMode, { target: 0.94, seconds: 20 });
-
-  // A viewport breakpoint alone cannot account for wrapped chips and deliverables.
-  // If any card exceeds the pinned budget, let every card grow in page flow.
-  useLayoutEffect(() => {
-    if (!throwMode) return;
-    let active = true;
-    const measure = () => {
-      if (active && cardRefs.current.some((card) => card && card.scrollHeight > card.clientHeight + 1)) {
-        setCardsFit(false);
-      }
-    };
-    const observer = new ResizeObserver(measure);
-    cardRefs.current.forEach((card) => {
-      if (card) observer.observe(card);
-    });
-    measure();
-    void document.fonts.ready.then(measure);
-    return () => {
-      active = false;
-      observer.disconnect();
-    };
-  }, [throwMode]);
-
-  useEffect(() => {
-    const retryFit = () => setCardsFit(true);
-    window.addEventListener("resize", retryFit);
-    return () => window.removeEventListener("resize", retryFit);
-  }, []);
+  const { fits, stackStep } = useServiceDeckFit(sectionRef, cardRefs, !mobile);
+  const order = services.map((_, i) => i);
+  const throwMode = enhanced && fits && !mobile;
+  useGuidedScroll(trackRef, throwMode, {
+    target: throwProgressFor(services.length - 1, services.length),
+    seconds: 96,
+  });
 
   // Stacked layout: the most visible card is the active tab.
   useEffect(() => {
-    if (throwMode) return;
+    if (throwMode || mobile) return;
     const observer = new IntersectionObserver(
       (entries) => {
         const intersecting = entries
@@ -129,27 +108,29 @@ export function Services(): JSX.Element {
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
-  }, [throwMode]);
+  }, [throwMode, mobile]);
 
   // Throw layout: scroll position drives each card's flight and straightening.
   const frameRef = useRef(throwFrame(0, services.length));
   useScrollFrame(
     () => {
-      const section = sectionRef.current;
+      const section = trackRef.current;
       if (!section) return;
       const scrollable = Math.max(1, section.offsetHeight - window.innerHeight);
       frameRef.current = throwFrame(clamp01(-section.getBoundingClientRect().top / scrollable), services.length);
     },
     () => {
-      let top = 0;
-      cardRefs.current.forEach((card, index) => {
+      let top = order[0];
+      order.forEach((index, rank) => {
+        const card = cardRefs.current[index];
         if (!card) return;
-        const pose = throwPose(index, frameRef.current, services.length);
+        const pose = throwPose(rank, frameRef.current, services.length, stackStep);
+        card.dataset.settled = String(pose.settled);
         card.style.transform = pose.transform;
         card.style.opacity = pose.opacity.toFixed(3);
         card.style.setProperty("--covered", pose.covered.toFixed(3));
         card.style.visibility = pose.visible ? "visible" : "hidden";
-        if (pose.visible) top = index;
+        if (pose.visible && pose.opacity >= 0.95) top = index;
       });
       cardRefs.current.forEach((card, index) => {
         if (card) card.inert = index !== top;
@@ -167,35 +148,54 @@ export function Services(): JSX.Element {
       card.style.opacity = "";
       card.style.visibility = "";
       card.style.removeProperty("--covered");
+      delete card.dataset.settled;
       card.inert = false;
     });
   }, [throwMode]);
 
   const scrollToCard = (index: number) => {
     setActiveCard(index);
-    const section = sectionRef.current;
+    const section = trackRef.current;
     if (throwMode && section) {
       const scrollable = section.offsetHeight - window.innerHeight;
       const top = section.getBoundingClientRect().top + window.scrollY;
-      scrollToY(top + scrollable * throwProgressFor(index, services.length));
+      scrollToY(top + scrollable * throwProgressFor(order.indexOf(index), services.length));
       return;
     }
     const card = cardRefs.current[index];
-    if (card) {
-      const rect = card.getBoundingClientRect();
-      scrollToY(rect.top + window.scrollY - Math.max(72, (window.innerHeight - rect.height) / 2));
+    const container = card?.parentElement;
+    if (card && container) {
+      const gap = parseFloat(getComputedStyle(container).rowGap) || 0;
+      const preceding = order.slice(0, order.indexOf(index));
+      const offset = preceding.reduce((sum, i) => sum + (cardRefs.current[i]?.offsetHeight ?? 0) + gap, 0);
+      scrollToY(container.getBoundingClientRect().top + window.scrollY + offset - 88);
     }
   };
+
+  if (mobile) {
+    return (
+      <section className="services-section mobile-board-section" id="services" aria-label="Services">
+        <div className="section-header">
+          <LusionKineticHeading kicker="Areas of Expertise" text="Systems Consultancy & Architecture" />
+        </div>
+        <MobileBoardCarousel label="Service domains">
+          {services.map((service, index) => (
+            <article key={service.id} className="service-card-deck-item card-focused" aria-label={`${service.title} service details`}>
+              <ServiceCardBody service={service} index={index} />
+            </article>
+          ))}
+        </MobileBoardCarousel>
+      </section>
+    );
+  }
 
   return (
     <section
       ref={sectionRef}
       aria-label="Services"
-      className={`services-section${throwMode ? " services-throw" : enhanced && wide && !cardsFit ? " services-readable" : ""}`}
+      className={`services-section services-desktop${throwMode ? " services-throw" : enhanced ? " services-stack" : ""}`}
       id="services"
-      style={throwMode ? { height: `${services.length * SCROLL_PER_CARD_VH + 100}vh` } : undefined}
     >
-      <div className={throwMode ? "services-throw-stage" : undefined}>
         <div className="section-header">
           <LusionKineticHeading
             kicker="Areas of Expertise"
@@ -205,9 +205,9 @@ export function Services(): JSX.Element {
         </div>
 
         <div className="services-deck-nav" role="tablist" aria-label="Service domains">
-          {services.map((service: Service, idx: number) => (
+          {order.map(idx => (
             <button
-              key={service.id}
+              key={services[idx].id}
               type="button"
               role="tab"
               aria-selected={activeCard === idx}
@@ -215,29 +215,36 @@ export function Services(): JSX.Element {
               onClick={() => scrollToCard(idx)}
             >
               <span className="services-tab-num">{String(idx + 1).padStart(2, "0")}</span>
-              <span className="services-tab-title">{service.domain}</span>
+              <span className="services-tab-title">{services[idx].domain}</span>
             </button>
           ))}
         </div>
+        <InteractionHint pointer="The tour reveals each board in order. Scroll to take control, or choose a domain above."
+          touch="Scroll to explore the stack, or tap a domain above. Resume the tour in the header." />
 
-        <div className={throwMode ? "services-throw-table" : "services-deck-container"}>
-          {services.map((service: Service, idx: number) => (
+      <div ref={trackRef} className="services-deck-track"
+        style={throwMode ? { height: `${services.length * SCROLL_PER_CARD_VH + 100}vh` } : undefined}>
+      <div className={`services-desktop-stage${throwMode ? " services-throw-stage" : ""}`}>
+        <div className={throwMode ? "services-throw-table" : "services-deck-container"}
+          style={{ "--stack-height": `${(services.length - 1) * stackStep}px` } as CSSProperties}>
+          {order.map((idx, rank) => (
             <article
-              key={service.id}
+              key={services[idx].id}
+              data-service-id={services[idx].id}
+              data-stack-rank={rank}
               ref={(el) => {
                 cardRefs.current[idx] = el;
               }}
               className={`service-card-deck-item ${activeCard === idx ? "card-focused" : ""}`}
               tabIndex={0}
-              aria-label={`${service.title} service details`}
-              style={throwMode
-                ? { zIndex: idx + 1 }
-                : ({ top: `calc(5.5rem + ${idx * 1.2}rem)`, zIndex: idx + 1 } as CSSProperties)}
+              aria-label={`${services[idx].title} service details`}
+              style={{ zIndex: rank + 1, "--stack-offset": `${rank * stackStep}px` } as CSSProperties}
             >
-              <ServiceCardBody service={service} index={idx} />
+              <ServiceCardBody service={services[idx]} index={idx} />
             </article>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );

@@ -121,8 +121,8 @@
       ],
       "assetPaths": [
         "public/models/characters/nasa-astronaut.glb",
-        "public/textures/earth-day-2048.jpg",
-        "public/textures/earth-clouds-2048.jpg"
+        "public/textures/earth-day-2048.webp",
+        "public/textures/earth-clouds-2048.webp"
       ],
       "licensePaths": ["public/models/CREDITS.md", "public/textures/CREDITS.md"]
     },

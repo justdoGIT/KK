@@ -189,30 +189,7 @@
   color: #93a4ff;
 }
 
-.career-screen-flash {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  background:
-    repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.14) 0 2px, transparent 2px 5px),
-    radial-gradient(circle at 50% 50%, rgba(147, 164, 255, 0.55), transparent 70%);
-}
 
-.career-screen-flash.is-flashing {
-  animation: career-flash 0.7s ease-out;
-}
-
-@keyframes career-flash {
-  0% {
-    opacity: 1;
-    transform: scaleY(1.04);
-  }
-  100% {
-    opacity: 0;
-    transform: none;
-  }
-}
 
 /* Wall-follower sensor HUD. */
 .career-hud {

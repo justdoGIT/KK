@@ -146,7 +146,7 @@ export function RoverStage({ clock, index }: StageProps): JSX.Element {
       <Hazards rings={rings} />
       <MorphPad radius={0.9} position={[ROVER_START.x, 0, ROVER_START.z]} />
       <group position={[ROVER_START.x, roverRideHeight(0), ROVER_START.z]}>
-        <PartMorph source={source} target={target} clock={clock} seed={11} />
+        <PartMorph source={source} target={target} clock={clock} index={index} seed={11} />
       </group>
       <group ref={rover}>
         <primitive object={husky.scene} />

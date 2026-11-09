@@ -164,10 +164,11 @@ export function WorldTunnels({ clock }: { clock: JourneyClockRef }): JSX.Element
     <>
       <instancedMesh ref={ringsRef} args={[kit.ring, kit.ringMat, RINGS]} frustumCulled={false} />
       <instancedMesh ref={streaksRef} args={[kit.streak, kit.streakMat, STREAKS]} frustumCulled={false} />
+      {/* Stable light counts prevent new shader variants when the corridor opens. */}
+      <ambientLight intensity={0.9} color="#c7d0ff" />
+      <directionalLight position={[2, 4, 5]} intensity={1.6} color="#ffffff" />
+      <pointLight position={[0, 1, -12]} intensity={40} distance={30} color="#6f86ff" />
       <group ref={corridorRef}>
-        <ambientLight intensity={0.9} color="#c7d0ff" />
-        <directionalLight position={[2, 4, 5]} intensity={1.6} color="#ffffff" />
-        <pointLight position={[0, 1, -12]} intensity={40} distance={30} color="#6f86ff" />
         <instancedMesh ref={archesRef} args={[kit.arch, kit.archMat, ARCHES]} frustumCulled={false} />
         <instancedMesh ref={discsRef} args={[kit.disc, kit.discMat, ARCHES * 2]} frustumCulled={false} />
         <mesh geometry={kit.floor} material={kit.floorMat} position={[0, FLOOR_Y, -14]} rotation={[-Math.PI / 2, 0, 0]} />

@@ -1,19 +1,58 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { onFrame } from "../motion/frame.ts";
 
-/**
- * Renders the enclosing `<Canvas frameloop="never">` from the shared frame
- * scheduler's render phase while `active`, i.e. after every scroll driver has
- * read layout and written its clock for this frame. A pinned 3D layer then
- * paints from the same scroll position as the DOM layers around it instead of
- * trailing them by a frame. R3F's `advance` takes seconds.
- */
-export function SchedulerFrames({ active }: { active: boolean }): null {
-  const advance = useThree((state) => state.advance);
+/** Place inside the scene's Suspense boundary, after its assets and lights. */
+export function SchedulerFrames({ active, visible }: { active: boolean; visible?: RefObject<boolean> }): null {
+  const { advance, gl, scene, camera } = useThree();
+  const [prepared, setPrepared] = useState(false);
+  const elapsed = useRef(0);
+
   useEffect(() => {
-    if (!active) return;
-    return onFrame("render", (time) => advance(time / 1000));
-  }, [active, advance]);
+    let alive = true;
+    let generation = 0;
+    const prepare = () => {
+      const current = ++generation;
+      // A synchronous compile of every hidden stage would front-load a large
+      // stall on devices without this extension. Keep their normal draw path.
+      if (!gl.extensions.has("KHR_parallel_shader_compile")) {
+        setPrepared(true);
+        return;
+      }
+      // KHR_parallel_shader_compile lets scrolling continue while the driver
+      // compiles programs. Diagnostic checks remain enabled on the renderer.
+      void gl.compileAsync(scene, camera).then(() => {
+        if (alive && current === generation) setPrepared(true);
+      }, error => {
+        if (!alive || current !== generation || gl.getContext().isContextLost()) return;
+        console.error("Scene shader preparation failed", error);
+        setPrepared(true); // The renderer can report the original shader error.
+      });
+    };
+    const lost = () => { generation++; setPrepared(false); };
+    gl.domElement.addEventListener("webglcontextlost", lost);
+    gl.domElement.addEventListener("webglcontextrestored", prepare);
+    prepare();
+    return () => {
+      alive = false;
+      gl.domElement.removeEventListener("webglcontextlost", lost);
+      gl.domElement.removeEventListener("webglcontextrestored", prepare);
+    };
+  }, [gl, scene, camera]);
+
+  useEffect(() => {
+    if (!active || !prepared) return;
+    let first = true;
+    return onFrame("render", (_time, delta) => {
+      // The DOM observer can hide a canvas before its separate React/R3F root
+      // commits new props. Stop expensive draws during that handoff too.
+      if (visible && !visible.current) { first = true; return; }
+      // Paused scenes retain their pose. A return to the viewport must not
+      // inject several seconds into a spring or jump an idle animation.
+      elapsed.current += first ? 0 : delta;
+      first = false;
+      advance(elapsed.current);
+    });
+  }, [active, prepared, advance, visible]);
   return null;
 }

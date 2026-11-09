@@ -15,9 +15,9 @@ import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
 import "../../styles/product-deck.css";
 
-// flipSpeed < 1 = flip completes before full scroll travel (faster).
 // Outer/edge cards flip fast; inner cards flip slower.
 // startRotZ/X = organic stacking angle in the deck.
 // targetRotZ/X = 0 → all cards land perfectly upright.
@@ -44,6 +44,7 @@ export function CaseStudies(): JSX.Element {
   // back to the static 2-col grid (`.is-static`) so four cards never have to
   // squeeze into a pinned stage they can't fit — same as narrower widths.
   const wide = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const animated = enhanced && wide;
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -265,6 +266,24 @@ export function CaseStudies(): JSX.Element {
     "04 // SYSTEM AUTOMATION",
   ];
 
+  if (mobile) {
+    return (
+      <section className="mobile-board-section" id="work" aria-label="Case studies">
+        <div className="section-header">
+          <LusionKineticHeading kicker="Selected Missions" text="Products with a pulse." variant="cascade" />
+        </div>
+        <MobileBoardCarousel label="Case studies">
+          {studies.map((study, index) => (
+            <article key={study.record.slug} className="lusion-card-face lusion-card-front lusion-card-front--static">
+              <CardFrontContent study={study} idx={index} category={categories[index]} onExpand={() => openArchitectureModal(study, index)} />
+            </article>
+          ))}
+        </MobileBoardCarousel>
+        <ArchitectureModal isOpen={selectedArch !== null} onClose={() => setSelectedArch(null)} architecture={selectedArch} />
+      </section>
+    );
+  }
+
   return (
     <section ref={sectionRef} aria-label="Case studies" className={`lusion-deck-scroll-section${animated ? "" : " is-static"}`} id="work">
       <div className="lusion-deck-sticky-stage">
@@ -291,22 +310,15 @@ export function CaseStudies(): JSX.Element {
             </div>}
           </div>
 
-          <div className="lusion-cards-stage" ref={stageRef}>
+          <div className={`lusion-cards-stage${settledMask.every(Boolean) ? " is-settled" : ""}`} ref={stageRef}>
             {studies.map((study, idx) => {
               const isSettled = settledMask[idx] ?? !animated;
 
               if (isSettled) {
                 return (
                   <div
-                    // Keyed separately from the unsettled branch below: they
-                    // render incompatible DOM shapes (this is a flat static
-                    // card, the other a 3D flipper with two faces). Sharing
-                    // one key let React reuse the flipper's DOM node for
-                    // this card, inheriting the imperatively-set
-                    // `rotateY(...)` inline transform the driver wrote on
-                    // it mid-flight — React only clears style it owns via
-                    // the `style` prop, never a ref's direct DOM writes —
-                    // which froze the card mirrored once settled.
+                    // Remount the flat face so it cannot inherit the flipper's
+                    // imperative rotateY transform when the animation settles.
                     key={`${study.record.slug}-settled`}
                     ref={(el) => { cardRefs.current[idx] = el; }}
                     className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
@@ -322,6 +334,7 @@ export function CaseStudies(): JSX.Element {
                         idx={idx}
                         category={categories[idx]}
                         onExpand={() => openArchitectureModal(study, idx)}
+                        nestedScroll={animated}
                       />
                     </div>
                   </div>
@@ -343,6 +356,7 @@ export function CaseStudies(): JSX.Element {
                         idx={idx}
                         category={categories[idx]}
                         onExpand={() => openArchitectureModal(study, idx)}
+                        nestedScroll={animated}
                       />
                     </div>
 

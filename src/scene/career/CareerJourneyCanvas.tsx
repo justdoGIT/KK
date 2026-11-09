@@ -3,10 +3,12 @@ import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
+import { BasicShadowMap } from "three";
 import type { CareerClockRef } from "./career-clock.ts";
 import { preloadModels } from "./robot-model.ts";
 import { CAREER_STAGES } from "./stages/registry.ts";
 import { useAdaptiveDpr } from "../AdaptiveDpr.tsx";
+import { SchedulerFrames } from "../SchedulerFrames.tsx";
 
 type CareerJourneyCanvasProps = { clock: CareerClockRef; active: boolean };
 
@@ -33,8 +35,10 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
     <Canvas
       className="career-canvas"
       dpr={dpr}
-      frameloop={active ? "always" : "never"}
-      shadows
+      frameloop="never"
+      // Nearest depth sampling avoids implementation-defined hardware PCF
+      // filtering and its Firefox warning; one sample also costs less to draw.
+      shadows={{ type: BasicShadowMap }}
       gl={{ antialias: false, powerPreference: "high-performance" }}
       camera={{ fov: 42, near: 0.03, far: 80, position: [0, 5, 5] }}
     >
@@ -48,7 +52,7 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
         castShadow
         position={[4, 8, 3]}
         intensity={2.4}
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-9}
         shadow-camera-right={9}
         shadow-camera-top={9}
@@ -57,12 +61,13 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
       />
       <directionalLight position={[-5, 3, -4]} intensity={1.1} color="#38bdf8" />
       <StudioEnvironment />
-      {CAREER_STAGES.map((Stage, index) => (
-        <Suspense key={index} fallback={null}>
-          <Stage clock={clock} index={index} />
-        </Suspense>
-      ))}
-      <EffectComposer multisampling={4}>
+      <Suspense fallback={null}>
+        {CAREER_STAGES.map((Stage, index) => (
+          <Stage key={index} clock={clock} index={index} />
+        ))}
+        <SchedulerFrames active={active} />
+      </Suspense>
+      <EffectComposer multisampling={2}>
         <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.9} luminanceSmoothing={0.2} />
         <ToneMapping mode={ToneMappingMode.NEUTRAL} />
         <Vignette offset={0.32} darkness={0.5} />

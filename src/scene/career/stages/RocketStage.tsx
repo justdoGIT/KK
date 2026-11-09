@@ -103,7 +103,7 @@ export function RocketStage({ clock, index }: StageProps): JSX.Element {
       </mesh>
       <Grid position={[0, 0.002, 0]} args={[40, 20]} cellSize={0.5} cellColor="#0e1a30" sectionSize={2} sectionColor="#1b3b66" fadeDistance={18} />
       <MorphPad radius={1.4} position={[0, 0, 0]} />
-      <PartMorph source={source} target={target} clock={clock} seed={37} />
+      <PartMorph source={source} target={target} clock={clock} index={index} seed={37} />
       <group ref={vehicle}>
         <primitive object={rocket} />
         <primitive object={tower} position={[-1.35, 0, -0.2]} />
