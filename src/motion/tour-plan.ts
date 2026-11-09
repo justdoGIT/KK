@@ -29,7 +29,7 @@ export function buildTourPlan(enhanced: boolean): TourStep[] {
     const heading = `${chapter} .section-header, ${chapter} .board-lifecycle-header, ${chapter} .career-header, ${chapter} .lusion-deck-header`;
     if (all(heading).length) {
       const step = flowStep(`${prefix}-heading`, chapter, heading);
-      if (prefix === "career" && !one(".career-journey--static")) {
+      if ((prefix === "career" && !one(".career-journey--static")) || (prefix === "work" && one("#work:not(.is-static)"))) {
         step.target = () => layoutTop(one(chapter)) - 64;
         step.end = undefined;
       }

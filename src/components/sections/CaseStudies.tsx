@@ -14,6 +14,7 @@ import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
+import { toggleClass, writeStyle } from "../../motion/dom-style.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
 import "../../styles/product-deck.css";
@@ -54,10 +55,8 @@ export function CaseStudies(): JSX.Element {
   // not state — read every scroll frame by the imperative driver below, so a
   // stage resize never has to wait for a React render to reach the cards.
   const targetXsRef = useRef<number[]>([-468, -156, 156, 468]);
-  // Per-card DOM refs: the scroll driver writes transforms/attributes to
-  // these directly every frame, so only a *settled* card's discrete flip (a
-  // structural, not continuous, change — see settledMask below) ever causes
-  // a React commit.
+  // Keep the faces mounted across landing/reversal so text, focus and scroll
+  // offsets survive. Continuous poses are written outside React.
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const flipperRefs = useRef<(HTMLDivElement | null)[]>([]);
   const frontRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -65,12 +64,7 @@ export function CaseStudies(): JSX.Element {
   const headingWobbleRef = useRef<HTMLDivElement>(null);
   const stackBtnRef = useRef<HTMLButtonElement>(null);
   const fanBtnRef = useRef<HTMLButtonElement>(null);
-  // Whether each card has finished its flip and landed (cardP >= 1). This is
-  // the one piece of per-card state that legitimately needs a React commit:
-  // a settled card swaps to a flatter DOM structure (see the comment by
-  // `isSettled` below), so it can only be driven by render, not by a style
-  // write. It flips rarely (once per direction change per card), satisfying
-  // "setState only on discrete changes".
+  // Interactivity changes only when the complete deck lands or lifts again.
   const settledRef = useRef<boolean[]>(studies.map(() => !animated));
   const [settledMask, setSettledMask] = useState<boolean[]>(() => studies.map(() => !animated));
   // Toggling motion mode or crossing the 1024px breakpoint flips every card
@@ -83,15 +77,12 @@ export function CaseStudies(): JSX.Element {
     setSettledMask(studies.map(() => !animated));
   }
   // The imperative scroll driver mutates settledRef.current in place every
-  // frame; keep it pointing at the latest array whenever React's own copy
-  // changes (the reset above, or the driver's own setSettledMask([...])).
+  // frame; copy React's mask rather than mutating an array owned by state.
   useEffect(() => {
-    settledRef.current = settledMask;
+    settledRef.current = [...settledMask];
   }, [settledMask]);
 
-  // A settled card is remounted with a flat DOM shape. Restore the landing
-  // transform before paint because the scroll callback wrote it to the
-  // now-unmounted flying node.
+  // Motion-mode changes must also flatten the retained nodes before paint.
   useLayoutEffect(() => {
     settledMask.forEach((isSettled, idx) => {
       if (!isSettled) return;
@@ -101,6 +92,14 @@ export function CaseStudies(): JSX.Element {
       card.style.transform = animated
         ? `translate(${Math.round(targetXsRef.current[idx] ?? 0)}px, ${Math.round(cfg.targetY)}px)`
         : "none";
+      if (flipperRefs.current[idx]) flipperRefs.current[idx]!.style.transform = "none";
+      const front = frontRefs.current[idx];
+      const back = backRefs.current[idx];
+      if (front) {
+        writeStyle(front, "opacity", "1");
+        writeStyle(front, "pointer-events", settledMask.every(Boolean) ? "auto" : "none");
+      }
+      if (back) { writeStyle(back, "opacity", "0"); writeStyle(back, "pointer-events", "none"); }
     });
   }, [animated, settledMask]);
 
@@ -148,7 +147,9 @@ export function CaseStudies(): JSX.Element {
       if (!section) return;
       const rect = section.getBoundingClientRect();
       const totalScroll = rect.height - window.innerHeight;
-      progressRef.current = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
+      const progress = totalScroll > 0 ? Math.max(0, Math.min(1, -rect.top / (totalScroll * 0.75))) : 0;
+      // Native scroll positions can round just below an exact final target.
+      progressRef.current = progress >= 0.999 ? 1 : progress;
     },
     () => {
       const scrollProgress = progressRef.current;
@@ -156,15 +157,17 @@ export function CaseStudies(): JSX.Element {
       if (headingWobbleRef.current) {
         const exit = Math.max(0, Math.min(1, (scrollProgress - 0.42) / 0.2));
         const wobble = Math.sin(scrollProgress * Math.PI * 4) * 12;
-        headingWobbleRef.current.style.transform = `translateY(${Math.round(wobble - exit * 24)}px)`;
-        headingWobbleRef.current.style.opacity = String(1 - exit);
+        writeStyle(headingWobbleRef.current, "transform", `translateY(${(wobble - exit * 24).toFixed(2)}px)`);
+        writeStyle(headingWobbleRef.current, "opacity", String(1 - exit));
       }
-      stackBtnRef.current?.classList.toggle("active", scrollProgress < 0.3);
-      fanBtnRef.current?.classList.toggle("active", scrollProgress >= 0.3);
+      if (stackBtnRef.current) toggleClass(stackBtnRef.current, "active", scrollProgress < 0.3);
+      if (fanBtnRef.current) toggleClass(fanBtnRef.current, "active", scrollProgress >= 0.3);
 
       const targetXs = targetXsRef.current;
       const mask = settledRef.current;
       let maskChanged = false;
+      const deckReady = scrollProgress === 1;
+      if (stageRef.current) toggleClass(stageRef.current, "is-settled", deckReady);
 
       studies.forEach((_study, idx) => {
         const cfg = CARD_CONFIGS[idx] ?? CARD_CONFIGS[0];
@@ -175,61 +178,59 @@ export function CaseStudies(): JSX.Element {
           maskChanged = true;
         }
 
-        // Once a card finishes its flip and lands at cardP===1, it never
-        // changes again until the user scrolls back up — there's no reason to
-        // keep it in the 3D transform stack (perspective + preserve-3d +
-        // rotateY + backface-visibility) that forces GPU compositing. The
-        // settled branch below renders a completely flat 2D structure instead.
+        const card = cardRefs.current[idx];
+        const flipper = flipperRefs.current[idx];
+        const front = frontRefs.current[idx];
+        const back = backRefs.current[idx];
+        if (card) toggleClass(card, "lusion-card-isolated-cell--settled", isSettled);
+        if (front) {
+          toggleClass(front, "lusion-card-front--static", isSettled);
+          if (front.inert === deckReady) front.inert = !deckReady;
+          writeStyle(front, "pointer-events", deckReady ? "auto" : "none");
+          if (deckReady) front.removeAttribute("aria-hidden");
+          else if (front.getAttribute("aria-hidden") !== "true") front.setAttribute("aria-hidden", "true");
+        }
+
         if (isSettled) {
-          const card = cardRefs.current[idx];
           if (card) {
             const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
             const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
-            card.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            writeStyle(card, "transform", `translate(${currentX}px, ${currentY}px)`);
+            writeStyle(card, "z-index", String(10 + idx));
+            if (card.dataset.frontVisible !== "true") card.dataset.frontVisible = "true";
           }
+          if (flipper) writeStyle(flipper, "transform", "none");
+          if (front) writeStyle(front, "opacity", "1");
+          if (back) { writeStyle(back, "opacity", "0"); writeStyle(back, "pointer-events", "none"); }
           return;
         }
 
         // During travel: organic tilt from start angles back to 0 at landing.
-        // Rounded to whole px/degrees before hitting the style: any fractional
-        // value here (THREE_lerp floats, or the ~1e-16 residue from
-        // Math.sin(Math.PI) not being exactly 0) forces the browser to keep
-        // this element's text in a sub-pixel-offset GPU compositing layer even
-        // once the card has visually landed, which reads as a permanent slight
-        // blur on the card body text. Snapping every translate/rotate/scale
-        // component to whole px / whole degrees / 3-decimal scale removes that
-        // residue without affecting the animation itself.
+        // Preserve sub-degree motion during travel; the settled branch snaps
+        // to a flat, integer-pixel pose only when the card actually lands.
         const flipP = Math.min(1, cardP / cfg.flipSpeed);
         const rotY = flipP * 180 + Math.sin(flipP * Math.PI) * cfg.wobbleY;
         const isFrontVisible = rotY >= 90;
-        const currentX = Math.round(THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP));
-        const currentY = Math.round(THREE_lerp(0, cfg.targetY, cardP));
-        const currentRotZ = Math.round(THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP));
-        const currentRotX = Math.round(THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP));
+        const currentX = THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP).toFixed(2);
+        const currentY = THREE_lerp(0, cfg.targetY, cardP).toFixed(2);
+        const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP).toFixed(3);
+        const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP).toFixed(3);
         const currentScale = Math.round(THREE_lerp(0.93, 1.0, cardP) * 1000) / 1000;
         const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
         const rotYDisplay = Math.round(rotY * 100) / 100;
 
-        const card = cardRefs.current[idx];
         if (card) {
-          card.style.transform = `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`;
-          card.style.zIndex = String(Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx)));
-          card.dataset.frontVisible = isFrontVisible ? "true" : "false";
+          writeStyle(card, "transform", `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`);
+          writeStyle(card, "z-index", String(Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx))));
+          if (card.dataset.frontVisible !== String(isFrontVisible)) card.dataset.frontVisible = String(isFrontVisible);
         }
-        const flipper = flipperRefs.current[idx];
-        if (flipper) flipper.style.transform = `rotateY(${rotYDisplay}deg)`;
-        const front = frontRefs.current[idx];
+        if (flipper) writeStyle(flipper, "transform", `rotateY(${rotYDisplay}deg)`);
         if (front) {
-          front.style.pointerEvents = isFrontVisible ? "auto" : "none";
-          front.style.opacity = isFrontVisible ? "1" : "0";
-          front.inert = !isFrontVisible;
-          if (isFrontVisible) front.removeAttribute("aria-hidden");
-          else front.setAttribute("aria-hidden", "true");
+          writeStyle(front, "opacity", isFrontVisible ? "1" : "0");
         }
-        const back = backRefs.current[idx];
         if (back) {
-          back.style.pointerEvents = !isFrontVisible ? "auto" : "none";
-          back.style.opacity = !isFrontVisible ? "1" : "0";
+          writeStyle(back, "pointer-events", !isFrontVisible ? "auto" : "none");
+          writeStyle(back, "opacity", !isFrontVisible ? "1" : "0");
         }
       });
 
@@ -256,7 +257,7 @@ export function CaseStudies(): JSX.Element {
     if (!section) return;
     const totalScroll = (section.offsetHeight - window.innerHeight) * 0.75;
     const targetY = section.getBoundingClientRect().top + window.scrollY + targetProgress * totalScroll;
-    scrollToY(targetY);
+    scrollToY(Math.ceil(targetY));
   };
 
   const categories = [
@@ -314,49 +315,23 @@ export function CaseStudies(): JSX.Element {
             {studies.map((study, idx) => {
               const isSettled = settledMask[idx] ?? !animated;
 
-              if (isSettled) {
-                return (
-                  <div
-                    // Remount the flat face so it cannot inherit the flipper's
-                    // imperative rotateY transform when the animation settles.
-                    key={`${study.record.slug}-settled`}
-                    ref={(el) => { cardRefs.current[idx] = el; }}
-                    className="lusion-card-isolated-cell lusion-card-isolated-cell--settled"
-                    data-front-visible="true"
-                    style={{
-                      transform: animated ? undefined : "none",
-                      zIndex: 10 + idx,
-                    }}
-                  >
-                    <div className="lusion-card-face lusion-card-front lusion-card-front--static">
-                      <CardFrontContent
-                        study={study}
-                        idx={idx}
-                        category={categories[idx]}
-                        onExpand={() => openArchitectureModal(study, idx)}
-                        nestedScroll={animated}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-
               return (
                 <div
-                  key={`${study.record.slug}-flying`}
+                  key={study.record.slug}
                   ref={(el) => { cardRefs.current[idx] = el; }}
-                  className="lusion-card-isolated-cell"
-                  data-front-visible="false"
+                  className={`lusion-card-isolated-cell${isSettled ? " lusion-card-isolated-cell--settled" : ""}`}
+                  data-front-visible={isSettled ? "true" : "false"}
+                  style={{ transform: animated ? undefined : "none", zIndex: 10 + idx }}
                   onClick={() => { if (cardRefs.current[idx]?.dataset.frontVisible !== "true") jumpToProgress(1); }}
                 >
                   <div ref={(el) => { flipperRefs.current[idx] = el; }} className="lusion-card-flipper">
-                    <div ref={(el) => { frontRefs.current[idx] = el; }} className="lusion-card-face lusion-card-front" inert aria-hidden="true">
+                    <div ref={(el) => { frontRefs.current[idx] = el; }} className={`lusion-card-face lusion-card-front${isSettled ? " lusion-card-front--static" : ""}`} inert={!settledMask.every(Boolean)} aria-hidden={settledMask.every(Boolean) ? undefined : true}>
                       <CardFrontContent
                         study={study}
                         idx={idx}
                         category={categories[idx]}
                         onExpand={() => openArchitectureModal(study, idx)}
-                        nestedScroll={animated}
+                        nestedScroll={animated && settledMask.every(Boolean)}
                       />
                     </div>
 
