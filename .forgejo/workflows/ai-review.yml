@@ -1,0 +1,25 @@
+name: AI Review
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  ai-review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ci-standard
+    timeout-minutes: 10
+    steps:
+      # This pinned action fetches only the API diff. It does not check out or
+      # execute PR source while it has the reviewer credentials.
+      - name: Run trusted Forgejo PR reviewer
+        uses: http://192.168.1.4:3000/justdoGIT/ci-templates@0f717bda569cb145441d925e690c18ca0b7c4223
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          FORGEJO_URL: ${{ github.server_url }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}

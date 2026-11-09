@@ -1,0 +1,39 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  ci:
+    runs-on: ci-standard
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.forgejo/actions/setup-node
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: Publication validation
+        run: npm run validate:publication
+      - name: Check bundle budgets
+        run: node scripts/check-bundle-budgets.mjs
+      - name: Upload dist and reports
+        uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: ci-build
+          path: |
+            dist/
+            evidence/manifest.v1.json
+            docs/dependency-matrix.json
+          retention-days: 90
