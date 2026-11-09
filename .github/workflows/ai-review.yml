@@ -45,9 +45,9 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      # Every provider whose secret exists is used, in the order of REVIEW_MODELS
-      # in scripts/ai-pr-review.mjs; an unset secret just skips that provider.
-      - name: Review changed code with free-tier models
+      # Models are tried in REVIEW_MODELS order in scripts/ai-pr-review.mjs;
+      # an unset secret skips that provider.
+      - name: Review changed code with Gemini 3.8 Flash and free-tier fallbacks
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}

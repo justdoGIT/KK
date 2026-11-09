@@ -12,8 +12,10 @@ export const REVIEW_MARKER = "<!-- ai-code-review -->";
 // with a known defect (an unguarded appendFileSync) using this script's prompt:
 //   found it: Gemini 3 Flash (6 s), Mistral Codestral (3 s)
 //   missed it ("No issues found"): Groq qwen3.8-27b (0.4 s), Groq gpt-oss-120b
-// Models are ordered by that result, then by speed; the NVIDIA models were
-// unreliable (see above) and come last. Left out: Cerebras (HTTP 402, payment
+// Gemini 3.8 Flash replaces the preview reviewer with a stable free-tier model:
+// https://ai.google.dev/gemini-api/docs/pricing#gemini-3.8-flash
+// The remaining models retain the measured order; unreliable NVIDIA models
+// come last. Left out: Cerebras (HTTP 402, payment
 // required), SambaNova (120 s timeouts) and the free OpenRouter models (they
 // spend the token budget on reasoning or are restricted to agentic clients).
 // A model whose provider key is not set is skipped.
@@ -58,7 +60,7 @@ const MISTRAL = {
 };
 
 export const REVIEW_MODELS = [
-  { ...GEMINI, id: "gemini-3-flash-preview", maxTokens: 3_000, body: LOW_EFFORT },
+  { ...GEMINI, id: "gemini-3.8-flash", maxTokens: 3_000, body: LOW_EFFORT },
   { ...MISTRAL, id: "codestral-latest", maxTokens: 3_000 },
   { ...GROQ, id: "qwen/qwen3.8-27b", maxTokens: 3_000 },
   { ...NVIDIA, id: "nvidia/nemotron-3-ultra-550b-a55b", maxTokens: 3_000 },
