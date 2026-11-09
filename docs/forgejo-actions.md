@@ -25,6 +25,9 @@ headless runners exercise the scenes as well as the static layout.
 The existing Forgejo Semgrep workflow is also restored for pull requests,
 main pushes, and the weekly scan. The old `code-review.yml` is replaced by
 the pinned `ai-review.yml` so each PR gets one automated code review.
+The restored scan identified 15 mutable GitHub action references. All are
+now pinned to verified release commits, including dependency review v4.9.0
+because the upstream movable `v4` tag no longer exists.
 
 Every portable GitHub job has a Forgejo counterpart:
 
