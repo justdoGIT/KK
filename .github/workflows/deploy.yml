@@ -7,7 +7,7 @@ on:
   workflow_call:
     inputs:
       source_ref:
-        description: KK branch or commit to publish at the root site
+        description: Portfolio branch or commit to publish at the root site
         type: string
         default: main
         required: false
@@ -27,7 +27,7 @@ jobs:
   build:
     if: >-
       github.server_url == 'https://github.com' &&
-      (github.repository == 'justdoGIT/KK' ||
+      (github.repository == 'justdoGIT/KK-Github-Portfolio' ||
       github.repository == 'justdoGIT/justdogit.github.io')
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          repository: justdoGIT/KK
+          repository: justdoGIT/KK-Github-Portfolio
           ref: ${{ inputs.source_ref || github.sha }}
           persist-credentials: false
 
@@ -105,12 +105,12 @@ jobs:
           from pathlib import Path
 
           Path("dist/source-version.json").write_text(
-              json.dumps({"repository": "justdoGIT/KK", "commit": os.environ["SOURCE_SHA"]}) + "\n"
+              json.dumps({"repository": "justdoGIT/KK-Github-Portfolio", "commit": os.environ["SOURCE_SHA"]}) + "\n"
           )
           PY
 
-      - name: Redirect the legacy project site to the root website
-        if: steps.source.outputs.changed == 'true' && github.repository == 'justdoGIT/KK'
+      - name: Redirect the project site to the root website
+        if: steps.source.outputs.changed == 'true' && github.repository == 'justdoGIT/KK-Github-Portfolio'
         run: |
           python3 - <<'PY'
           from html import escape
@@ -143,7 +143,7 @@ jobs:
         if: steps.source.outputs.changed == 'true'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: ${{ github.repository == 'justdoGIT/KK' && format('{0}/portfolio-redirect', runner.temp) || 'dist/' }}
+          path: ${{ github.repository == 'justdoGIT/KK-Github-Portfolio' && format('{0}/portfolio-redirect', runner.temp) || 'dist/' }}
 
   deploy:
     if: github.server_url == 'https://github.com' && needs.build.outputs.changed == 'true'
@@ -187,11 +187,11 @@ jobs:
                   if is_root:
                       with urlopen(root + "source-version.json?commit=" + os.environ["SOURCE_SHA"], timeout=20) as response:
                           version = json.load(response)
-                      if version != {"repository": "justdoGIT/KK", "commit": os.environ["SOURCE_SHA"]}:
+                      if version != {"repository": "justdoGIT/KK-Github-Portfolio", "commit": os.environ["SOURCE_SHA"]}:
                           raise RuntimeError("The root site has not served the expected source commit yet")
                   elif f'content="0; url={root}"' not in body:
                       raise RuntimeError("The project site must redirect to the root website")
-                  print("PASS: root website" if is_root else "PASS: legacy project-site redirect")
+                  print("PASS: root website" if is_root else "PASS: project-site redirect")
                   break
               except (OSError, ValueError, RuntimeError):
                   if attempt == 5:
