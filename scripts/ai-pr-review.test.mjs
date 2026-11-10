@@ -338,6 +338,38 @@ describe("AI review job outcome", () => {
     vi.restoreAllMocks();
   });
 
+  it("updates the existing bot comment with rendered review prose and retained code examples", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const example = '```js\nthrow new Error("Failure");\n```';
+    const provider = `\`\`\`\`markdown\n## Reliability\n\nFix the handler.\n\n${example}\n\`\`\`\``;
+    const posted = [];
+    const fetchImpl = async (url, options) => {
+      const path = new URL(url).pathname;
+      if (path === "/repos/owner/repo/pulls/7") {
+        return { ok: true, text: async () => "diff --git a/x b/x" };
+      }
+      if (path === "/repos/owner/repo/issues/7/comments") {
+        return { ok: true, json: async () => [
+          { id: 41, user: { login: "maintainer" }, body: REVIEW_MARKER },
+          { id: 42, user: { login: "github-actions[bot]" }, body: REVIEW_MARKER },
+        ] };
+      }
+      if (path === "/repos/owner/repo/issues/comments/42") {
+        posted.push({ method: options.method, ...JSON.parse(options.body) });
+        return { ok: true };
+      }
+      return { ok: true, json: async () => ({ choices: [{ message: { content: provider } }] }) };
+    };
+
+    await runReview({ fetchImpl });
+
+    expect(posted).toHaveLength(1);
+    expect(posted[0].method).toBe("PATCH");
+    expect(posted[0].body).toContain("\n\n## Reliability\n\nFix the handler.");
+    expect(posted[0].body).toContain(example);
+    expect(posted[0].body).not.toContain("````markdown");
+  });
+
   it("warns and passes when no model answers, without posting a comment", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const run = job({ ok: false, status: 503 });
