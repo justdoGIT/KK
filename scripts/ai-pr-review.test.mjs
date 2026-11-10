@@ -169,6 +169,20 @@ describe("AI review model chain", () => {
     await expect(run.result()).resolves.toMatchObject({ model: second.id });
   });
 
+  it("falls back instead of posting a review cut off inside a code fence", async () => {
+    const truncated = answer("## Finding\n```yaml\npermissions:");
+    truncated.json = async () => ({
+      choices: [{ message: { content: "## Finding\n```yaml\npermissions:" }, finish_reason: "length" }],
+    });
+    const run = scripted({
+      [first.id]: [truncated],
+      [second.id]: [answer("No issues found")],
+    });
+
+    await expect(run.result()).resolves.toEqual({ content: "No issues found", model: second.id });
+    expect(run.asked()).toEqual([first.id, first.id, second.id]);
+  });
+
   it("does not retry a model that timed out, it moves on to the next one", async () => {
     const timeout = Object.assign(new Error("The operation timed out"), {
       name: "TimeoutError",

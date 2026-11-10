@@ -85,6 +85,9 @@ const REVIEW_SYSTEM_PROMPT = [
   "Report only actionable defects supported by evidence in the patch.",
   "Read unified diffs as before-and-after changes: lines prefixed '-' are removed old code, '+' lines are added current code, and space-prefixed lines are unchanged context. Reconstruct the resulting code before reporting a defect. A removed problem that the added code fixes is not a finding.",
   "Each finding must quote the relevant added or unchanged code and explain a concrete failure in the resulting version. Check the added replacement for an allegedly missing path, guard, validation, or error handler; never claim that the removed version is still deployed.",
+  "Return at most five distinct findings. Never repeat a finding or pad the review to reach a count.",
+  "GitHub Actions job-level permissions override workflow defaults. Check the affected job's effective permissions before alleging a missing scope. A read-only workflow default does not prevent a deploy job with pages: write and id-token: write from publishing.",
+  "CSP 'self' includes the document's own origin; it does not require repeating that site's domain. 'wasm-unsafe-eval' permits WebAssembly compilation, not general JavaScript unsafe-eval or inline scripts.",
   "Immutable action commit-SHA pins protect against supply-chain changes; do not recommend movable tags or infer a vulnerability from pinning alone. Report a pinned version when evidence establishes a concrete vulnerability or incompatibility.",
   "In this repository, Forgejo workflows run on private self-hosted runners that can reach their Forgejo server on the LAN or VPN. Evaluate action URL reachability for those runners; public internet reachability is not required. Still report concrete transport-security or connectivity defects.",
   "The justdoGIT/ci-templates repository on forgejo.kepr.dev contains this owner's first-party CI actions. An unfamiliar hostname or changing that server's URL from HTTP to HTTPS does not establish malicious code or an untrusted source. Cite a concrete code, permission, or source-integrity defect instead.",
@@ -287,6 +290,11 @@ async function requestReviewOnce(model, input, key, fetchImpl) {
   );
   const payload = await response.json();
   const choice = payload.choices?.[0];
+  // A cut-off answer can leave a fence open or repeat findings until the token
+  // limit. Retry/fall back rather than publish an incomplete review as success.
+  if (choice?.finish_reason === "length") {
+    throw new Error("AI review response exceeded the output token budget");
+  }
   const content = choice?.message?.content?.trim();
 
   if (!content) {
