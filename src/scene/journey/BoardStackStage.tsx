@@ -9,7 +9,7 @@ const LAYER_H = 0.36;
 const LAYER_GAP = 0.08;
 const STACK_BASE = -0.35;
 
-function layerTexture(label: string, step: number, color: string): THREE.CanvasTexture {
+function layerTexture(label: string, step: number, color: string, compact: boolean): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
   canvas.height = 144;
@@ -24,7 +24,7 @@ function layerTexture(label: string, step: number, color: string): THREE.CanvasT
   ctx.font = "600 34px monospace";
   ctx.fillStyle = color;
   ctx.fillText(`0${step}`, 44, 88);
-  ctx.font = "700 52px sans-serif";
+  ctx.font = `700 ${compact ? 68 : 52}px sans-serif`;
   ctx.fillStyle = "#f1f5f9";
   ctx.fillText(label, 130, 92);
   const texture = new THREE.CanvasTexture(canvas);
@@ -36,11 +36,11 @@ function layerTexture(label: string, step: number, color: string): THREE.CanvasT
  * The software stack built on the board: `built` layers (1–5) rest on the
  * hardware, the newest one drops into place, and earlier layers dim.
  */
-export function BoardStackStage({ built, active }: { built: number; active: boolean }): JSX.Element {
+export function BoardStackStage({ built, active, compact = false }: { built: number; active: boolean; compact?: boolean }): JSX.Element {
   const layers = useRef<(THREE.Group | null)[]>([]);
   const textures = useMemo(
-    () => softwareLayers.map((label, i) => layerTexture(label, i + 2, boardLifecycle[i + 1].color)),
-    [],
+    () => softwareLayers.map((label, i) => layerTexture(label, i + 2, boardLifecycle[i + 1].color, compact)),
+    [compact],
   );
   useEffect(() => () => textures.forEach((texture) => texture.dispose()), [textures]);
 
@@ -56,7 +56,7 @@ export function BoardStackStage({ built, active }: { built: number; active: bool
   });
 
   return (
-    <group position={[0, -0.55, 0]} rotation={[0.28, -0.42, 0]}>
+    <group position={[0, compact ? -0.12 : -0.55, 0]} rotation={compact ? [0.12, -0.2, 0] : [0.28, -0.42, 0]}>
       {/* Hardware foundation: board, SoC, and power already proven. */}
       <group position={[0, -0.75, 0]} rotation={[-Math.PI / 2.6, 0, 0]} scale={0.62}>
         <PcbModule theme="dark" />
@@ -76,7 +76,7 @@ export function BoardStackStage({ built, active }: { built: number; active: bool
             <meshStandardMaterial attach="material-1" color="#0c1a2e" />
             <meshStandardMaterial attach="material-2" color={boardLifecycle[i + 1].color} emissive={boardLifecycle[i + 1].color} emissiveIntensity={i === built - 1 ? 0.6 : 0.12} />
             <meshStandardMaterial attach="material-3" color="#0c1a2e" />
-            <meshStandardMaterial attach="material-4" map={textures[i]} emissive="#ffffff" emissiveMap={textures[i]} emissiveIntensity={i === built - 1 ? 0.55 : 0.2} />
+            <meshStandardMaterial attach="material-4" map={textures[i]} emissive="#ffffff" emissiveMap={textures[i]} emissiveIntensity={compact ? .8 : i === built - 1 ? 0.55 : 0.2} />
             <meshStandardMaterial attach="material-5" color="#0c1a2e" />
           </mesh>
         </group>

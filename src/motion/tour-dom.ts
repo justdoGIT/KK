@@ -39,7 +39,7 @@ export function carouselSteps(chapter: string, prefix: string): TourStep[] | nul
       label: slides[index].querySelector("h3")?.textContent ?? `Board ${index + 1}`,
       target: () => layoutTop(one(chapter)) - 56,
       text: () => slide()?.innerText ?? "",
-      inner: () => slide() ?? null,
+      inner: () => slide()?.querySelector<HTMLElement>(".mobile-board-front") ?? slide() ?? null,
       enter: () => {
         viewport()?.scrollTo({ left: slide()?.offsetLeft ?? 0,
           behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });

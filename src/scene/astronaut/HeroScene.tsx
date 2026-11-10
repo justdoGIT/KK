@@ -9,8 +9,9 @@ import {
   Vector3,
   type DirectionalLight,
   type Group,
+  type PerspectiveCamera,
 } from "three";
-import { phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
+import { cardRect, phaseRatio, smoothstep } from "../../components/ui/astronaut/journey-timeline.ts";
 import { LAND_AT, LAND_START, type ContactPoseMode } from "../../components/ui/contact/banner-timeline.ts";
 import { modelUrl } from "../robots/model-assets.ts";
 import { BONES, buildAstronautRig, instantiateAstronaut } from "./astronaut-rig.ts";
@@ -189,6 +190,14 @@ export function HeroScene({ clock }: { clock: JourneyClockRef }): JSX.Element {
 
     buf.cursor = (buf.cursor + 1) % HISTORY;
     const root = heroRoot(t, time, buf.history[buf.cursor]);
+    if (width < 768 && phaseRatio(t, "frameIn") < 1) {
+      const rect = cardRect(width, height);
+      const intro = 1 - smoothstep(0, 1, phaseRatio(t, "frameIn"));
+      const camera = state.camera as PerspectiveCamera;
+      const visibleHeight = 2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360);
+      root.y += (height / 2 - rect.y - rect.height / 2) / height * visibleHeight * intro;
+      root.scale *= 1 + .6 * intro;
+    }
     contactRoot(anchor, finale.mode, buf.hull, fall, time, root);
     if (transition < 1) blendRoot(buf.transitionFromRoot, root, transition);
     placeHull(buf.hull, root, buf.world);

@@ -115,6 +115,7 @@ export function contactSteps(): TourStep[] {
       }),
       id: "contact", chapter: "#contact", label: "Start a conversation",
       text: () => copy(".contact-banner"), seconds: 14,
+      inner: () => one(".aj-section--compact .contact-frame-wrapper"),
     },
   ];
 }

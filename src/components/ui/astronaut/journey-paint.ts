@@ -88,13 +88,10 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   const translatedY = frame.offset + frame.closeUp * (height * CLOSE_UP_DECK - layout.moverTop);
   const attach = smoothstep(ZOOM_OUT_START - 0.04, ZOOM_OUT_START + 0.08, progress);
   // On narrow screens the close-up zoom scales the card and finale heading
-  // wider than the viewport, so their text would render half off-screen while
-  // the camera pulls back. Hold them invisible until the zoom lands and fade
-  // them again just before the stage unpins, so they never slide under the
-  // sticky nav as the section ends. Desktop text fits at every zoom step and
-  // the desktop card sits clear of the nav, so the original timing stays.
+  // wider than the viewport while the camera pulls back. Reveal them once
+  // the zoom settles, then keep the complete final page visible at the end.
   const settledGate = width < 1024
-    ? smoothstep(ZOOM_OUT_END, ZOOM_OUT_END + 0.05, progress) * (1 - smoothstep(0.94, 1, progress))
+    ? smoothstep(ZOOM_OUT_END, ZOOM_OUT_END + 0.05, progress)
     : 1;
 
   // Card rect for this frame, derived from the same scale/shift values as the
@@ -106,7 +103,9 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   finale.cardWidth = cardWidth;
   finale.footX = cardLeft + cardWidth * STAND_AT;
   // The whole standing body fits between the sticky nav bar and the card.
-  const headroom = Math.max(40, finale.cardTop - layout.navBottom - NAV_GAP) / 1.1;
+  const topClearance = width < 1024 && isSettled
+    ? Math.max(layout.navBottom, layout.headingClearance) : layout.navBottom;
+  const headroom = Math.max(40, finale.cardTop - topClearance - NAV_GAP) / 1.1;
   finale.bodyHeight = Math.min(cardWidth * BODY_RATIO, height * LANDING_BODY, headroom);
 
   if (root.dataset.finaleProgress !== progress.toFixed(3)) root.dataset.finaleProgress = progress.toFixed(3);

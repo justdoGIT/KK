@@ -1,0 +1,150 @@
+/* Each phone chapter occupies a screen. Long copy scrolls within its board;
+   the career and contact films retain their authored outer scroll timelines. */
+.hero-details { display: contents; }
+@media (max-width: 767px) {
+  .hero-section {
+    height: calc(100svh - 3.5rem);
+    min-height: calc(100svh - 3.5rem);
+    padding: .75rem;
+    align-items: start;
+    scroll-margin-top: 3.5rem;
+  }
+  .hero-frame-container {
+    height: 100%;
+    min-height: 0;
+    padding: 1.25rem 1rem;
+    border-radius: 20px;
+  }
+  .hero-content { flex: 1; min-height: 0; width: 100%; }
+  .hero-badge, .hero-headline, .hero-mobile-art { flex: none; }
+  .hero-details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    margin-top: .75rem;
+    padding-right: .25rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #38bdf880 transparent;
+  }
+  .hero-details > * { flex: none; }
+  .hero-details:focus-visible { outline: 2px solid #7dd3fc; outline-offset: -2px; }
+  .hero-badge { margin-bottom: .9rem; padding: .4rem .7rem; font-size: .69rem; letter-spacing: .08em; }
+  .hero-headline { font-size: clamp(1.55rem, 7.6vw, 2.3rem); line-height: 1.06; max-width: none; }
+  .hero-tagline { margin-top: 0; font-size: .9rem; line-height: 1.5; }
+  .hero-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: .5rem; margin-top: 1rem; }
+  .hero-actions .btn { min-width: 0; min-height: 44px; gap: .5rem; padding: .7rem .5rem; font-size: .85rem; white-space: normal; }
+  .hero-actions .btn-tertiary { grid-column: 1 / -1; }
+  .hero-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; margin-top: .75rem; gap: .4rem; font-size: .65rem; letter-spacing: .01em; }
+  .hero-meta span { align-self: stretch; gap: .35rem; padding: .35rem .45rem; }
+  .hero-meta span::before { flex: none; }
+  .hero-tour-hint { margin-top: .75rem; font-size: .75rem; }
+  .hero-frame-footer { display: none; }
+  .hero-mobile-art {
+    position: relative;
+    width: 100%;
+    height: clamp(90px, 18svh, 160px);
+    margin-top: .75rem;
+    overflow: hidden;
+    border: 1px solid #38bdf82e;
+    border-radius: 14px;
+    background: #02040a;
+  }
+  .hero-mobile-art .scene-container,
+  .hero-mobile-art .css-artifact { top: 0; height: 100%; }
+  .hero-mobile-art .css-orb { width: min(42vw, 140px); height: min(42vw, 140px); }
+  #main .mobile-board-section { margin: 0 auto; border-top: 1px solid #38bdf81f; }
+  #main .mobile-board-section .lusion-kinetic-kicker,
+  #main .mobile-board-count { font-size: .69rem; }
+  #main .mobile-board-scene { height: clamp(110px, 27svh, 230px); }
+}
+
+.career-journey--mobile .career-sticky {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: .75rem;
+  padding: 4rem .85rem .75rem;
+}
+.career-journey--mobile .career-screen { grid-row: 1; transform: none; opacity: 1; }
+.career-journey--mobile .career-column { grid-row: 2; transform: none; opacity: 1; }
+.career-journey--mobile .career-header h2 { font-size: clamp(1.3rem, 5.7vw, 1.8rem); }
+.career-journey--mobile .career-header .lusion-kinetic-kicker { margin-bottom: .25rem; font-size: .69rem; }
+.career-journey--mobile .career-header .lusion-kinetic-subtitle { display: none; }
+.career-journey--mobile .career-hud,
+.career-journey--mobile .career-rail,
+.career-journey--mobile .career-screen-text { display: none; }
+.career-journey--mobile .career-screen-caption { top: .65rem; left: .65rem; right: .65rem; }
+.career-journey--mobile .career-screen-chapter { margin-bottom: .2rem; font-size: .69rem; }
+.career-journey--mobile .career-screen-codename { font-size: .85rem; }
+.career-journey--mobile .career-screen-robot { font-size: .69rem; }
+.career-journey--mobile .career-entry:not(.is-active) { display: none; }
+.career-journey--mobile .career-entries { margin-top: .5rem; padding: 0 .25rem .5rem 0; overscroll-behavior-y: contain; }
+.career-journey--mobile .career-entry { padding-left: .5rem; grid-template-columns: 1.4rem minmax(0, 1fr); }
+.career-journey--mobile .career-entry .timeline-desc,
+.career-journey--mobile .career-entry .timeline-list li { font-size: .9rem; line-height: 1.5; }
+.career-mobile-nav { display: flex; gap: .45rem; margin-top: .5rem; flex: none; }
+.career-mobile-nav button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid #294159;
+  border-radius: 9px;
+  color: #b7cbdf;
+  background: #101b2a;
+  font: .8rem var(--font-mono);
+  cursor: pointer;
+}
+.career-mobile-nav button[aria-current] { background: #38bdf8; color: #02040a; border-color: #38bdf8; }
+.career-mobile-nav button:focus-visible,
+.career-journey--mobile .career-entries:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+/* The card stays attached to the astronaut's landing panel at full phone
+   width. Its text scrolls instead of shrinking the whole banner to fit. */
+.aj-section--compact .contact-banner {
+  --contact-scale: 1;
+  --mobile-deck-top: max(clamp(11rem, 32svh, 17rem), calc(var(--contact-heading-clear, 0px) + min(22svh, 32vw) + 1.5rem));
+}
+.aj-section--compact .contact-banner-stage { padding-inline: .75rem; }
+.aj-section--compact .contact-banner-mover {
+  width: calc(100% - .5rem);
+  margin-inline: auto;
+  margin-top: var(--mobile-deck-top);
+}
+.aj-section--compact .contact-journey-heading {
+  top: calc(3.5rem + .75rem);
+  left: 50%;
+  width: calc(100% - 2rem);
+  font-size: clamp(1.6rem, 6.8vw, 2.2rem);
+  text-align: center;
+}
+.aj-section--compact .contact-card > .contact-frame-wrapper {
+  max-height: min(52svh, calc(100svh - var(--mobile-deck-top) - 2rem));
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #38bdf880 #02040a;
+}
+.aj-section--compact .contact-frame-wrapper:focus-visible { outline: 2px solid #7dd3fc; outline-offset: -3px; }
+.aj-section--compact .contact-status-pill { font-size: .69rem; }
+.aj-section--compact .contact-heading { font-size: clamp(1.3rem, 5.5vw, 1.75rem); }
+.aj-section--compact .contact-tagline { font-size: .9rem; line-height: 1.5; }
+.aj-section--compact .contact-actions .btn { min-height: 44px; padding: .75rem .6rem; font-size: .9rem; }
+.aj-section--compact .contact-actions { flex-direction: column; gap: .6rem; }
+.aj-section--compact .contact-assurances-grid { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-height: 500px) {
+  .career-journey--mobile .career-sticky { gap: .4rem; padding-bottom: .4rem; }
+  .career-journey--mobile .career-header h2 { font-size: 1.15rem; }
+  .career-journey--mobile .career-header .lusion-kinetic-kicker { display: none; }
+  .career-journey--mobile .career-screen-robot { display: none; }
+}
+
+@media (max-width: 767px) and (max-height: 500px) {
+  .hero-section { height: auto; }
+  .hero-frame-container { height: auto; }
+  .hero-details { overflow: visible; }
+  #main .mobile-board-scene { height: clamp(60px, 18svh, 75px); }
+}

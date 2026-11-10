@@ -10,9 +10,10 @@ vi.mock("../components/ui/astronaut/useJourneyDriver.ts", () => ({
 
 afterEach(() => vi.restoreAllMocks());
 
-function smallScreen(matches: boolean): void {
+function smallScreen(compact: boolean, flow = false): void {
   vi.spyOn(window, "matchMedia").mockImplementation((media) => ({
-    matches, media, onchange: null,
+    matches: media === "(min-width: 1024px) and (max-height: 719px)" ? flow : compact,
+    media, onchange: null,
     addEventListener: vi.fn(), removeEventListener: vi.fn(),
     addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: () => false,
   }));
@@ -21,19 +22,27 @@ function smallScreen(matches: boolean): void {
 const contact = <a href="mailto:hello@example.com">Start a Conversation</a>;
 
 describe("contact finale layout", () => {
-  it("flows after the pinned journey on phones and short screens", () => {
+  it("keeps the landing panel and interactive card in the film on phones", () => {
     smallScreen(true);
     const { container } = render(<AstronautSpaceJourney>{contact}</AstronautSpaceJourney>);
     const journey = screen.getByLabelText("Mission launch sequence");
-    const banner = container.querySelector(".aj-contact-flow");
-
+    const banner = journey.querySelector(".contact-banner--animated");
+    expect(container.querySelector(".aj-contact-flow")).toBeNull();
+    expect(journey).toHaveClass("aj-section--compact");
     expect(banner).not.toBeNull();
-    expect(journey.contains(banner)).toBe(false);
-    expect(journey.compareDocumentPosition(banner!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The scaled card (0.54 on an iPhone 13) is what made its text and buttons too small.
-    expect(journey.querySelector(".contact-banner-mover")).toBeNull();
+    expect(journey.querySelector(".contact-banner-mover")).not.toBeNull();
     expect(banner).toContainElement(screen.getByRole("link", { name: "Start a Conversation" }));
     expect(banner).toHaveTextContent("innovate");
+  });
+
+  it("retains readable flow on short desktop screens", () => {
+    smallScreen(false, true);
+    const { container } = render(<AstronautSpaceJourney>{contact}</AstronautSpaceJourney>);
+    const journey = screen.getByLabelText("Mission launch sequence");
+    const banner = container.querySelector(".aj-contact-flow");
+    expect(banner).not.toBeNull();
+    expect(journey.contains(banner)).toBe(false);
+    expect(banner).toContainElement(screen.getByRole("link", { name: "Start a Conversation" }));
   });
 
   it("keeps the card inside the pinned stage on large screens", () => {

@@ -8,10 +8,12 @@ test.describe("Mobile boards", () => {
   test.use({ viewport: { width: 414, height: 736 }, isMobile: true, hasTouch: true });
 
   test("fits every board in the screen and swipes sideways without moving the page", async ({ page, context }) => {
-    await page.goto("/");
+    test.setTimeout(90_000);
+    // Keep this swipe audit independent of the reading tour and shader startup.
+    await page.goto("/#services");
     for (const selector of boardSections) {
       const section = page.locator(selector);
-      const carousel = section.getByRole("region", { name: /./ });
+      const carousel = section.locator(".mobile-board-carousel");
       await section.evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }));
       const slides = carousel.locator(".mobile-board-slide");
       await expect.poll(async () => {

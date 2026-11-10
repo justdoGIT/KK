@@ -1,0 +1,106 @@
+@media (max-width: 767px) {
+  /* One reading surface per card, with depth only at the right/bottom. */
+  .mobile-board-viewport { padding-right: 0; }
+  .mobile-board-slide { background: #0c111d; border-color: #2b3542; }
+  .mobile-board-carousel--stack .mobile-board-shell { padding: 0 .35rem .35rem 0; }
+  .mobile-board-carousel--stack .mobile-board-shell::before { display: none; }
+  .mobile-board-carousel--stack .mobile-board-shell::after {
+    inset: 0 .35rem .35rem 0;
+    border: 0;
+    background: transparent;
+    transform: none;
+    box-shadow: 3px 3px 0 #1b2531, 6px 6px 0 #293441;
+  }
+  :is(.mobile-board-carousel--stack, .mobile-board-carousel--push).is-motion-enabled .mobile-board-slide {
+    position: relative;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+  :is(.mobile-board-carousel--stack, .mobile-board-carousel--push).is-motion-enabled .mobile-board-motion {
+    position: relative;
+    height: 100%;
+  }
+  :is(.mobile-board-carousel--stack, .mobile-board-carousel--push).is-motion-enabled .mobile-board-front {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid #2b3542;
+    border-radius: 16px;
+    background: #0c111d;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #526173 transparent;
+  }
+  .mobile-board-slide .service-card-deck-item { box-shadow: none; }
+  .mobile-board-carousel--flip.is-motion-enabled .mobile-board-front,
+  .mobile-board-carousel--flip.is-motion-enabled .mobile-board-back { border-color: #2b3542; }
+  .mobile-board-carousel--flip.is-motion-enabled .mobile-board-slide:first-child .mobile-board-motion { transform: rotateY(-180deg); }
+  .mobile-mission-prompt {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+    background: linear-gradient(transparent 10%, #070f1ae8 38%, #070f1aed 65%, transparent);
+  }
+  .mobile-mission-prompt span { color: #83cae9; font: .69rem var(--font-mono); letter-spacing: .08em; }
+  .mobile-mission-prompt strong { color: #e8f5ff; font-size: clamp(1.4rem, 6vw, 2rem); line-height: 1.2; }
+
+  /* Give the hardware the space previously occupied by empty card area. */
+  #main #journey .mobile-board-scene { height: clamp(145px, 40svh, 360px); margin-top: 0; margin-bottom: .45rem; }
+  #journey .mobile-board-carousel { flex: 1; }
+  #journey .mobile-board-slide .board-lifecycle-copy { padding: .75rem; }
+  #journey .board-lifecycle-copy h3 { font-size: 1.18rem; margin-bottom: .45rem; }
+  #journey .board-lifecycle-copy ul { margin: .6rem 0; }
+
+  /* Put shipped outcomes before the implementation narrative. */
+  #visual-lab .showcase-topbar { order: 0; }
+  #visual-lab .showcase-title { order: 1; }
+  #visual-lab .showcase-silicon-pill { order: 2; }
+  #visual-lab .showcase-impact-bar { order: 3; border-color: #4bbd9880; background: #0c2922; }
+  #visual-lab .showcase-desc { order: 4; }
+  #visual-lab .showcase-chips-wrap { order: 5; }
+  #visual-lab .showcase-action-link { order: 6; }
+  .mobile-board-carousel--push .mobile-board-motion[data-active=true] .showcase-impact-bar { animation: outcome-arrival .85s ease-out; }
+  @keyframes outcome-arrival { from { box-shadow: 0 0 22px #53dab966; } to { box-shadow: none; } }
+
+  /* Fit the complete opening page; the artwork absorbs remaining space. */
+  .hero-section { padding: .5rem; }
+  .hero-frame-container { padding: .75rem .8rem; }
+  .hero-content { height: 100%; }
+  .hero-badge { padding: .3rem .45rem; margin-bottom: .4rem; gap: .35rem; font-size: clamp(.54rem, 2.2vw, .62rem); letter-spacing: .025em; white-space: nowrap; }
+  .hero-badge-pulse { width: 5px; height: 5px; flex: none; }
+  .hero-headline { font-size: clamp(1.3rem, 6.2vw, 1.9rem); line-height: 1.08; }
+  .hero-headline-accent { margin-top: .2rem; }
+  .hero-mobile-art { flex: 1 1 auto; min-height: 72px; height: 18svh; max-height: 240px; margin-top: .5rem; }
+  .hero-details { flex: none; min-height: auto; overflow: visible; margin-top: .5rem; padding: 0; }
+  .hero-tagline { font-size: .8rem; line-height: 1.45; }
+  .hero-actions { margin-top: .5rem; gap: .25rem .5rem; }
+  .hero-actions .btn { font-size: .69rem; }
+  .hero-meta { margin-top: .5rem; gap: .25rem; font-size: .64rem; letter-spacing: 0; text-transform: none; }
+  .hero-meta span { padding: .25rem .4rem; }
+  .hero-tour-hint { margin-top: .4rem; font-size: .69rem; line-height: 1.4; }
+
+  .contact-section { padding-top: .75rem; }
+  .aj-section--compact .aj-intro { top: 4.5rem; }
+  .aj-section--compact .aj-intro-title { margin-top: .5rem; font-size: clamp(1.45rem, 5.8vw, 1.8rem); }
+}
+
+@media (max-width: 767px) and (max-height: 650px) {
+  .hero-mobile-art { max-height: 95px; }
+  #main #journey .mobile-board-scene { height: 27svh; min-height: 125px; }
+}
+@media (max-width: 767px) and (max-height: 500px) {
+  .hero-section, .hero-content { height: auto; min-height: 0; }
+  .hero-mobile-art { flex: none; height: 80px; }
+  #main #journey .mobile-board-scene { height: 75px; min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-board-carousel--push .mobile-board-motion[data-active=true] .showcase-impact-bar { animation: none; }
+}

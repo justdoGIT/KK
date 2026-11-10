@@ -2,9 +2,11 @@ import { useEffect, useRef, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 import { AstronautSpaceJourney } from "../ui/AstronautSpaceJourney.tsx";
 import { AstronautInvitation } from "../ui/InteractionHint.tsx";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 
 export function ContactCTA(): JSX.Element {
   const assurancesRef = useRef<HTMLDivElement>(null);
+  const compact = useMediaQuery("(max-width: 767px), (max-width: 1023px) and (max-height: 719px)");
 
   useEffect(() => {
     if (!assurancesRef.current) return;
@@ -25,7 +27,8 @@ export function ContactCTA(): JSX.Element {
   return (
     <section aria-label="Contact" className="contact-section" id="contact">
       <AstronautSpaceJourney>
-          <div className="contact-frame-wrapper">
+          <div className="contact-frame-wrapper" tabIndex={compact ? 0 : undefined}
+            data-lenis-prevent={compact || undefined} aria-label={compact ? "Project enquiry details" : undefined}>
             {/* Corner Crosshairs */}
             <span className="contact-crosshair contact-ch-tl" aria-hidden="true">+</span>
             <span className="contact-crosshair contact-ch-tr" aria-hidden="true">+</span>

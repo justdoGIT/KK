@@ -20,10 +20,12 @@ import { useSmoothScroll } from "./motion/smooth-scroll.ts";
 import { MagneticCursor } from "./motion/MagneticCursor.tsx";
 import { SceneEntry } from "./scene/SceneEntry.tsx";
 import { useReadingTourDriver } from "./motion/use-reading-tour.ts";
+import { useMediaQuery } from "./motion/use-media-query.ts";
 
 function AppContent(): JSX.Element {
   useSmoothScroll();
   useReadingTourDriver();
+  const mobile = useMediaQuery("(max-width: 767px)");
 
   return (
     <div className="app-shell">
@@ -32,7 +34,7 @@ function AppContent(): JSX.Element {
       </a>
       <MagneticCursor />
       <GlobalRibbonBackground />
-      <SceneEntry />
+      {!mobile && <SceneEntry />}
       <ScrollNavigator />
       <NavBar />
       <main id="main" role="main">

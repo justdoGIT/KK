@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useRef, useState, type JSX } from "react";
 import { career } from "../../content/career.ts";
-import { CAREER_STAGE_META, CAREER_VIEWPORTS } from "../../scene/career/career-timeline.ts";
+import { CAREER_STAGE_META, CAREER_VIEWPORTS, STAGE_STARTS } from "../../scene/career/career-timeline.ts";
 import { createCareerClock, type CareerClock } from "../../scene/career/career-clock.ts";
 import { checkWebGL } from "../../scene/useCapability.ts";
 import { CareerEntryList } from "./career/CareerEntryList.tsx";
@@ -9,6 +9,7 @@ import { WallFollowerHud, type HudRefs } from "./career/WallFollowerHud.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+import { scrollToY } from "../../motion/smooth-scroll.ts";
 
 const CareerJourneyCanvas = lazy(() =>
   import("../../scene/career/CareerJourneyCanvas.tsx").then((m) => ({ default: m.CareerJourneyCanvas })),
@@ -25,12 +26,13 @@ const JOURNEY_ENTRIES = CAREER_STAGE_META.map((meta) => {
 export function CareerTimeline(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
   const [webgl] = useState(checkWebGL);
-  // Full role details need natural page flow on phones and short screens.
-  // Tall tablets retain the journey; standard desktop layout is unchanged.
+  const mobile = useMediaQuery("(max-width: 767px), (max-width: 1023px) and (max-height: 719px)");
+  // Phones keep the film above independently scrollable role details.
+  // Other constrained viewports retain the readable natural-flow fallback.
   const flowLayout = useMediaQuery(
     "(max-width: 767px), (max-height: 719px), (min-width: 768px) and (max-width: 1023px) and (max-height: 1023px)",
   );
-  const isStatic = !enhanced || !webgl || flowLayout;
+  const isStatic = !enhanced || !webgl || (flowLayout && !mobile);
   const section = useRef<HTMLElement>(null);
   const clock = useRef<CareerClock>(createCareerClock());
   const depth = useRef<HTMLCanvasElement>(null);
@@ -46,14 +48,23 @@ export function CareerTimeline(): JSX.Element {
 
   const meta = CAREER_STAGE_META[stage];
   const openId = override && override.stage === stage ? override.id : meta.entryId;
+  const jumpToStage = (index: number) => {
+    const el = section.current;
+    if (!el) return;
+    const start = STAGE_STARTS[index];
+    const span = STAGE_STARTS[index + 1] - start;
+    scrollToY(window.scrollY + el.getBoundingClientRect().top
+      + (el.offsetHeight - window.innerHeight) * (start + span * 0.3), { immediate: true });
+  };
 
   return (
     <section
       ref={section}
       aria-label="Career timeline"
       id="career"
-      className={`career-journey${isStatic ? " career-journey--static" : ""}`}
-      style={isStatic ? undefined : { height: `${CAREER_VIEWPORTS * 100}vh` }}
+      data-scroll-slow={!isStatic ? ".55" : undefined}
+      className={`career-journey${isStatic ? " career-journey--static" : mobile ? " career-journey--mobile" : ""}`}
+      style={isStatic ? undefined : { height: `${CAREER_VIEWPORTS * 100}${mobile ? "svh" : "vh"}` }}
     >
       <div className="career-sticky">
         <div className="career-column">
@@ -64,12 +75,22 @@ export function CareerTimeline(): JSX.Element {
               subtitle="Nine years of embedded Linux, RTOS, and edge AI engineering, told as one robot that keeps rebuilding itself: wall follower, rover, quadruped, humanoid, rocket."
             />
           </div>
+          {mobile && !isStatic && (
+            <nav className="career-mobile-nav" aria-label="Career evolution stages">
+              {CAREER_STAGE_META.map((item, index) => (
+                <button key={item.entryId} type="button" aria-label={item.codename}
+                  aria-current={index === stage ? "step" : undefined}
+                  onClick={() => jumpToStage(index)}><span>{String(index + 1).padStart(2, "0")}</span></button>
+              ))}
+            </nav>
+          )}
           <CareerEntryList
             entries={JOURNEY_ENTRIES}
             activeId={meta.entryId}
             openId={openId}
             clock={clock}
             animated={!isStatic}
+            manualScroll={mobile && !isStatic}
             onOpenChange={(id, open) => setOverride({ stage, id: open ? id : null })}
           />
         </div>
@@ -79,7 +100,7 @@ export function CareerTimeline(): JSX.Element {
             <div className="career-screen-inner">
               {near && (
                 <Suspense fallback={null}>
-                  <CareerJourneyCanvas clock={clock} active={active} />
+                  <CareerJourneyCanvas clock={clock} active={active} compact={mobile} />
                 </Suspense>
               )}
               <div className="career-screen-caption">
