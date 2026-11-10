@@ -11,6 +11,7 @@ import {
 import { CardFrontContent } from "./CaseStudyCardContent.tsx";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { useViewportFits } from "../../motion/use-viewport-fits.ts";
 import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
 import { useScrollFrame } from "../../motion/scroll-frame.ts";
@@ -44,7 +45,7 @@ export function CaseStudies(): JSX.Element {
   // short screens (< 720px tall, e.g. 1024x500 and 1280x600 laptops) fall
   // back to the static 2-col grid (`.is-static`) so four cards never have to
   // squeeze into a pinned stage they can't fit — same as narrower widths.
-  const wide = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
+  const wide = useViewportFits(1024, 720);
   const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const animated = enhanced && wide;
   const [selectedArch, setSelectedArch] = useState<ArchitectureDetail | null>(null);

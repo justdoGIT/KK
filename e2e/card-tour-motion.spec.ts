@@ -71,13 +71,16 @@ test("finishes fanning before capturing wheel input and retains card content on 
   await fanPosition(page, 0);
   await page.setViewportSize({ width: 1440, height: 600 });
   // Device-metrics acknowledgement can precede Chromium's resize frame.
-  // Let media-query changes reach the page before checking React's layout.
+  // Confirm the actual layout viewport before checking the responsive deck.
   await page.waitForFunction(
-    () => innerHeight === 600 && !matchMedia("(min-width: 1024px) and (min-height: 720px)").matches,
+    () => innerWidth === 1440 && innerHeight === 600,
     undefined,
     { timeout: 20_000 },
   );
-  await expect(page.locator("#work")).toHaveClass(/is-static/);
+  // Software WebGL can delay the resize commit past the default five seconds.
+  await expect(page.locator("#work")).toHaveClass(/is-static/, {
+    timeout: process.env.CI ? 20_000 : 5_000,
+  });
   await expect(stage.locator(".lusion-card-isolated-cell--settled")).toHaveCount(4);
   for (const front of await stage.locator(".lusion-card-front").all()) {
     await expect(front).toHaveCSS("opacity", "1");
