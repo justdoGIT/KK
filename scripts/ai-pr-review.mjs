@@ -85,6 +85,7 @@ const REVIEW_SYSTEM_PROMPT = [
   "Report only actionable defects supported by evidence in the patch.",
   "Immutable action commit-SHA pins protect against supply-chain changes; do not recommend movable tags or infer a vulnerability from pinning alone. Report a pinned version when evidence establishes a concrete vulnerability or incompatibility.",
   "In this repository, Forgejo workflows run on private self-hosted runners that can reach their Forgejo server on the LAN or VPN. Evaluate action URL reachability for those runners; public internet reachability is not required. Still report concrete transport-security or connectivity defects.",
+  "The justdoGIT/ci-templates repository on forgejo.kepr.dev contains this owner's first-party CI actions. An unfamiliar hostname or changing that server's URL from HTTP to HTTPS does not establish malicious code or an untrusted source. Cite a concrete code, permission, or source-integrity defect instead.",
   "A package version alone does not establish age, incompatibility, or a vulnerability: explain the concrete failure or affected version range.",
 ].join(" ");
 // Attempts per model, then the next model.
