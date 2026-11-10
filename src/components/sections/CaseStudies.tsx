@@ -14,7 +14,7 @@ import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { useViewportFits } from "../../motion/use-viewport-fits.ts";
 import { useGuidedScroll } from "../../motion/guided-scroll.ts";
 import { scrollToY } from "../../motion/smooth-scroll.ts";
-import { useScrollFrame } from "../../motion/scroll-frame.ts";
+import { easeOutCubic, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { toggleClass, writeStyle } from "../../motion/dom-style.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
@@ -217,19 +217,20 @@ export function CaseStudies(): JSX.Element {
         // During travel: organic tilt from start angles back to 0 at landing.
         // Preserve sub-degree motion during travel; the settled branch snaps
         // to a flat, integer-pixel pose only when the card actually lands.
-        const flipP = Math.min(1, cardP / cfg.flipSpeed);
+        const poseP = easeOutCubic(cardP);
+        const flipP = easeOutCubic(Math.min(1, cardP / cfg.flipSpeed));
         const rotY = flipP * 180 + Math.sin(flipP * Math.PI) * cfg.wobbleY;
         const isFrontVisible = rotY >= 90;
-        const currentX = THREE_lerp(cfg.startX, targetXs[idx] ?? 0, cardP).toFixed(2);
-        const currentY = THREE_lerp(0, cfg.targetY, cardP).toFixed(2);
-        const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, cardP).toFixed(3);
-        const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, cardP).toFixed(3);
-        const currentScale = Math.round(THREE_lerp(0.93, 1.0, cardP) * 1000) / 1000;
-        const liftZ = Math.round(Math.sin(cardP * Math.PI) * 70);
+        const currentX = THREE_lerp(cfg.startX, targetXs[idx] ?? 0, poseP).toFixed(2);
+        const currentY = THREE_lerp(0, cfg.targetY, poseP).toFixed(2);
+        const currentRotZ = THREE_lerp(cfg.startRotZ, cfg.targetRotZ, poseP).toFixed(3);
+        const currentRotX = THREE_lerp(cfg.startRotX, cfg.targetRotX, poseP).toFixed(3);
+        const currentScale = THREE_lerp(0.93, 1.0, poseP).toFixed(4);
+        const liftZ = Math.sin(poseP * Math.PI) * 70;
         const rotYDisplay = Math.round(rotY * 100) / 100;
 
         if (card) {
-          writeStyle(card, "transform", `translate3d(${currentX}px, ${currentY}px, ${liftZ}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`);
+          writeStyle(card, "transform", `translate3d(${currentX}px, ${currentY}px, ${liftZ.toFixed(2)}px) rotateX(${currentRotX}deg) rotateZ(${currentRotZ}deg) scale(${currentScale})`);
           writeStyle(card, "z-index", String(Math.round(10 + liftZ * 0.2 + (isFrontVisible ? idx : 4 - idx))));
           if (card.dataset.frontVisible !== String(isFrontVisible)) card.dataset.frontVisible = String(isFrontVisible);
         }

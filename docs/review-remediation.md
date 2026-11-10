@@ -1,5 +1,66 @@
 # Review remediation
 
+## PR #70: root publishing and review rendering (2026-11-10)
+
+The deployment findings in the bot review at `41fdf35` were checked against
+the complete diff. They do not require the suggested changes:
+
+| Finding | Verified behavior |
+| --- | --- |
+| Missing Pages or ID-token write permissions | `.github/workflows/deploy.yml` grants `pages: write` and `id-token: write` in the deploy job. Job permissions override the read-only workflow defaults. |
+| Missing deployment repository restriction | The build job permits only KK and the root publisher. Deploy depends on that build and requires its `changed` output; a skipped build cannot authorize deployment. |
+| Incorrect root asset base | The root publisher serves the application at `/`. KK serves a separate redirect at `/KK/`. Using `/KK/` for application assets would break the root website. |
+| Incorrect artifact selection | KK uploads the redirect; the root publisher uploads `dist/`. The suggested replacement would upload the redirect for both repositories. |
+| Scheduled root updates are skipped | A changed source commit sets `changed` to `true`, including scheduled runs, and authorizes deployment. Unchanged scheduled runs skip both artifact creation and deployment. |
+| Insecure CSP or missing own-domain source | The unchanged policy uses `'self'`, which includes the document's origin. `'wasm-unsafe-eval'` allows WebAssembly compilation, not inline scripts or general JavaScript `unsafe-eval`. |
+| Missing deployed-version, redirect, retry, or social-URL checks in earlier reviews | The added post-deploy code verifies the source commit, checks the legacy redirect, and retries publication propagation. The updated browser smoke test checks canonical and social URLs. |
+
+The reviewer unwraps enclosing Markdown fences while retaining code examples.
+Same-repository push reviews use the current script; fork reviews use the
+trusted default-branch script. PR-number concurrency queues the refresh after
+an older job so the corrected comment is posted last. Responses cut off at the model's
+token limit are retried or passed to the next provider instead of published.
+The GitHub-rendered comment was checked after the refreshed job completed.
+
+Validation: 33 reviewer tests, ESLint, and actionlint pass. The model's input
+is bounded; the resolution above uses the complete code and diff.
+
+The resumed motion pass eases the card fan into its final pose and waits for
+the whole deck to settle before the tour reads an individual card. The
+introduction has visible, gradual travel; reading time follows elapsed time
+in the visible tab instead of a physics delta capped at ten frames per second.
+Settled collaboration layers avoid unchanged DOM writes, and cleared WebGL
+buffers redraw after size or adaptive-DPR changes before the next paint.
+
+Initial motion validation: 187 unit tests and 15 selected headless Chromium browser tests passed,
+including the entire automatic tour through every chapter to the footer,
+hovered-card wheel input through final settlement, retained reading positions,
+mobile board navigation, reduced motion, collaboration hover/touch, and
+offscreen WebGL lifetime. Typecheck, lint, production build, publication checks,
+and bundle budgets pass. Screenshots are saved in
+`~/.local/state/kk-pr70-evidence/`.
+
+The subsequent GitHub browser review failed in the complete-tour test, and
+the failure was reproduced locally under `CI=1`. Its simulated clock advanced
+reading time while skipping native frames needed by rendering, observers, and
+lazy-scene readiness. The test now accelerates elapsed frame timestamps while
+retaining native frame scheduling and real timers. It still requires visible
+introductory travel, completion, every chapter, and no page errors; card and
+scene readiness gates remain active. A 240-second completion deadline accounts
+for the dozens of real render stops on software WebGL, and a per-stop timing
+attachment makes any future failure diagnosable. Three consecutive CI-mode
+full-tour runs passed without retries.
+
+Workflow validation: all 27 runtime cases and all five phone/short-screen
+profiles passed locally. The card-retention test needed one retry in the first
+full run; three subsequent traced repetitions passed without retries. The full
+tour recorded all 61 stops, including every work card, terminal console, skill
+card, contact, and footer. Typecheck, lint, 187 unit tests, build, publication
+validation, and bundle budgets pass. Reports, traces, and screenshots are saved
+in `~/.local/state/kk-pr70-evidence/`.
+
+## Full-site audit (2026-10-02)
+
 - **Date:** 2026-10-02
 - **Scope:** full-site review pass — scene artwork, missing objects, autoscroll,
   scroll/render performance, defects, console noise.

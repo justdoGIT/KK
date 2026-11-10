@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import codspeedPlugin from "@codspeed/vitest-plugin";
 
 export default defineConfig({
-  base: "./",
+  base: "/",
   plugins: [
     react(),
     tailwindcss(),

@@ -48,6 +48,33 @@ describe("AI pull-request review boundaries", () => {
     expect(comment).not.toContain("No actionable defects found");
   });
 
+  it.each(["```markdown", "```md", "```", "~~~markdown"])(
+    "renders a review enclosed by %s as Markdown",
+    (opening) => {
+      const closing = opening.startsWith("~") ? "~~~" : "```";
+      const comment = formatReviewComment(`${opening}\r\n## Reliability\r\n- Fix the handler.\r\n${closing}`);
+      expect(comment).toContain("\n\n## Reliability\r\n- Fix the handler.\n\n---");
+      expect(comment).not.toContain(opening);
+    },
+  );
+
+  it("preserves code examples inside an enclosing Markdown fence", () => {
+    const example = '```js\nthrow new Error("Failure");\n```';
+    const comment = formatReviewComment(`\`\`\`\`markdown\n## Correctness\n${example}\n\`\`\`\``);
+    expect(comment).toContain(example);
+    expect(comment).not.toContain("````markdown");
+  });
+
+  it("retains a code-only response and an unclosed Markdown fence", () => {
+    const code = '```js\nthrow new Error("Failure");\n```';
+    expect(formatReviewComment(code)).toContain(code);
+    expect(formatReviewComment("```markdown\n## Incomplete")).toContain("```markdown\n## Incomplete");
+  });
+
+  it("normalizes a fenced clean review", () => {
+    expect(formatReviewComment("```markdown\nNo actionable defects found.\n```")).toContain("\n\nNo issues found\n\n");
+  });
+
   it("keeps multibyte output within GitHub's body limit", () => {
     const comment = formatReviewComment("🧪".repeat(MAX_COMMENT_BYTES));
 
@@ -115,6 +142,17 @@ describe("AI review model chain", () => {
     expect(run.asked()).toEqual([first.id, first.id, second.id]);
   });
 
+  it("instructs every provider to verify findings against the resulting code", async () => {
+    const run = scripted({ [first.id]: [answer("No issues found")] });
+    await run.result();
+    const [system, user] = run.requests[0].body.messages;
+    expect(system.content).toContain("lines prefixed '-' are removed old code");
+    expect(system.content).toContain("A removed problem that the added code fixes is not a finding");
+    expect(system.content).toContain("quote the relevant added or unchanged code");
+    expect(user.content).toContain("Review the resulting code, not the removed '-' lines");
+    expect(user.content).toContain("a short quotation of the relevant resulting code");
+  });
+
   it("retries a transient failure on the same model before moving on", async () => {
     const run = scripted({ [first.id]: [failure(503), answer("No issues found")] });
 
@@ -129,6 +167,20 @@ describe("AI review model chain", () => {
     });
 
     await expect(run.result()).resolves.toMatchObject({ model: second.id });
+  });
+
+  it("falls back instead of posting a review cut off inside a code fence", async () => {
+    const truncated = answer("## Finding\n```yaml\npermissions:");
+    truncated.json = async () => ({
+      choices: [{ message: { content: "## Finding\n```yaml\npermissions:" }, finish_reason: "length" }],
+    });
+    const run = scripted({
+      [first.id]: [truncated],
+      [second.id]: [answer("No issues found")],
+    });
+
+    await expect(run.result()).resolves.toEqual({ content: "No issues found", model: second.id });
+    expect(run.asked()).toEqual([first.id, first.id, second.id]);
   });
 
   it("does not retry a model that timed out, it moves on to the next one", async () => {
@@ -298,6 +350,38 @@ describe("AI review job outcome", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it("updates the existing bot comment with rendered review prose and retained code examples", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const example = '```js\nthrow new Error("Failure");\n```';
+    const provider = `\`\`\`\`markdown\n## Reliability\n\nFix the handler.\n\n${example}\n\`\`\`\``;
+    const posted = [];
+    const fetchImpl = async (url, options) => {
+      const path = new URL(url).pathname;
+      if (path === "/repos/owner/repo/pulls/7") {
+        return { ok: true, text: async () => "diff --git a/x b/x" };
+      }
+      if (path === "/repos/owner/repo/issues/7/comments") {
+        return { ok: true, json: async () => [
+          { id: 41, user: { login: "maintainer" }, body: REVIEW_MARKER },
+          { id: 42, user: { login: "github-actions[bot]" }, body: REVIEW_MARKER },
+        ] };
+      }
+      if (path === "/repos/owner/repo/issues/comments/42") {
+        posted.push({ method: options.method, ...JSON.parse(options.body) });
+        return { ok: true };
+      }
+      return { ok: true, json: async () => ({ choices: [{ message: { content: provider } }] }) };
+    };
+
+    await runReview({ fetchImpl });
+
+    expect(posted).toHaveLength(1);
+    expect(posted[0].method).toBe("PATCH");
+    expect(posted[0].body).toContain("\n\n## Reliability\n\nFix the handler.");
+    expect(posted[0].body).toContain(example);
+    expect(posted[0].body).not.toContain("````markdown");
   });
 
   it("warns and passes when no model answers, without posting a comment", async () => {

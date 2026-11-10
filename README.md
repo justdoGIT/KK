@@ -6,11 +6,20 @@ Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems E
 
 **Live site:** https://justdogit.github.io/
 
-GitHub requires the `justdogit.github.io` repository for this user-site URL.
-That repository contains only the publishing workflow: it checks out this
-repository's `main` branch, builds it, and publishes the result to Pages.
-Keep application code and changes here in KK. A project site published by KK
-itself has the URL `https://justdogit.github.io/KK/`.
+The website and its shared deployment workflow live in KK. GitHub requires
+the `justdogit.github.io` repository to serve this root URL; its small workflow
+calls KK's pinned `.github/workflows/deploy.yml` with `source_ref: main`.
+It publishes on configuration changes or manual runs, and checks hourly for
+new commits on KK main. Unchanged scheduled releases skip the build and deploy.
+No cross-repository deployment token is required.
+
+Production assets use `/`, and canonical and social URLs point to the root
+website. KK's own Pages deployment serves a redirect from the former
+`https://justdogit.github.io/KK/` URL. Both deployments run KK's typecheck,
+lint, tests, publication validation, and bundle budgets. The root publisher
+records the exact KK commit in `source-version.json` and verifies it after
+deployment. Update the caller's immutable workflow pin when changing the
+shared deployment workflow.
 
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 

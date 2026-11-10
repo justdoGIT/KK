@@ -3,7 +3,16 @@ import { careerSteps, caseSteps, contactSteps, lifecycleSteps, serviceSteps, ski
 import type { TourStep } from "./tour-engine.ts";
 
 export function buildTourPlan(enhanced: boolean): TourStep[] {
-  const steps: TourStep[] = [flowStep("hero", "#hero", "#hero")];
+  // Begin moving through the introduction while keeping its reading time.
+  // A long stationary first window otherwise makes automatic playback look stuck.
+  const hero = flowStep("hero", "#hero", "#hero");
+  const steps: TourStep[] = [{
+    ...hero,
+    continuous: enhanced,
+    // A viewport-height introduction has almost no natural overflow. Give
+    // its reading pass visible travel while gradually revealing the next section.
+    end: () => Math.max(hero.end?.() ?? 0, hero.target() + innerHeight * 0.22),
+  }];
   if (one(".metrics-document-animated")) {
     const position = (p: number) => {
       const section = one(".metrics-document-section")!;

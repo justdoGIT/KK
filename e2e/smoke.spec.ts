@@ -307,18 +307,30 @@ test.describe("Portfolio smoke tests", () => {
     await page.goto("/");
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
       "href",
-      "./favicon.svg",
+      "/favicon.svg",
+    );
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      "https://justdogit.github.io/",
+    );
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+      "content",
+      "https://justdogit.github.io/",
     );
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
       "content",
-      "./og-preview.svg",
+      "https://justdogit.github.io/og-preview.svg",
+    );
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+      "content",
+      "https://justdogit.github.io/og-preview.svg",
     );
 
-    const favicon = await page.request.get("./favicon.svg");
+    const favicon = await page.request.get("/favicon.svg");
     expect(favicon.ok()).toBe(true);
     expect(await favicon.text()).toContain("<svg");
 
-    const preview = await page.request.get("./og-preview.svg");
+    const preview = await page.request.get("/og-preview.svg");
     expect(preview.ok()).toBe(true);
     expect(await preview.text()).toContain("Kamal Pandey");
   });

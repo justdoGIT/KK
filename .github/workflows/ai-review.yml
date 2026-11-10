@@ -1,6 +1,10 @@
 name: AI Review
 
 on:
+  # Reviewer fixes need to update their own PR before reaching main. Pushes
+  # originate in this repository; fork PRs still use the trusted target below.
+  push:
+    branches-ignore: [main, 'dependabot/**']
   pull_request_target:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -15,23 +19,49 @@ permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  group: ai-review-${{ github.event.pull_request.number || inputs.pull_number }}
-  cancel-in-progress: true
-
 jobs:
-  ai-review:
+  resolve-pull-request:
     # Dependabot pull requests are skipped: GitHub gives their workflow runs a
     # restricted token, so the review could not post its comment (PR 58 failed
     # with 403), and a dependency bump has no code of ours to review. A manual
     # run (workflow_dispatch) can still review any pull request.
     if: >-
       github.server_url == 'https://github.com' &&
-      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.draft == false &&
       github.event.pull_request.user.login != 'dependabot[bot]'))
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      number: ${{ steps.pull.outputs.number }}
+    steps:
+      - name: Find the pull request to review
+        id: pull
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_PULL_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == push ]]; then
+            pull_number=$(gh api "repos/${GITHUB_REPOSITORY}/pulls" --method GET \
+              -f "head=${GITHUB_REPOSITORY_OWNER}:${GITHUB_REF_NAME}" -f state=open \
+              --jq '[.[] | select(.draft == false and .user.login != "dependabot[bot]")] | first | .number // empty')
+          else
+            pull_number="$EVENT_PULL_NUMBER"
+          fi
+          printf 'number=%s\n' "$pull_number" >> "$GITHUB_OUTPUT"
+
+  ai-review:
+    needs: resolve-pull-request
+    if: needs.resolve-pull-request.outputs.number != ''
+    runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The resolved PR number matches pull_request_target's group on main,
+    # so the refresh waits for an older reviewer and posts the final comment.
+    concurrency:
+      group: ai-review-${{ needs.resolve-pull-request.outputs.number }}
+      cancel-in-progress: false
     permissions:
       contents: read
       pull-requests: write
@@ -40,7 +70,7 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
-          ref: ${{ github.event_name == 'pull_request_target' && github.event.repository.default_branch || github.ref }}
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.repository.default_branch || github.sha }}
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -52,7 +82,7 @@ jobs:
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
+          PR_NUMBER: ${{ needs.resolve-pull-request.outputs.number }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}

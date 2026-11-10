@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   canvas = document.createElement("canvas");
   has.mockReturnValue(false);
-  fixture.state = { advance, scene: {}, camera: {}, gl: {
+  fixture.state = { advance, scene: {}, camera: {}, size: { width: 1280, height: 800 }, viewport: { dpr: 1 }, gl: {
     domElement: canvas, compileAsync, extensions: { has },
     getContext: () => ({ isContextLost: () => false }),
   } };
@@ -30,6 +30,19 @@ afterEach(cleanup);
 const frame = (time: number, delta = 0.016) => act(() => fixture.callbacks.forEach(callback => callback(time, delta)));
 
 describe("scene rendering lifecycle", () => {
+  it("redraws a cleared resize or DPR buffer before the next browser paint", () => {
+    const view = render(<SchedulerFrames active />);
+    frame(1000);
+    frame(1016);
+    advance.mockClear();
+    fixture.state.viewport = { dpr: 0.75 };
+    view.rerender(<SchedulerFrames active />);
+    expect(advance).toHaveBeenCalledExactlyOnceWith(0.016);
+    advance.mockClear();
+    fixture.state.size = { width: 1024, height: 600 };
+    view.rerender(<SchedulerFrames active />);
+    expect(advance).toHaveBeenCalledExactlyOnceWith(0.016);
+  });
   it("stops drawing immediately while visibility props cross the canvas root", () => {
     const visible = { current: true };
     render(<SchedulerFrames active visible={visible} />);

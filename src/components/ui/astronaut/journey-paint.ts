@@ -1,6 +1,7 @@
 import { frameRect, heroUnmasked, phaseAt, phaseRatio, smoothstep, type FrameRect } from "./journey-timeline.ts";
 import { LAND_AT, ZOOM_OUT_END, ZOOM_OUT_START, bannerState, contactPoseMode } from "../contact/banner-timeline.ts";
 import type { JourneyElements } from "./useJourneyDriver.ts";
+import { writeStyle } from "../../../motion/dom-style.ts";
 
 /** Fraction of the card width where the astronaut stands; the zoom pivots on his feet. */
 const STAND_AT = 0.35;
@@ -108,23 +109,23 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   const headroom = Math.max(40, finale.cardTop - layout.navBottom - NAV_GAP) / 1.1;
   finale.bodyHeight = Math.min(cardWidth * BODY_RATIO, height * LANDING_BODY, headroom);
 
-  root.dataset.finaleProgress = progress.toFixed(3);
-  root.dataset.astronautMode = finale.mode;
-  root.style.opacity = reveal.toFixed(3);
-  root.style.visibility = reveal > 0.001 ? "visible" : "hidden";
+  if (root.dataset.finaleProgress !== progress.toFixed(3)) root.dataset.finaleProgress = progress.toFixed(3);
+  if (root.dataset.astronautMode !== finale.mode) root.dataset.astronautMode = finale.mode;
+  writeStyle(root, "opacity", reveal.toFixed(3));
+  writeStyle(root, "visibility", reveal > 0.001 ? "visible" : "hidden");
   // Pointer events unlock once the card reads as attached, not only after the
   // slower zoom-out settles, so the button never looks clickable but inert.
-  root.style.pointerEvents = attach >= 0.98 || finale.progress >= ZOOM_OUT_END ? "auto" : "none";
+  writeStyle(root, "pointer-events", attach >= 0.98 || finale.progress >= ZOOM_OUT_END ? "auto" : "none");
   if (isSettled) {
-    root.dataset.finaleSettled = "true";
-    mover.dataset.settled = "true";
+    if (root.dataset.finaleSettled !== "true") root.dataset.finaleSettled = "true";
+    if (mover.dataset.settled !== "true") mover.dataset.settled = "true";
   } else {
     delete root.dataset.finaleSettled;
     delete mover.dataset.settled;
   }
-  mover.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
-  mover.style.opacity = (attach * settledGate).toFixed(3);
-  mover.style.visibility = attach * settledGate > 0.001 ? "visible" : "hidden";
+  writeStyle(mover, "transform", `translate3d(${shiftX.toFixed(1)}px, ${translatedY.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`);
+  writeStyle(mover, "opacity", (attach * settledGate).toFixed(3));
+  writeStyle(mover, "visibility", attach * settledGate > 0.001 ? "visible" : "hidden");
 
   // The close-up heading sits beside the astronaut; as the card settles it
   // glides over the card's right two thirds (the astronaut owns the left
@@ -140,9 +141,9 @@ function paintFinale(els: JourneyElements, layout: JourneyLayout, t: number, now
   settledCentre = Math.max(minCentre, Math.min(maxCentre, settledCentre));
   const shift = (1 - frame.closeUp) * (settledCentre - layout.headingCentre);
   const headingReveal = frame.heading * settledGate;
-  heading.style.opacity = headingReveal.toFixed(3);
-  heading.style.visibility = headingReveal > 0.001 ? "visible" : "hidden";
-  heading.style.transform = `translate3d(calc(-50% + ${shift.toFixed(1)}px), ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`;
+  writeStyle(heading, "opacity", headingReveal.toFixed(3));
+  writeStyle(heading, "visibility", headingReveal > 0.001 ? "visible" : "hidden");
+  writeStyle(heading, "transform", `translate3d(calc(-50% + ${shift.toFixed(1)}px), ${((1 - frame.heading) * 26).toFixed(1)}px, 0) scale(${(0.86 + frame.heading * 0.14).toFixed(3)})`);
 }
 
 function clipFor(rect: FrameRect, width: number, height: number): string {
@@ -152,21 +153,21 @@ function clipFor(rect: FrameRect, width: number, height: number): string {
 }
 
 function placeRect(el: HTMLElement, rect: FrameRect): void {
-  el.style.width = `${rect.width.toFixed(1)}px`;
-  el.style.height = `${rect.height.toFixed(1)}px`;
-  el.style.borderRadius = `${rect.radius.toFixed(1)}px`;
-  el.style.transform = `translate3d(${rect.x.toFixed(1)}px, ${rect.y.toFixed(1)}px, 0) rotate(${rect.rotation.toFixed(3)}deg)`;
+  writeStyle(el, "width", `${rect.width.toFixed(1)}px`);
+  writeStyle(el, "height", `${rect.height.toFixed(1)}px`);
+  writeStyle(el, "border-radius", `${rect.radius.toFixed(1)}px`);
+  writeStyle(el, "transform", `translate3d(${rect.x.toFixed(1)}px, ${rect.y.toFixed(1)}px, 0) rotate(${rect.rotation.toFixed(3)}deg)`);
 }
 
 function applyMask(el: HTMLElement, rect: FrameRect | null, width: number, height: number): void {
   if (!rect) {
-    el.style.clipPath = "none";
-    el.style.transform = "none";
+    writeStyle(el, "clip-path", "none");
+    writeStyle(el, "transform", "none");
     return;
   }
-  el.style.clipPath = clipFor(rect, width, height);
-  el.style.transformOrigin = `${(rect.x + rect.width / 2).toFixed(1)}px ${(rect.y + rect.height / 2).toFixed(1)}px`;
-  el.style.transform = rect.rotation ? `rotate(${rect.rotation.toFixed(3)}deg)` : "none";
+  writeStyle(el, "clip-path", clipFor(rect, width, height));
+  writeStyle(el, "transform-origin", `${(rect.x + rect.width / 2).toFixed(1)}px ${(rect.y + rect.height / 2).toFixed(1)}px`);
+  writeStyle(el, "transform", rect.rotation ? `rotate(${rect.rotation.toFixed(3)}deg)` : "none");
 }
 
 /** Writes every DOM layer of the journey for progress `t`; reads nothing from layout. */
@@ -180,7 +181,7 @@ export function paintJourney(els: JourneyElements, layout: JourneyLayout, t: num
 
   const world = els.world.current;
   if (world) {
-    world.style.visibility = phaseRatio(t, "drop") >= 1 ? "hidden" : "visible";
+    writeStyle(world, "visibility", phaseRatio(t, "drop") >= 1 ? "hidden" : "visible");
     applyMask(world, rect, width, height);
   }
   const hero = els.hero.current;
@@ -196,23 +197,23 @@ export function paintJourney(els: JourneyElements, layout: JourneyLayout, t: num
   const backdrop = els.backdrop.current;
   if (backdrop) {
     const navy = smoothstep(0.3, 1, white) * (1 - smoothstep(0.2, 0.9, drop));
-    backdrop.style.opacity = (frameIn * (1 - themed)).toFixed(3);
-    backdrop.style.backgroundColor = `rgb(${(4 * navy).toFixed(0)}, ${(8 * navy).toFixed(0)}, ${(52 * navy).toFixed(0)})`;
+    writeStyle(backdrop, "opacity", (frameIn * (1 - themed)).toFixed(3));
+    writeStyle(backdrop, "background-color", `rgb(${(4 * navy).toFixed(0)}, ${(8 * navy).toFixed(0)}, ${(52 * navy).toFixed(0)})`);
   }
   const theme = els.theme.current;
-  if (theme) theme.style.opacity = themed.toFixed(3);
+  if (theme) writeStyle(theme, "opacity", themed.toFixed(3));
 
   const cardEdge = els.cardEdge.current;
   if (cardEdge) {
     placeRect(cardEdge, rect);
-    cardEdge.style.opacity = (1 - smoothstep(0.05, 0.6, frameIn)).toFixed(3);
+    writeStyle(cardEdge, "opacity", (1 - smoothstep(0.05, 0.6, frameIn)).toFixed(3));
   }
   const bezel = els.bezel.current;
   if (bezel) {
     placeRect(bezel, rect);
     const shown = smoothstep(0.35, 1, white) * (1 - smoothstep(0.7, 1, drop));
-    bezel.style.opacity = shown.toFixed(3);
-    bezel.style.visibility = shown > 0.001 ? "visible" : "hidden";
+    writeStyle(bezel, "opacity", shown.toFixed(3));
+    writeStyle(bezel, "visibility", shown > 0.001 ? "visible" : "hidden");
   }
 
   const intro = els.intro.current;
@@ -222,8 +223,8 @@ export function paintJourney(els: JourneyElements, layout: JourneyLayout, t: num
     // drift to the room between the intro's rest position and the nav bar.
     const introTop = Math.max(80, height * 0.11);
     const drift = Math.max(0, Math.min(60, introTop - layout.navBottom - 16));
-    intro.style.opacity = (1 - fade).toFixed(3);
-    intro.style.transform = `translate3d(0, ${(-drift * fade).toFixed(1)}px, 0)`;
+    writeStyle(intro, "opacity", (1 - fade).toFixed(3));
+    writeStyle(intro, "transform", `translate3d(0, ${(-drift * fade).toFixed(1)}px, 0)`);
   }
 
   const title = phaseRatio(t, "title");
@@ -231,8 +232,8 @@ export function paintJourney(els: JourneyElements, layout: JourneyLayout, t: num
   els.titleLines.current?.forEach((line, i) => {
     if (!line) return;
     const enter = smoothstep(0.1 + i * 0.1, 0.4 + i * 0.1, title);
-    line.style.opacity = (enter * (1 - leave)).toFixed(3);
-    line.style.transform = `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`;
+    writeStyle(line, "opacity", (enter * (1 - leave)).toFixed(3));
+    writeStyle(line, "transform", `translate3d(0, ${((1 - enter) * 70 - leave * 40).toFixed(1)}px, 0)`);
   });
   paintFinale(els, layout, t, nowSec);
 }
