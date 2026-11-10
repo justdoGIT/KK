@@ -94,7 +94,8 @@ Forgejo runs runtime/card and phone/short-screen checks as separate matrix
 jobs with separate reports. The previous combined job spent 18 minutes on
 runtime checks and 7 minutes on mobile checks, then reached its 30-minute
 limit with setup and report uploads included. Each suite now has its own
-30-minute budget, and one failure does not cancel the other suite.
+30-minute budget, and one failure does not cancel the other suite. The matrix
+runs one browser job at a time to retain serial software rendering on Lenovo.
 
 GitHub jobs explicitly require `github.server_url == 'https://github.com'`.
 The live website continues to deploy through GitHub Pages when changes merge
