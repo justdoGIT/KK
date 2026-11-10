@@ -2,6 +2,13 @@
 .lusion-deck-header .lusion-kinetic-title { font-size: clamp(2rem, 3.2vw, 3.5rem); }
 .lusion-deck-header .lusion-kinetic-subtitle { font-size: .9rem; max-width: 65ch; }
 .lusion-cards-stage.is-settled { perspective: none; transform-style: flat; }
+.lusion-card-isolated-cell--settled .lusion-card-flipper { transform: none; transform-style: flat; }
+.lusion-card-isolated-cell--settled .lusion-card-face { transition: none; }
+.lusion-card-isolated-cell--settled .lusion-card-back { visibility: hidden; }
+.lusion-deck-scroll-section:not(.is-static) .lusion-cards-stage:not(.is-settled) .card-front-scroll-body {
+  overflow-y: hidden;
+  overscroll-behavior-y: auto;
+}
 .lusion-deck-scroll-section.is-static { min-height: auto; }
 .is-static .lusion-deck-sticky-stage { position: relative; top: auto; height: auto; padding: 4rem 0; }
 .is-static .lusion-cards-stage { height: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; perspective: none; transform-style: flat; }

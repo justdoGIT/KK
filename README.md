@@ -4,7 +4,13 @@
 
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
 
-**Live site:** https://justdogit.github.io/KK
+**Live site:** https://justdogit.github.io/
+
+GitHub requires the `justdogit.github.io` repository for this user-site URL.
+That repository contains only the publishing workflow: it checks out this
+repository's `main` branch, builds it, and publishes the result to Pages.
+Keep application code and changes here in KK. A project site published by KK
+itself has the URL `https://justdogit.github.io/KK/`.
 
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 

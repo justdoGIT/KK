@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { readingSeconds, readingWindows } from "../motion/reading-pace.ts";
 import { TourEngine, type TourStep } from "../motion/tour-engine.ts";
+import { resumeStepIndex } from "../motion/tour-resume.ts";
 
-function harness(steps: TourStep[], reduced = false) {
-  let y = 0;
+function harness(steps: TourStep[], reduced = false, initialY = 0, resume = false) {
+  let y = initialY;
   let completed = 0;
   const visited: string[] = [];
   const engine = new TourEngine(steps, {
     y: () => y, scroll: (next) => { y = next; }, viewport: () => 800,
     limit: () => 10000, reduced, changed: (step) => visited.push(step.id), complete: () => { completed++; },
-  });
+  }, 0, resume);
   const run = (seconds: number) => { for (let t = 0; t < seconds; t += 0.05) engine.tick(0.05); };
   return { engine, run, visited, y: () => y, completed: () => completed };
 }
@@ -33,6 +34,27 @@ describe("comprehension pace", () => {
 });
 
 describe("coordinated reading tour", () => {
+  it("resumes a pinned chapter without rewinding the page or its nested text", () => {
+    const inner = { scrollTop: 600, scrollHeight: 1600, clientHeight: 400 } as HTMLElement;
+    let target = 1200;
+    const h = harness([
+      { ...step("card", 1200), target: () => target, inner: () => inner, text: () => "word ".repeat(150) },
+      { ...step("next", 2000), inner: () => inner },
+    ], false, 1500, true);
+    h.run(0.1);
+    expect(h.y()).toBe(1500);
+    target = 1100; // Layout can change again while settling.
+    h.run(1.2);
+    expect(inner.scrollTop).toBe(600);
+    h.run(50);
+    expect(h.y()).toBe(1500);
+    expect(inner.scrollTop).toBeGreaterThan(600);
+    for (let i = 0; i < 600 && h.engine.step?.id === "card"; i++) h.engine.tick(0.05);
+    expect(h.visited).toEqual(["card", "next"]);
+    for (let i = 0; i < 100 && h.engine.phase !== "read"; i++) h.engine.tick(0.05);
+    expect(h.y()).toBe(2000);
+    expect(inner.scrollTop).toBe(0);
+  });
   it("waits for scene readiness before spending reading time", () => {
     let ready = false;
     const h = harness([{ ...step("scene"), ready: () => ready }]);
@@ -92,5 +114,25 @@ describe("coordinated reading tour", () => {
     expect(h.y()).toBe(1000);
     h.run(6);
     expect(h.y()).toBeCloseTo(1000 + 1400 / 3);
+  });
+});
+
+describe("resume selection after manual navigation", () => {
+  const steps = [step("work-heading", 1000), step("work-0", 2400), step("work-1", 2400), step("footer", 4000)]
+    .map((s) => ({ ...s, chapter: s.id.startsWith("work") ? "work" : "footer" }));
+  it("fans out an unfinished deck before reading its cards", () => {
+    expect(resumeStepIndex(steps, 1800, "work")).toBe(1);
+  });
+  it("reads the current pinned cards instead of their hidden heading", () => {
+    expect(resumeStepIndex(steps, 2600, "work")).toBe(1);
+    expect(resumeStepIndex(steps, 2600, "work", "work-1")).toBe(2);
+  });
+  it("selects the current portion of a continuous animation after scrolling", () => {
+    const timeline = [
+      { ...step("career-0", 1000), chapter: "career", end: () => 2000 },
+      { ...step("career-1", 2100), chapter: "career", end: () => 3000 },
+    ];
+    expect(resumeStepIndex(timeline, 2500, "career", "career-0")).toBe(1);
+    expect(resumeStepIndex(timeline, 1600, "career")).toBe(0);
   });
 });

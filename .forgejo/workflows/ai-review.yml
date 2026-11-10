@@ -1,0 +1,88 @@
+name: AI Review
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  ai-review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ci-standard
+    timeout-minutes: 10
+    steps:
+      - name: Configure private Forgejo HTTPS route
+        # No PR checkout: this bootstrap is part of the trusted workflow.
+        run: |
+          python3 - <<'ROUTE'
+          """Route the private HTTPS hostname through a rootless job's host gateway."""
+
+          from pathlib import Path
+          import socket
+          import urllib.request
+
+          hostname = "forgejo.kepr.dev"
+          gateway = socket.gethostbyname("host.containers.internal")
+          hosts = Path("/etc/hosts")
+          lines = []
+          for line in hosts.read_text().splitlines():
+              body, marker, comment = line.partition("#")
+              fields = body.split()
+              if hostname in fields[1:]:
+                  fields = [fields[0], *(alias for alias in fields[1:] if alias != hostname)]
+                  if len(fields) == 1:
+                      continue
+                  line = "\t".join(fields)
+                  if marker:
+                      line += " #" + comment
+              lines.append(line)
+          lines.append(f"{gateway}\t{hostname}\t# Forgejo private HTTPS route")
+          hosts.write_text("\n".join(lines) + "\n")
+
+          # Keep the canonical hostname and the client's normal certificate validation.
+          with urllib.request.urlopen(f"https://{hostname}/user/login", timeout=10) as response:
+              if response.status != 200:
+                  raise RuntimeError("Private Forgejo HTTPS readiness check failed")
+          print("Private Forgejo HTTPS route ready")
+          ROUTE
+      # Fetch the public template with Forgejo's action-token-aware file route.
+      # Its REST API rejects job tokens for other repositories, even public ones.
+      # The immutable revision and independently verified digest pin the code.
+      - name: Fetch pinned trusted reviewer over HTTPS
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise RuntimeError("Refusing to redirect the authenticated reviewer download")
+
+          revision = "0f717bda569cb145441d925e690c18ca0b7c4223"
+          url = f"https://forgejo.kepr.dev/justdoGIT/ci-templates/raw/commit/{revision}/scripts/pr-review.py"
+          request = Request(url, headers={"Authorization": "token " + os.environ["FORGEJO_TOKEN"]})
+          with build_opener(NoRedirect).open(request, timeout=30) as response:
+              source = response.read(256 * 1024)
+          expected = "bb7936bbf76abaa278231f95862644b4d150b621dd1c39987ec452399bc0e0ce"
+          if hashlib.sha256(source).hexdigest() != expected:
+              raise RuntimeError("Trusted reviewer checksum mismatch")
+          script = Path(os.environ["RUNNER_TEMP"]) / "kk-trusted-pr-review.py"
+          script.write_bytes(source)
+          script.chmod(0o600)
+          PY
+      # The reviewer fetches only the API diff. No PR source is checked out
+      # or executed while reviewer credentials are available.
+      - name: Run trusted Forgejo PR reviewer
+        run: python3 "$RUNNER_TEMP/kk-trusted-pr-review.py"
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          FORGEJO_URL: https://forgejo.kepr.dev
+          BASE_REF: ${{ github.event.pull_request.base.ref }}

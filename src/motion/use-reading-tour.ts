@@ -1,28 +1,12 @@
 import { useEffect } from "react";
 import { onFrame } from "./frame.ts";
-import { TourEngine, type TourStep } from "./tour-engine.ts";
+import { TourEngine } from "./tour-engine.ts";
+import { resumeStepIndex } from "./tour-resume.ts";
 import { buildTourPlan } from "./tour-plan.ts";
 import { one } from "./tour-dom.ts";
 import { getLenis, scrollToY, stopCruise } from "./smooth-scroll.ts";
 import { getReadingTour, ownReadingTour, subscribeReadingTour, updateReadingTour } from "./reading-tour-state.ts";
 import { useMotionMode } from "./use-motion-mode.ts";
-
-function resumeIndex(steps: TourStep[], previous?: TourEngine): number {
-  if (!previous) {
-    if (scrollY < 120) return 0;
-    const chapter = steps.find((step) => {
-      const rect = one(step.chapter)?.getBoundingClientRect();
-      return rect && rect.top <= innerHeight * 0.5 && rect.bottom > innerHeight * 0.5;
-    })?.chapter;
-    return Math.max(0, steps.findIndex((step) => step.chapter === chapter));
-  }
-  const same = steps.findIndex((step) => step.id === previous.step?.id);
-  const section = previous.step && one(previous.step.chapter);
-  const rect = section?.getBoundingClientRect();
-  if (same >= 0 && rect && rect.top < innerHeight * 0.6 && rect.bottom > 64) return same;
-  const next = steps.findIndex((step) => step.target() >= scrollY - 80);
-  return next < 0 ? steps.length - 1 : next;
-}
 
 /** Installs one automatic reading tour. Intentional input always hands control
  * back to the visitor; hover alone must not strand a stationary reader. */
@@ -39,11 +23,17 @@ export function useReadingTourDriver() {
     let resizeTimer = 0;
     let startTimer = 0;
     let blocked = false;
+    let checkpoint: { y: number; inner: HTMLElement | null; top: number; viewport: HTMLElement | null; left: number } | undefined;
 
     const pause = () => {
       if (getReadingTour().status === "playing") updateReadingTour({ status: "paused" });
     };
     const freeze = () => {
+      if (stop) {
+        const inner = engine?.step?.inner?.() ?? null;
+        const viewport = engine?.step ? one(`${engine.step.chapter} .mobile-board-viewport`) : null;
+        checkpoint = { y: scrollY, inner, top: inner?.scrollTop ?? 0, viewport, left: viewport?.scrollLeft ?? 0 };
+      }
       stop?.(); stop = undefined;
       stopCruise();
       if (engine || getLenis()) scrollToY(scrollY, { immediate: true });
@@ -55,13 +45,20 @@ export function useReadingTourDriver() {
       if (replay) scrollToY(0, { immediate: true });
       const steps = buildTourPlan(enhanced);
       const previous = engine;
-      let index = replay ? 0 : resumeIndex(steps, previous);
+      const chapter = steps.find((step) => {
+        const rect = one(step.chapter)?.getBoundingClientRect();
+        return rect && rect.top <= innerHeight * 0.5 && rect.bottom > innerHeight * 0.5;
+      })?.chapter;
+      let index = replay ? 0 : resumeStepIndex(steps, scrollY, chapter, previous?.step?.id);
       if (resized && previous) {
         const same = steps.findIndex((step) => step.id === previous.step?.id);
         if (same >= 0) index = same;
       }
       expected = scrollY;
-      engine = new TourEngine(steps, {
+      const unchanged = checkpoint && Math.abs(scrollY - checkpoint.y) < 3
+        && Math.abs((checkpoint.inner?.scrollTop ?? 0) - checkpoint.top) < 2
+        && Math.abs((checkpoint.viewport?.scrollLeft ?? 0) - checkpoint.left) < 2;
+      if (!previous || replay || resized || !unchanged) engine = new TourEngine(steps, {
         y: () => scrollY, viewport: () => innerHeight,
         limit: () => document.documentElement.scrollHeight - innerHeight,
         reduced: !enhanced,
@@ -71,7 +68,7 @@ export function useReadingTourDriver() {
         },
         changed: (step) => updateReadingTour({ step: step.id, label: step.label }),
         complete: () => updateReadingTour({ status: "complete" }),
-      }, index);
+      }, index, !replay && scrollY > 120);
       stop = onFrame("scroll", (_time, delta) => {
         if (document.hidden || resizing || blocked) return;
         // Includes scrollbar dragging, find-in-page and anchor navigation.

@@ -1,0 +1,26 @@
+name: Install Node and portfolio dependencies
+description: Use the supported Node version without GitHub cache services.
+runs:
+  using: composite
+  steps:
+    - name: Configure private Forgejo HTTPS route
+      shell: bash
+      run: python3 scripts/forgejo-host-route.py
+    - uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version-file: .nvmrc
+        # Node releases are public. Never send the Forgejo run token to the
+        # external GitHub download service; this disables that default token.
+        token: ""
+    - name: Install stable npm
+      shell: bash
+      run: npm install --global npm@11.21.2 --silent
+    - name: Install dependencies
+      shell: bash
+      # Lightning CSS and Tailwind need their platform-specific optional bindings.
+      run: npm ci --include=optional
+    - name: Select a supported Rolldown binding
+      shell: bash
+      run: |
+        ulimit -c 0
+        node scripts/select-rolldown-binding.mjs

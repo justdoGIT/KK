@@ -39,9 +39,10 @@ export class TourEngine {
   private duration = 0;
   private inner: HTMLElement | null = null;
   private overflow = 0;
+  private innerFrom = 0;
   private windows = readingWindows(8, 0, 1);
 
-  constructor(readonly steps: TourStep[], private host: TourHost, index = 0) {
+  constructor(readonly steps: TourStep[], private host: TourHost, index = 0, private resume = false) {
     this.index = Math.max(0, Math.min(index, steps.length - 1));
     this.start();
   }
@@ -56,11 +57,11 @@ export class TourEngine {
     this.elapsed = 0;
     this.phase = "travel";
     this.from = this.host.y();
-    this.to = this.clamp(step.target());
+    this.to = this.clamp(Math.max(this.resume ? this.from : 0, step.target()));
     this.travel = this.host.reduced ? 0 : Math.max(
       Math.abs(this.to - this.from) < 2 ? 0 : 1.6,
       Math.abs(this.to - this.from) / Math.max(160, this.host.viewport() * 0.4),
-      step.travelSeconds ?? 0,
+      this.resume && Math.abs(this.to - this.from) < 2 ? 0 : step.travelSeconds ?? 0,
     );
     this.host.changed(step);
   }
@@ -82,13 +83,14 @@ export class TourEngine {
       // Let React commit changed slides/disclosures, transforms settle, and
       // lazy scenes paint before counting any reading time.
       if (this.elapsed < 1 || (step.ready && !step.ready())) return;
-      this.to = this.clamp(step.target());
-      this.bottom = this.clamp(step.end?.() ?? this.to);
+      this.to = this.clamp(Math.max(this.resume ? this.from : 0, step.target()));
+      this.bottom = this.clamp(Math.max(this.to, step.end?.() ?? this.to));
       this.inner = step.inner?.() ?? null;
       this.overflow = this.inner ? Math.max(0, this.inner.scrollHeight - this.inner.clientHeight) : 0;
-      if (this.inner) this.inner.scrollTop = 0;
+      this.innerFrom = this.resume && this.inner ? Math.min(this.overflow, this.inner.scrollTop) : 0;
+      if (this.inner) this.inner.scrollTop = this.innerFrom;
       const seconds = Math.max(step.seconds ?? 0, readingSeconds(step.text()));
-      this.windows = readingWindows(seconds, Math.max(this.overflow, this.bottom - this.to),
+      this.windows = readingWindows(seconds, Math.max(this.overflow - this.innerFrom, this.bottom - this.to),
         this.overflow && this.inner ? this.inner.clientHeight : this.host.viewport() - 88);
       this.duration = step.continuous ? seconds + 8 : this.windows.duration;
       this.phase = "read";
@@ -99,12 +101,13 @@ export class TourEngine {
       ? Math.max(0, Math.min(1, (this.elapsed - 4) / Math.max(1, this.duration - 8)))
       : this.windows.position(this.elapsed, this.host.reduced);
     this.host.scroll(this.to + (this.bottom - this.to) * p);
-    if (this.inner) this.inner.scrollTop = this.overflow * p;
+    if (this.inner) this.inner.scrollTop = this.innerFrom + (this.overflow - this.innerFrom) * p;
     if (this.elapsed < this.duration) return;
     // Land exactly at the end and retain a complete final reading window.
     this.host.scroll(this.bottom);
     if (this.inner) this.inner.scrollTop = this.overflow;
     this.index += 1;
+    this.resume = false;
     this.start();
   }
 }

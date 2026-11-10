@@ -15,23 +15,23 @@ concurrency:
 
 jobs:
   dependency-review:
-    if: github.event.pull_request.draft == false
+    if: github.server_url == 'https://github.com' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
           fail-on-severity: moderate
 
   browser-review:
-    if: github.event.pull_request.draft == false
+    if: github.server_url == 'https://github.com' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -46,14 +46,14 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Review runtime behavior
-        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts --workers=1
+        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1 --reporter=line,html --max-failures=1
 
       - name: Review phone and short-screen layout
-        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1
+        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1 --reporter=line,html --max-failures=1
 
       - name: Upload browser review failures
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pr-review-browser-failures
           path: |
