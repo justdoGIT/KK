@@ -10,13 +10,42 @@ jobs:
   ai-review:
     if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ci-standard
-    # Reach the host's private HTTPS listener through Podman's rootless gateway.
-    # Keep the canonical URL and TLS certificate verification unchanged.
-    container:
-      image: 192.168.1.4:3000/justdogit/ci-standard-py@sha256:56793c3e56ef254831c47dca8138f95b4450f7926dc61c1aca161d32da62514f
-      options: --add-host=forgejo.kepr.dev:host-gateway
     timeout-minutes: 10
     steps:
+      - name: Configure private Forgejo HTTPS route
+        # No PR checkout: this bootstrap is part of the trusted workflow.
+        run: |
+          python3 - <<'ROUTE'
+          """Route the private HTTPS hostname through a rootless job's host gateway."""
+
+          from pathlib import Path
+          import socket
+          import urllib.request
+
+          hostname = "forgejo.kepr.dev"
+          gateway = socket.gethostbyname("host.containers.internal")
+          hosts = Path("/etc/hosts")
+          lines = []
+          for line in hosts.read_text().splitlines():
+              body, marker, comment = line.partition("#")
+              fields = body.split()
+              if hostname in fields[1:]:
+                  fields = [fields[0], *(alias for alias in fields[1:] if alias != hostname)]
+                  if len(fields) == 1:
+                      continue
+                  line = "\t".join(fields)
+                  if marker:
+                      line += " #" + comment
+              lines.append(line)
+          lines.append(f"{gateway}\t{hostname}\t# Forgejo private HTTPS route")
+          hosts.write_text("\n".join(lines) + "\n")
+
+          # Keep the canonical hostname and the client's normal certificate validation.
+          with urllib.request.urlopen(f"https://{hostname}/user/login", timeout=10) as response:
+              if response.status != 200:
+                  raise RuntimeError("Private Forgejo HTTPS readiness check failed")
+          print("Private Forgejo HTTPS route ready")
+          ROUTE
       # Fetch trusted code directly: automatic private-action authentication
       # only works at a runner's registered URL, which may still use HTTP.
       # The immutable revision and independently verified digest pin the code.

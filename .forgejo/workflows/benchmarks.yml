@@ -11,11 +11,6 @@ concurrency:
 jobs:
   benchmarks:
     runs-on: ci-standard
-    # Reach the host's private HTTPS listener through Podman's rootless gateway.
-    # Keep the canonical URL and TLS certificate verification unchanged.
-    container:
-      image: 192.168.1.4:3000/justdogit/ci-standard-py@sha256:56793c3e56ef254831c47dca8138f95b4450f7926dc61c1aca161d32da62514f
-      options: --add-host=forgejo.kepr.dev:host-gateway
     timeout-minutes: 20
     steps:
       - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
