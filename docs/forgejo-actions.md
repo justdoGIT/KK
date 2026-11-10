@@ -13,6 +13,9 @@ workflows instead. The failed runs at `da63662` were:
 CI and browser review also warned that the npm cache service was unreachable.
 Forgejo dependency setup uses no GitHub cache service. Forgejo artifacts use
 the native upload action v3, rather than GitHub's artifact service v4.
+Dependency setup uses npm 11.21.2 and explicitly includes optional dependencies,
+which supply Lightning CSS and Tailwind's required platform bindings. The
+post-merge benchmark run failed when Lightning CSS's Linux binding was absent.
 
 The first native runs also exposed a hardware failure: Rolldown's native
 binding exits with `SIGILL` on Lenovo's Intel i3-3110M, which lacks AVX2.
@@ -38,6 +41,9 @@ the pinned `ai-review.yml` so each PR gets one automated code review.
 The restored scan identified 15 mutable GitHub action references. All are
 now pinned to verified release commits, including dependency review v4.9.0
 because the upstream movable `v4` tag no longer exists.
+GitHub's reviewer now tries Codestral first and includes the runner topology
+and action-pinning policy in its trusted system prompt. Findings must identify
+a concrete defect; a pinned version or a private Forgejo URL alone is not one.
 
 Every portable GitHub job has a Forgejo counterpart:
 
@@ -55,6 +61,8 @@ Forgejo jobs use `ci-standard`. The pinned AI review action retrieves the API
 diff without executing PR source and uses the automatic run token. External
 LLM review uses the existing Gemini secret when configured; the trusted action
 has a rules-based fallback. Fork PRs do not receive reviewer secrets.
+The internal review and scanning templates use the trusted HTTPS endpoint at
+`https://forgejo.kepr.dev`; they remain pinned to immutable commits.
 
 GitHub jobs explicitly require `github.server_url == 'https://github.com'`.
 The live website continues to deploy through GitHub Pages when changes merge
