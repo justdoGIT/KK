@@ -16,8 +16,8 @@ the complete diff. They do not require the suggested changes:
 
 The reviewer unwraps enclosing Markdown fences while retaining code examples.
 Same-repository push reviews use the current script; fork reviews use the
-trusted default-branch script. PR-number concurrency prevents an older job
-from overwriting the refreshed comment. Responses cut off at the model's
+trusted default-branch script. PR-number concurrency queues the refresh after
+an older job so the corrected comment is posted last. Responses cut off at the model's
 token limit are retried or passed to the next provider instead of published.
 The GitHub-rendered comment was checked after the refreshed job completed.
 
