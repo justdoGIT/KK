@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type JSX, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Grid } from "@react-three/drei";
-import { Mesh, Vector3, type Group } from "three";
+import { Mesh, Vector3, type Group, type Light } from "three";
 import go2Joints from "../../robots/joints/go2.json";
 import { jointRigFor } from "../../robots/model-assets.ts";
 import { actProgress, morphProgress, smoothstep } from "../career-timeline.ts";
@@ -79,6 +79,7 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
   const [rig] = useState(() => humanoidRigFor(humanoid));
   const root = useRef<Group>(null);
   const body = useRef<Group>(null);
+  const fill = useRef<Group>(null);
   const postRefs = useRef<(Mesh | null)[]>([]);
   const scratch = useRef({ cam: new Vector3(), look: new Vector3(), tmp: new Vector3(), post: new Vector3() });
 
@@ -100,6 +101,12 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
 
   useFrame(({ camera }) => {
     const c = activeClock(root.current, clock.current, index);
+    if (fill.current) {
+      const lit = !!c && morphProgress(c.local) >= 1;
+      fill.current.children.forEach((light, i) => {
+        (light as Light).intensity = lit ? [0.5, 16, 5][i] : 0;
+      });
+    }
     if (!c) return;
     const { cam, look, tmp, post } = scratch.current;
     const morph = morphProgress(c.local);
@@ -109,6 +116,7 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
     const walkDistance = Math.max(0, (Math.min(u, RUN_START) - WALK_START) / (RUN_START - WALK_START)) * WALK_DISTANCE;
     const runDistance = Math.max(0, (u - RUN_START) / (1 - RUN_START)) * RUN_DISTANCE;
     const distance = walkDistance + runDistance;
+    if (fill.current) fill.current.position.x = distance;
     poseHumanoid(rig, [
       ["Idle", u * 6, 1 - walk],
       ["Walking", (walkDistance / STRIDE) * clipDuration(rig, "Walking"), Math.max(0, walk - run)],
@@ -142,16 +150,21 @@ export function HumanoidStage({ clock, index }: StageProps): JSX.Element {
   });
 
   return (
+    <>
+    {/* Keep the light count constant so other stages can reuse compiled shaders. */}
+    <group ref={fill}>
+      <ambientLight color="#fff2dd" intensity={0} />
+      <pointLight position={[3, 3.5, 3]} color="#fff5e8" intensity={0} decay={2} />
+      <pointLight position={[1.5, 1.8, -2]} color="#e5faff" intensity={0} decay={2} />
+    </group>
     <group ref={root} visible={false}>
       <Runway postRefs={postRefs} />
       <MorphPad radius={1} position={[0, 0, 0]} />
-      <PartMorph source={source} target={target} clock={clock} seed={37} />
+      <PartMorph source={source} target={target} clock={clock} index={index} seed={37} />
       <group ref={body}>
-        <ambientLight color="#fff2dd" intensity={0.5} />
-        <pointLight position={[3, 3.5, 3]} color="#fff5e8" intensity={16} decay={2} />
-        <pointLight position={[1.5, 1.8, -2]} color="#e5faff" intensity={5} decay={2} />
         <primitive object={rig.root} />
       </group>
     </group>
+    </>
   );
 }

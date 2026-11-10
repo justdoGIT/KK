@@ -2,6 +2,8 @@ import { useState, type JSX } from "react";
 import { contactInfo } from "../../content/contact.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
 import { LusionShowcaseCard, type GallerySystem } from "./LusionShowcaseCard.tsx";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
 
 const gallerySystems: GallerySystem[] = [
   {
@@ -86,9 +88,20 @@ const gallerySystems: GallerySystem[] = [
 
 export function SystemsGallery(): JSX.Element {
   const [activeSystemId, setActiveSystemId] = useState<string>(gallerySystems[0].id);
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
+  const cards = gallerySystems.map((item, index) => (
+    <LusionShowcaseCard
+      key={item.id}
+      item={item}
+      isSelected={activeSystemId === item.id}
+      onSelect={() => setActiveSystemId(item.id)}
+      rowIndex={Math.floor(index / 2)}
+      interactive={!mobile}
+    />
+  ));
 
   return (
-    <section className="gallery-section" id="visual-lab" aria-label="Visual project lab">
+    <section className={`gallery-section${mobile ? " mobile-board-section" : ""}`} id="visual-lab" aria-label="Visual project lab">
       <div className="section-header gallery-header">
         <LusionKineticHeading
           kicker="Systems Showcase"
@@ -99,17 +112,9 @@ export function SystemsGallery(): JSX.Element {
       </div>
 
       {/* Interactive Architecture Cards Grid */}
-      <div className="systems-gallery-grid" role="list">
-        {gallerySystems.map((item, idx) => (
-          <LusionShowcaseCard
-            key={item.id}
-            item={item}
-            isSelected={activeSystemId === item.id}
-            onSelect={() => setActiveSystemId(item.id)}
-            rowIndex={Math.floor(idx / 2)}
-          />
-        ))}
-      </div>
+      {mobile ? (
+        <MobileBoardCarousel label="Industrial architectures" onIndexChange={(index) => setActiveSystemId(gallerySystems[index].id)}>{cards}</MobileBoardCarousel>
+      ) : <div className="systems-gallery-grid" role="list">{cards}</div>}
     </section>
   );
 }

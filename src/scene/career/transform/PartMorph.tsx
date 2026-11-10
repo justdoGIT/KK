@@ -58,6 +58,7 @@ type PartMorphProps = {
   source: MorphFactory;
   target: MorphFactory;
   clock: CareerClockRef;
+  index: number;
   /** Stage-local window [start, end] mapped to morph progress 0..1. */
   range?: readonly [number, number];
   seed: number;
@@ -124,15 +125,17 @@ function buildRig(group: Group, from: BakedModel, to: BakedModel, seed: number):
  * The visual grammar references transformation cinema without copying any
  * proprietary Transformer geometry, characters, or animation.
  */
-export function PartMorph({ source, target, clock, range = [0, TRANSFORM_END], seed }: PartMorphProps): JSX.Element {
+export function PartMorph({ source, target, clock, index, range = [0, TRANSFORM_END], seed }: PartMorphProps): JSX.Element {
   const group = useRef<Group>(null);
   const rig = useRef<Rig | null>(null);
+  const lastProgress = useRef(-1);
 
   useLayoutEffect(() => {
     const host = group.current;
     if (!host) return;
     const built = buildRig(host, bakeModel(source(), 3), bakeModel(target(), 3), seed);
     rig.current = built;
+    lastProgress.current = -1;
     return () => {
       host.clear();
       disposeBaked(built.from);
@@ -150,9 +153,11 @@ export function PartMorph({ source, target, clock, range = [0, TRANSFORM_END], s
   useFrame(() => {
     const r = rig.current;
     const host = group.current;
-    if (!r || !host) return;
+    if (!r || !host || clock.current?.stage !== index) return;
     const local = clock.current?.local ?? 0;
     const p = clamp01((local - range[0]) / (range[1] - range[0]));
+    if (lastProgress.current === p) return;
+    lastProgress.current = p;
     host.visible = p < 1;
     if (!host.visible) return;
     const { q } = r;

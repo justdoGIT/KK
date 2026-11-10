@@ -21,7 +21,7 @@
   position: sticky;
   top: 0;
   width: 100%;
-  height: 100vh;
+  height: var(--vh100);
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -353,7 +353,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2.2rem;
-  perspective: 1200px;
 }
 
 @media (max-width: 980px) {
@@ -368,8 +367,8 @@
   background: radial-gradient(
     circle at 50% 0%,
     rgba(56, 189, 248, 0.05) 0%,
-    rgba(15, 23, 42, 0.75) 60%,
-    rgba(9, 13, 22, 0.98) 100%
+    #101b2c 60%,
+    #090d16 100%
   );
   border: 1px solid var(--color-surface-border);
   border-radius: 20px;
@@ -377,11 +376,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  backdrop-filter: blur(10px);
   cursor: pointer;
-  transform-style: preserve-3d;
+  transform-style: flat;
   will-change: auto;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease, border-color 0.35s ease, box-shadow 0.35s ease;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
   overflow: hidden;
 }
@@ -393,12 +391,12 @@
   height: 40px;
   pointer-events: none;
 }
-/* Grid-row reveal: rows beyond the first start small/hidden via this CSS
-   rule (so there's no flash of full-size content before JS runs), then
-   IntersectionObserver + the card's own hover-physics RAF loop take over
-   and ease scale/opacity up to 1 once the row scrolls into view. */
+/* Reveal once on entry; the transition finishes at transform: none. */
 .system-showcase-card.card-pending-reveal {
   opacity: 0;
+  /* Also hidden from hit-testing and the a11y tree until the row reveals, so
+     its (scaled-down) link is never measured as a sub-44px tap target. */
+  visibility: hidden;
   transform: scale(0.55);
   will-change: transform, opacity;
 }
@@ -409,15 +407,24 @@
   box-shadow: 0 25px 65px rgba(0, 0, 0, 0.65), 0 0 30px rgba(56, 189, 248, 0.2);
 }
 
-.system-card-spotlight {
+.system-card-spotlight,
+.skill-card-spotlight {
+  --spot-size: 760px;
   position: absolute;
-  inset: 0;
-  border-radius: 20px;
+  top: 0;
+  left: 0;
+  width: var(--spot-size);
+  height: var(--spot-size);
+  margin: calc(var(--spot-size) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #38bdf833 0%, #818cf812 40%, transparent 70%);
   pointer-events: none;
   z-index: 1;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+.system-showcase-card:hover > .system-card-spotlight,
+.skill-category-card:hover > .skill-card-spotlight { opacity: 1; }
 
 .system-card-content {
   position: relative;
@@ -426,8 +433,9 @@
   flex-direction: column;
   gap: 0.85rem;
   height: 100%;
-  transform-style: preserve-3d;
+  transform-style: flat;
 }
+.system-showcase-card .system-card-content > * { transform: none; }
 .showcase-topbar {
   display: flex;
   justify-content: space-between;
@@ -589,15 +597,16 @@
 .process-track.is-scroll-reveal .process-step-card:not(.is-open) {
   opacity: 0;
   will-change: transform, opacity;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .process-step-card.is-open {
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .process-step-card.is-open:hover {
-  transform: scale(1.02) translateY(-6px);
   border-color: rgba(56, 189, 248, 0.35);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.1);
 }
+.process-step-card.is-open > * { translate: none; opacity: 1; }
 /* Inner staging from --r: topline, label, title, detail, impact box in turn. */
 .process-step-card > * {
   --stage: clamp(0, calc(var(--r, 1) * 3.2 - var(--si, 0) * 0.4 - 0.4), 1);
@@ -758,14 +767,11 @@
   opacity: 0;
   will-change: transform, opacity;
 }
-.offer-card.is-open {
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
-}
 .offer-card.is-open:hover {
-  transform: scale(1.02) translateY(-8px);
   border-color: rgba(56, 189, 248, 0.4);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.15);
 }
+.offer-card.is-open > * { translate: none; opacity: 1; }
 /* Inner staging from --r: header, title, promise, ideal-for, deliverables, CTA. */
 .offer-card > * {
   --stage: clamp(0, calc(var(--r, 1) * 3.4 - var(--si, 0) * 0.4 - 0.4), 1);
@@ -958,7 +964,7 @@
   top: 3.5rem;
   right: 0;
   left: 0;
-  height: calc(100vh - 3.5rem);
+  height: calc(var(--vh100) - 3.5rem);
   z-index: 0;
   pointer-events: none;
 }
@@ -970,7 +976,7 @@
   top: 3.5rem;
   right: 0;
   left: 0;
-  height: calc(100vh - 3.5rem);
+  height: calc(var(--vh100) - 3.5rem);
   z-index: 0;
   pointer-events: none;
   display: flex;
@@ -1021,6 +1027,13 @@
 .reveal-visible {
   opacity: 1;
   transform: none;
+}
+/* These sections animate their own contents. Fading a multi-screen wrapper
+   makes a huge intermediate surface and translates sticky/WebGL descendants. */
+.reveal:has(.services-desktop, .board-lifecycle.is-animated, .lusion-deck-scroll-section, .skill-domains-pinned, .career-journey, .aj-section, .terminal-scroll-section) {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 /* Magnetic cursor */
@@ -1350,15 +1363,6 @@ main::before {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
 }
-/* Stacked (non-throw) layout has no per-frame --covered value; hide a
-   covered card's own content outright so its text doesn't bleed through
-   the sliver of glass peeking above the focused card. No transition here:
-   a crossfade let two sticky, near-overlapping cards both render partially
-   visible text for up to 300ms while scrolling (seen as "double text" /
-   half-faded text mid-screen) — the swap is a hard cut instead. */
-.services-deck-container .service-card-deck-item:not(.card-focused) > * {
-  opacity: 0;
-}
 .service-card-deck-item:hover,
 .service-card-deck-item.card-focused {
   border-color: rgba(125, 211, 252, 0.4);
@@ -1514,6 +1518,48 @@ main::before {
   font-size: 0.78rem;
   font-family: var(--font-mono);
 }
+/* Below the pinned-stage budget, preserve the complete deck in page flow. */
+@media (max-width: 1023px), (max-height: 719px) {
+  .service-card-deck-item {
+    position: static;
+    padding: clamp(1rem, 3vw, 2.5rem);
+    scroll-margin-top: 4.5rem;
+  }
+  .services-deck-container .service-card-deck-item:not(.card-focused) > * {
+    opacity: 1;
+  }
+  .service-badge-pill {
+    font-size: 0.72rem;
+  }
+  .service-card-capabilities h4,
+  .service-matrix-col h4,
+  .service-card-footer h4 {
+    font-size: 0.72rem;
+  }
+  .service-card-matrix {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    padding: clamp(.75rem, 2vw, 1.4rem);
+  }
+  .service-capabilities-list {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+  .service-card-badge-group { flex-wrap: wrap; min-width: 0; }
+  .service-deliv-pill { max-width: 100%; overflow-wrap: anywhere; }
+}
+/* Long domain names wrap inside the phone's available width. */
+@media (max-width: 480px) {
+  .service-card-matrix {
+    grid-template-columns: 1fr;
+  }
+  .service-capabilities-list {
+    grid-template-columns: 1fr;
+  }
+  .services-deck-tab {
+    white-space: normal;
+    max-width: 100%;
+  }
+}
+
 /* Disclosure */
 .disclosure-trigger {
   display: flex;
@@ -1642,7 +1688,7 @@ main::before {
 .lusion-deck-sticky-stage {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1873,6 +1919,8 @@ main::before {
 .card-front-scroll-body {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior-y: contain;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -2499,6 +2547,7 @@ main::before {
   position: relative;
   width: 100%;
   max-width: 1200px;
+  min-height: 0;
   margin: 0 auto;
   will-change: transform, opacity, clip-path;
 }
@@ -2511,14 +2560,21 @@ main::before {
 }
 .interactive-terminal-wrapper.terminal-expanded-mode {
   position: fixed;
-  inset: 2rem;
+  inset: 4.5rem 2rem 2rem;
+  width: auto;
   z-index: 1000;
   max-width: 1400px;
   margin: auto;
   transform: none !important;
   opacity: 1 !important;
   filter: none !important;
+  clip-path: none !important;
   box-shadow: 0 0 0 100vmax rgba(5, 8, 15, 0.85);
+}
+.interactive-terminal-wrapper.terminal-expanded-mode .terminal-window {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
 }
 .terminal-window {
   background: #090d16;
@@ -2566,6 +2622,8 @@ main::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+  gap: 0.6rem;
   padding: 0.6rem 1rem;
   background: #0f172a;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2574,6 +2632,7 @@ main::before {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  flex-shrink: 0;
 }
 .window-btn {
   width: 10px;
@@ -2581,9 +2640,9 @@ main::before {
   border-radius: 50%;
   cursor: pointer;
 }
-.btn-close { background: #ef4444; }
-.btn-min { background: #f59e0b; }
-.btn-max { background: #10b981; }
+.btn-close { background: #ef4444; --dot-color: #ef4444; }
+.btn-min { background: #f59e0b; --dot-color: #f59e0b; }
+.btn-max { background: #10b981; --dot-color: #10b981; }
 
 .terminal-tabs-list {
   display: flex;
@@ -2602,6 +2661,8 @@ main::before {
 .terminal-tabs-list::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.7); }
 .terminal-tab {
   display: inline-flex;
+  flex-shrink: 0;
+  white-space: nowrap;
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.75rem;
@@ -2630,7 +2691,7 @@ main::before {
    Swap the icon + filename for a compact numbered button instead. */
 @media (max-width: 640px) {
   .terminal-titlebar { padding: 0.5rem 0.6rem; gap: 0.4rem; }
-  .terminal-tabs-list { flex: 1 1 auto; overflow-x: visible; gap: 0.25rem; }
+  .terminal-tabs-list { flex: 1 1 auto; gap: 0.25rem; }
   .terminal-tab { padding: 0.3rem 0.5rem; flex: 0 0 auto; }
   .tab-icon, .tab-label { display: none; }
   .tab-index { display: inline-flex; }
@@ -2641,6 +2702,7 @@ main::before {
 
 .terminal-actions-right {
   display: flex;
+  flex-shrink: 0;
   gap: 0.4rem;
 }
 .terminal-tool-btn {
@@ -2661,42 +2723,56 @@ main::before {
 }
 .terminal-body {
   padding: 1rem 1.8rem 0.75rem;
-  /* Fixed height: 440px window − 44px titlebar − 38px footer = 358px */
-  height: 358px;
-  min-height: 358px;
-  max-height: 358px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  line-height: 1.6;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  font-variant-ligatures: none;
   color: #e2e8f0;
   background: #080c14;
-  overflow: hidden;
+  /* The transcript scrolls as one surface; tabs and status stay visible. */
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.55) #0f172a;
+  overflow-wrap: anywhere;
+}
+.terminal-body::-webkit-scrollbar { width: 6px; height: 6px; }
+.terminal-body::-webkit-scrollbar-track { background: #0f172a; }
+.terminal-body::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.55);
+  border-radius: 999px;
+}
+.terminal-body:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: -3px;
 }
 .terminal-system-banner {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
   padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
   font-size: 0.68rem;
-  color: var(--color-fg-subtle);
+  color: #94a3b8;
 }
 .banner-uptime { color: #10b981; }
 
 .terminal-prompt-line {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  white-space: pre-wrap;
 }
 .prompt-user { color: #10b981; font-weight: 600; }
 .prompt-sep { color: var(--color-fg-subtle); }
 .prompt-dir { color: #38bdf8; font-weight: 600; }
 .prompt-symbol { color: #f59e0b; font-weight: 700; }
-.prompt-typed-text { color: #ffffff; font-weight: 500; word-break: break-all; }
+.prompt-typed-text { color: #f1f5f9; font-weight: 500; }
 .prompt-cursor {
   color: #38bdf8;
   font-weight: 700;
@@ -2710,18 +2786,6 @@ main::before {
 
 .terminal-output-container {
   margin-top: 0.8rem;
-  padding-left: 0.5rem;
-  border-left: 2px solid rgba(56, 189, 248, 0.3);
-  /* Fills whatever space remains in the fixed-height terminal-body instead
-     of scrolling on its own: an inner scrollbar would swallow wheel events
-     while the pointer sits over the terminal, blocking the page scroll
-     that drives the typing/reveal animation. */
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
   transition: opacity 0.3s ease;
 }
 .terminal-output-container.output-hidden {
@@ -2732,11 +2796,14 @@ main::before {
   opacity: 1;
 }
 .terminal-output-line {
-  color: #94a3b8;
-  font-size: 0.82rem;
-  line-height: 1.5;
+  color: #cbd5e1;
+  /* Preserve shell indentation on soft-wrapped continuation lines. */
+  padding-left: var(--terminal-indent, 0ch);
+  text-indent: calc(-1 * var(--terminal-indent, 0ch));
   white-space: pre-wrap;
 }
+.terminal-output-success { color: #34d399; }
+.terminal-ready-prompt { margin-top: 0.65rem; }
 .terminal-exit-code {
   display: flex;
   align-items: center;
@@ -2751,23 +2818,30 @@ main::before {
   color: #10b981;
   font-weight: 600;
 }
-.exit-time { color: var(--color-fg-subtle); }
+.exit-time { color: #94a3b8; }
 
 .terminal-footer-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+  gap: 0.6rem;
   padding: 0.6rem 1.2rem;
   background: #0b101c;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 .footer-tip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: var(--color-fg-subtle);
+  color: #94a3b8;
 }
+.terminal-session-name { color: #7dd3fc; }
 .terminal-step-pills {
   display: flex;
+  flex-shrink: 0;
   gap: 0.35rem;
 }
 .step-dot {
@@ -2782,6 +2856,128 @@ main::before {
 .step-dot.active {
   background: #38bdf8;
   box-shadow: 0 0 8px #38bdf8;
+}
+
+@media (max-width: 767px) {
+  .terminal-sticky-stage {
+    top: 4rem;
+    height: calc(100svh - 5rem);
+    gap: 1rem;
+  }
+  .terminal-pinned-heading { margin: 0; padding-bottom: 0; }
+  .terminal-pinned-heading .lusion-kinetic-heading-wrap { margin: 0; }
+  .terminal-pinned-heading .lusion-kinetic-kicker { margin-bottom: 0.4rem; font-size: 0.6rem; }
+  .terminal-pinned-heading .lusion-kinetic-title { font-size: clamp(1.3rem, 6vw, 1.8rem); line-height: 1.15; }
+  .terminal-pinned-heading .lusion-kinetic-subtitle { display: none; }
+  .terminal-sticky-stage > .interactive-terminal-wrapper {
+    flex: 1 1 auto;
+    max-height: 520px;
+  }
+  .terminal-window { height: 100%; min-height: 0; max-height: none; }
+  .terminal-body { padding: 0.85rem 0.85rem 1rem; font-size: 0.76rem; }
+  .terminal-system-banner { font-size: 0.63rem; }
+  .terminal-footer-bar { padding: 0.5rem 0.75rem; }
+  .footer-tip { flex-direction: column; font-size: 0.62rem; }
+  .terminal-sticky-stage > .terminal-expanded-mode { inset: 4rem 0.75rem 0.75rem; max-height: none; }
+}
+
+@media (max-width: 374px) {
+  .terminal-titlebar { padding-inline: 0.4rem; gap: 0.3rem; }
+  .terminal-window-buttons { gap: 0.3rem; }
+  .terminal-tabs-list { gap: 0.2rem; }
+  .terminal-tab { padding-inline: 0.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-cursor { animation: none; }
+}
+
+/* Below 1024 x 720 (or reduced motion), the console is normal document
+   flow: no pinned stage or scroll-driven script. Its output can scroll
+   independently without trapping the page-scroll animation. Keep all
+   command lines, the system banner and the full heading accessible. */
+.terminal-flow .terminal-sticky-stage {
+  position: relative;
+  top: auto;
+  height: auto;
+  gap: 1rem;
+}
+.terminal-flow .terminal-window {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+.terminal-flow .terminal-body {
+  height: auto;
+  min-height: 100px;
+  max-height: calc(var(--vh100) * 0.6);
+  flex: 0 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(0.5rem, 2vh, 1rem) clamp(0.5rem, 2vw, 1.8rem);
+  font-size: clamp(11px, 1.8vw, 13.6px);
+  line-height: 1.5;
+}
+.terminal-flow .terminal-body > * { flex-shrink: 0; }
+.terminal-flow .terminal-output-container {
+  flex: none;
+  overflow: visible;
+}
+.terminal-flow .terminal-output-line {
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+.terminal-flow .terminal-system-banner {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 11px;
+}
+.terminal-flow .terminal-prompt-line { gap: 0.25rem; }
+.terminal-flow .terminal-tool-btn,
+.terminal-flow .terminal-exit-code { font-size: 11px; }
+.terminal-flow .terminal-titlebar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+.terminal-flow .terminal-tabs-list {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  gap: 0.25rem;
+  overflow: visible;
+}
+.terminal-flow .terminal-tab { justify-content: center; padding: 0; }
+.terminal-flow .tab-icon,
+.terminal-flow .tab-label { display: none; }
+.terminal-flow .tab-index { display: inline-flex; }
+.terminal-flow .terminal-window-buttons { gap: 0; }
+/* The footer duplicates the tab navigation and its instruction. */
+.terminal-flow .terminal-footer-bar { display: none; }
+.terminal-flow .terminal-pinned-heading { padding-bottom: 0; }
+.terminal-flow .terminal-pinned-heading .lusion-kinetic-title {
+  font-size: clamp(1.5rem, 4vw, 3.2rem);
+}
+.terminal-flow .terminal-pinned-heading .lusion-kinetic-kicker { font-size: 11px; }
+.terminal-flow .terminal-pinned-heading .lusion-kinetic-subtitle {
+  font-size: clamp(11px, 2vw, 15.68px);
+}
+.terminal-flow .terminal-expanded-mode {
+  inset: calc(3.5rem + 0.25rem) max(0.25rem, env(safe-area-inset-right)) max(0.25rem, env(safe-area-inset-bottom)) max(0.25rem, env(safe-area-inset-left));
+  clip-path: none !important;
+}
+.terminal-flow .terminal-expanded-mode .terminal-window { height: 100%; max-height: 100%; }
+.terminal-flow .terminal-expanded-mode .terminal-body { flex: 1; min-height: 0; max-height: none; }
+.terminal-flow .terminal-minimized-bar {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.terminal-flow .minimized-info { overflow-wrap: anywhere; min-width: 0; }
+@media (pointer: coarse) {
+  .terminal-flow .terminal-minimized-bar button { min-width: 44px; min-height: 44px; }
 }
 
 /* Skills Filter & Category Cards Grid */
@@ -2828,7 +3024,7 @@ main::before {
 .skill-domains-pinned .skill-domains-stage {
   position: sticky;
   top: 4.5rem;
-  min-height: calc(100vh - 4.5rem);
+  min-height: calc(var(--vh100) - 4.5rem);
   padding: 1rem 0;
 }
 .skill-domains-stage .skills-filter-row {
@@ -2909,6 +3105,8 @@ main::before {
   opacity: clamp(0, calc(var(--r, 1) * 3 - 1.6 - var(--ci, 0) * 0.1), 1);
   translate: 0 calc((1 - clamp(0, calc(var(--r, 1) * 3 - 1.6 - var(--ci, 0) * 0.1), 1)) * 8px);
 }
+.skill-card-reveal.is-open .skill-badge-chip { translate: none; opacity: 1; }
+.skill-card-reveal.is-open .skill-cat-illustration-wrap { clip-path: none; }
 @media (max-width: 1100px) {
   .skills-categories-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2945,8 +3143,8 @@ main::before {
   border-radius: 16px;
   padding: 1.15rem 1.1rem;
   overflow: hidden;
-  transform-style: preserve-3d;
-  will-change: transform;
+  transform-style: flat;
+  will-change: auto;
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
@@ -2955,12 +3153,7 @@ main::before {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 25px rgba(56, 189, 248, 0.18);
 }
 .skill-card-spotlight {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 0.3s ease;
+  --spot-size: 560px;
 }
 .skill-cat-illustration-wrap {
   position: relative;
@@ -3389,11 +3582,19 @@ main::before {
   .offers-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 980px) {
+  .nav-inner {
+    gap: clamp(.375rem, 1.5vw, .75rem);
+  }
   .nav-menu-toggle {
-    display: block;
-    margin-left: auto;
-    margin-right: 0.5rem;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    height: 44px;
+  }
+  .nav-brand {
+    margin-right: auto;
+    white-space: nowrap;
   }
   .nav-list {
     display: none;
@@ -3418,8 +3619,12 @@ main::before {
     padding: 0.75rem 0;
   }
   .nav-cta {
-    font-size: 0.75rem;
+    font-size: clamp(.65rem, 2.75vw, .875rem);
   }
+}
+
+@media (max-width: 640px) {
+  .nav-brand-mark { display: none; }
   .hero-actions {
     flex-direction: column;
     width: 100%;
@@ -3436,21 +3641,26 @@ main::before {
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: var(--vh100);
   pointer-events: none;
-  z-index: 0;
+  /* Stay below page content even when a reveal stops creating a stacking context. */
+  z-index: -1;
   overflow: hidden;
   opacity: 0.85;
-  /* Own compositor layer so SVG path mutations don't trigger page repaints */
+  contain: paint;
+}
+.global-ribbon-layer { position: absolute; inset: 0; }
+.ribbon-animated .global-ribbon-layer {
+  /* Persistent compositor layers are for decoration only, never card text. */
   will-change: transform;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
 }
 .global-ribbon-svg {
   display: block;
   width: 100%;
   height: 100%;
-  /* Disable subpixel antialiasing to cut rasterization cost */
-  shape-rendering: optimizeSpeed;
+  /* Rasterize smooth edges once, then move the HTML layer without repainting paths. */
+  shape-rendering: geometricPrecision;
 }
 
 /* Lusion Kinetic Text & Heading Reveal */
@@ -3606,3 +3816,9 @@ main::before {
   .kicker-pulse-dot { animation: none; }
 }
 /* 3D Robot Evolution Journey & Transformer Mech Styles */
+
+/* Solid backing keeps animated backgrounds from showing through reading surfaces. */
+.system-showcase-card,
+.skill-category-card,
+.offer-card,
+.process-step-card { background-color: #090d16; }

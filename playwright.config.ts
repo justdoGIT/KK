@@ -6,10 +6,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  timeout: process.env.CI ? 120_000 : 30_000,
   reporter: "html",
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    // Give headless runners a real software WebGL adapter for scene checks.
+    launchOptions: {
+      args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"],
+    },
   },
   webServer: {
     command: "npm run preview -- --port 4173",

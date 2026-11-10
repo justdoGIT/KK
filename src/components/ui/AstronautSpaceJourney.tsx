@@ -1,6 +1,7 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, JSX, PointerEvent, ReactNode } from "react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { checkWebGL } from "../../scene/useCapability.ts";
 import type { JourneyClock } from "../../scene/astronaut/journey-clock.ts";
 import { createFinaleClock } from "../../scene/astronaut/journey-clock.ts";
@@ -46,15 +47,21 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   const contactHeading = useRef<HTMLHeadingElement>(null);
   const titleLines = useRef<(HTMLElement | null)[]>([]);
   const clock = useRef<JourneyClock>({ t: 0, width: 1, height: 1, finale: createFinaleClock() });
+  const previewTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(previewTimer.current), []);
   const [worldReady, setWorldReady] = useState(false);
   const [heroReady, setHeroReady] = useState(false);
+  const sceneReady = worldReady && heroReady;
+  const [playbackReady, setPlaybackReady] = useState(false);
 
-  // Fetch and parse the canvas module and astronaut GLB before the user reaches
-  // the pinned sequence. Both lazy canvases share this single module promise.
   useEffect(() => {
-    void loadJourneyCanvases();
-  }, []);
+    if (!sceneReady) return;
+    // Hold the opening frame briefly before moving into the scroll sequence.
+    const timer = window.setTimeout(() => setPlaybackReady(true), 280);
+    return () => window.clearTimeout(timer);
+  }, [sceneReady]);
 
+  // Load the scene near arrival without competing with the opening page.
   const els = useMemo<JourneyElements>(
     () => ({
       section, stage, backdrop, theme, world, hero, cardEdge, bezel, intro,
@@ -62,7 +69,13 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
     }),
     [],
   );
-  const { near, active } = useJourneyDriver(els);
+  const { near, active, worldActive } = useJourneyDriver(els, sceneReady && playbackReady);
+  // On phones and short screens the card cannot be shown at readable size
+  // inside the pinned stage: fitting it to the stage height scaled it to 0.54
+  // on an iPhone 13 (201px wide, 9px text, 32px buttons). Show the contact
+  // banner in normal page flow after the journey instead, as the other
+  // pinned sections do below 1024x720.
+  const flowContact = useMediaQuery("(max-width: 767px), (max-height: 719px)");
 
   const setInteraction = (interaction: ContactInteraction) => {
     const finale = clock.current.finale;
@@ -72,6 +85,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   };
 
   const updateInteraction = (target: EventTarget | null) => {
+    if (previewTimer.current && detectInteraction(target) === "none") return;
     setInteraction(detectInteraction(target));
   };
 
@@ -84,6 +98,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   };
 
   const onPointerLeave = () => {
+    if (previewTimer.current) return;
     setInteraction("none");
   };
 
@@ -100,73 +115,93 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
   };
 
   return (
-    <div
-      ref={section}
-      className="aj-section"
-      style={{ height: `${JOURNEY_VIEWPORTS * 100}vh` }}
-      aria-label="Mission launch sequence"
-      role="region"
-   >
-      <div ref={stage} className="aj-stage" data-phase="cardShow">
-        <div ref={backdrop} className="aj-backdrop" aria-hidden="true" />
-        <div ref={theme} className="aj-theme" aria-hidden="true" />
-        <div ref={world} className="aj-layer aj-world" aria-hidden="true">
-          {near ? (
-            <Suspense fallback={null}>
-              <WorldCanvas clock={clock} active={active} onAvailabilityChange={setWorldReady} />
-            </Suspense>
-          ) : null}
-        </div>
-        <div ref={cardEdge} className="aj-card-edge" aria-hidden="true" />
-        <div ref={bezel} className="aj-bezel" aria-hidden="true" />
-        <div ref={intro} className="aj-intro">
-          <span className="aj-kicker">Mission control</span>
-          <p className="aj-intro-title">Where embedded ideas become immersive missions</p>
-        </div>
-        <div ref={hero} className="aj-layer aj-hero" aria-hidden="true">
-          {near ? (
-            <Suspense fallback={null}>
-              <HeroCanvas clock={clock} active={active} onAvailabilityChange={setHeroReady} />
-            </Suspense>
-          ) : null}
-          <AstronautStandbyArtwork idPrefix="journey-standby" visible={!worldReady || !heroReady} />
-        </div>
-        {children ? (
-          <div
-            ref={contact}
-            className="contact-banner contact-banner--animated"
-            data-astronaut-mode="landing"
-            data-finale-progress="0"
-            onPointerMove={onPointerMove}
-            onPointerLeave={onPointerLeave}
-            onPointerDown={onPointerDown}
-            onFocus={onFocus}
-            onBlur={onBlur}
-          >
-            <div className="contact-banner-stage">
-              <h2 ref={contactHeading} className="contact-journey-heading">
-                Let’s <span className="contact-heading-innovate">innovate</span> together
-              </h2>
-              <div ref={contactMover} className="contact-banner-mover">
-                <div className="contact-card">{children}</div>
+    <>
+      <div
+        ref={section}
+        className="aj-section"
+        style={{ height: `${JOURNEY_VIEWPORTS * 100}vh` }}
+        aria-label="Mission launch sequence"
+        role="region"
+     >
+        <div ref={stage} className="aj-stage" data-phase="cardShow" data-scene-ready={sceneReady}>
+          <div ref={backdrop} className="aj-backdrop" aria-hidden="true" />
+          <div ref={theme} className="aj-theme" aria-hidden="true" />
+          <div ref={world} className="aj-layer aj-world" aria-hidden="true">
+            {near ? (
+              <Suspense fallback={null}>
+                <WorldCanvas clock={clock} active={worldActive} onAvailabilityChange={setWorldReady} />
+              </Suspense>
+            ) : null}
+          </div>
+          <div ref={cardEdge} className="aj-card-edge" aria-hidden="true">
+            <AstronautStandbyArtwork visible={!sceneReady} />
+          </div>
+          <div ref={bezel} className="aj-bezel" aria-hidden="true" />
+          <div ref={intro} className="aj-intro">
+            <span className="aj-kicker">Mission control</span>
+            <p className="aj-intro-title">Where embedded ideas become immersive missions</p>
+          </div>
+          <div ref={hero} className="aj-layer aj-hero" aria-hidden="true">
+            {near ? (
+              <Suspense fallback={null}>
+                <HeroCanvas clock={clock} active={active} onAvailabilityChange={setHeroReady} />
+              </Suspense>
+            ) : null}
+          </div>
+          {children && !flowContact ? (
+            <div
+              ref={contact}
+              className="contact-banner contact-banner--animated"
+              data-astronaut-mode="landing"
+              data-finale-progress="0"
+              onPointerMove={onPointerMove}
+              onPointerLeave={onPointerLeave}
+              onPointerDown={onPointerDown}
+              onClick={(event) => {
+                if (!(event.target instanceof Element) || !event.target.closest("[data-astronaut-preview]")) return;
+                window.clearTimeout(previewTimer.current);
+                setInteraction("dance");
+                previewTimer.current = window.setTimeout(() => {
+                  previewTimer.current = 0;
+                  setInteraction("none");
+                }, 10000);
+              }}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            >
+              <div className="contact-banner-stage">
+                <h2 ref={contactHeading} className="contact-journey-heading">
+                  Let’s <span className="contact-heading-innovate">innovate</span> together
+                </h2>
+                <div ref={contactMover} className="contact-banner-mover">
+                  <div className="contact-card">{children}</div>
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
-        <p className="aj-title">
-          {TITLE_LINES.map((line, i) => (
-            <span
-              key={line}
-              ref={(el) => {
-                titleLines.current[i] = el;
-              }}
-            >
-              {line}
-            </span>
-          ))}
-        </p>
+          ) : null}
+          <p className="aj-title">
+            {TITLE_LINES.map((line, i) => (
+              <span
+                key={line}
+                ref={(el) => {
+                  titleLines.current[i] = el;
+                }}
+              >
+                {line}
+              </span>
+            ))}
+          </p>
+        </div>
       </div>
-    </div>
+    {children && flowContact ? (
+      <div className="contact-banner contact-banner--static aj-contact-flow">
+        <h2 className="contact-journey-heading">
+          Let’s <span className="contact-heading-innovate">innovate</span> together
+        </h2>
+        <div className="contact-card">{children}</div>
+      </div>
+    ) : null}
+    </>
   );
 }
 
@@ -174,7 +209,7 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
 function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
   return (
     <div className="aj-fallback">
-      <AstronautStandbyArtwork idPrefix="fallback" />
+      <AstronautStandbyArtwork />
       {children ? (
         <div className="contact-banner contact-banner--static">
           <h2 className="contact-journey-heading">Let’s <span className="contact-heading-innovate">innovate</span> together</h2>
@@ -185,11 +220,24 @@ function JourneyFallback({ children }: { children?: ReactNode }): JSX.Element {
   );
 }
 
+class JourneySceneBoundary extends React.Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError(_error: unknown) { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
 export function AstronautSpaceJourney({ children }: { children?: ReactNode }): JSX.Element {
   const motionMode = useMotionMode();
   const webgl = checkWebGL();
   if (motionMode === "native" || !webgl) {
     return <JourneyFallback>{children}</JourneyFallback>;
   }
-  return <ImmersiveJourney>{children}</ImmersiveJourney>;
+  return (
+    <JourneySceneBoundary fallback={<JourneyFallback>{children}</JourneyFallback>}>
+      <ImmersiveJourney>{children}</ImmersiveJourney>
+    </JourneySceneBoundary>
+  );
 }

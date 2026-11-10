@@ -37,21 +37,22 @@ function SceneContent(): JSX.Element {
 
 export function SceneCanvas(): JSX.Element | null {
   const containerRef = useRef<HTMLDivElement>(null);
+  const visible = useRef(true);
   const [active, setActive] = useState(true);
   const { dpr, monitor } = useAdaptiveDpr();
   const mobile = isMobile();
 
-  // Pause rendering (never unmount, which would drop the WebGL context and
-  // its loaded assets) once the hero section itself scrolls out of view, not
-  // just on tab-hide — the canvas is a hero-scoped background, so most of a
-  // long scroll session it's off-screen entirely.
+  // Pause at the canvas boundary. The hero can be taller than its background,
+  // and a preload margin would keep drawing behind the following text cards.
+  // Retain the mounted canvas so returning to the hero preserves its assets.
   useEffect(() => {
-    const hero = document.getElementById("hero") ?? containerRef.current;
-    if (!hero) return;
-    const observer = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), {
-      rootMargin: "20% 0px",
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      visible.current = entry.isIntersecting && entry.intersectionRatio > 0;
+      setActive(visible.current);
     });
-    observer.observe(hero);
+    observer.observe(container);
     return () => observer.disconnect();
   }, []);
 
@@ -71,10 +72,10 @@ export function SceneCanvas(): JSX.Element | null {
         }}
         style={{ position: "absolute", inset: 0 }}
       >
-        <SchedulerFrames active={active} />
         {monitor}
         <Suspense fallback={null}>
           <SceneContent />
+          <SchedulerFrames active={active} visible={visible} />
         </Suspense>
       </Canvas>
     </div>

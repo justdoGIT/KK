@@ -3,6 +3,8 @@ import { contactInfo } from "../../content/contact.ts";
 import { useGridScrollReveal } from "../../motion/grid-scroll-reveal.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
 
 type Offer = {
   index: string;
@@ -149,12 +151,17 @@ function OfferCard({ offer, cardRef }: { offer: Offer; cardRef: Ref<HTMLElement>
 
 export function Offers(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const gridRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
-  useGridScrollReveal(gridRef, cardRefs, offerTransform, enhanced);
+  useGridScrollReveal(gridRef, cardRefs, offerTransform, enhanced && !mobile);
+
+  const cards = offers.map((offer, index) => (
+    <OfferCard offer={offer} key={offer.title} cardRef={(el) => { cardRefs.current[index] = el; }} />
+  ));
 
   return (
-    <section className="offers-section" id="offers" aria-label="Services and offers">
+    <section className={`offers-section${mobile ? " mobile-board-section" : ""}`} id="offers" aria-label="Services and offers">
       <div className="section-header offers-header">
         <LusionKineticHeading
           kicker="Client Engagement Models"
@@ -167,17 +174,9 @@ export function Offers(): JSX.Element {
         />
       </div>
 
-      <div ref={gridRef} className={`offers-grid ${enhanced ? "is-scroll-reveal" : ""}`}>
-        {offers.map((offer, idx) => (
-          <OfferCard
-            offer={offer}
-            key={offer.title}
-            cardRef={(el) => {
-              cardRefs.current[idx] = el;
-            }}
-          />
-        ))}
-      </div>
+      {mobile ? <MobileBoardCarousel label="Engagement models">{cards}</MobileBoardCarousel> : (
+        <div ref={gridRef} className={`offers-grid ${enhanced ? "is-scroll-reveal" : ""}`}>{cards}</div>
+      )}
     </section>
   );
 }

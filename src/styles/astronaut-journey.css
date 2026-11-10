@@ -13,7 +13,7 @@
 .aj-stage {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: var(--vh100);
   width: 100%;
   overflow: hidden;
   isolation: isolate;
@@ -69,6 +69,10 @@
   inset: 0;
 }
 
+/* Keep both canvases drawable beneath the opaque poster. Hiding a WebGL
+   canvas can suspend its compositor surface during the loading handoff. */
+.aj-stage[data-scene-ready="false"] .aj-card-edge { z-index: 6; }
+
 .aj-card-edge,
 .aj-bezel {
   position: absolute;
@@ -80,6 +84,7 @@
 }
 
 .aj-card-edge {
+  overflow: hidden;
   border: 1px solid rgba(148, 170, 255, 0.35);
   box-shadow:
     0 30px 90px rgba(0, 0, 0, 0.55),
@@ -97,13 +102,19 @@
 
 .aj-intro {
   position: absolute;
-  top: 11%;
+  /* 11% is too close to the 3.5rem sticky nav on short stages (320–664px);
+     the floor keeps the intro below it, desktop (>=727px tall) stays at 11%. */
+  top: max(5rem, 11%);
   left: 50%;
-  z-index: 3;
+  z-index: 7;
   width: min(92vw, 900px);
   margin-left: calc(min(92vw, 900px) / -2);
   text-align: center;
   pointer-events: none;
+}
+
+@media (min-width: 769px) and (min-height: 650px) {
+  .aj-intro { top: clamp(4rem, 8vh, 7rem); }
 }
 
 .aj-kicker {
@@ -159,11 +170,9 @@
   position: relative;
   width: 100%;
   max-width: 1200px;
-  aspect-ratio: 16 / 9;
-  max-height: 80vh;
-  margin: 0 auto 4rem;
+  margin: 0 auto;
   border-radius: 24px;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 70% 40%, rgba(56, 189, 248, 0.12) 0%, transparent 52%),
     var(--color-bg);
@@ -180,22 +189,22 @@
   opacity: 1;
   visibility: visible;
   background: #03050d;
-  transition: opacity 240ms ease, visibility 0s;
+  object-fit: cover;
   pointer-events: none;
 }
 
 .aj-fallback-art[data-visible="false"] {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 240ms ease, visibility 0s linear 240ms;
 }
 
-.aj-fallback-art .space-backdrop-svg,
-.aj-fallback-astronaut {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.aj-fallback > .aj-fallback-art {
+  position: relative;
+  display: block;
+  width: min(100%, 860px);
+  height: auto;
+  margin: 0 auto;
+  border-radius: 20px;
 }
 
 

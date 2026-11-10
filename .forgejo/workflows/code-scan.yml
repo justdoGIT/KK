@@ -1,12 +1,15 @@
 name: Code scan
-
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
   schedule:
     - cron: "47 4 * * 1"
   workflow_dispatch:
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   semgrep:
     runs-on: ci-standard

@@ -1,6 +1,10 @@
 # Embedded Systems Portfolio
 
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/justdoGIT/KK?utm_source=badge)
+
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
+
+**Live site:** https://justdogit.github.io/KK
 
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 
@@ -12,6 +16,7 @@ npm run dev                    # development server
 npm run build                  # production build
 npm test                       # unit tests
 npm run validate:publication   # publication provenance check
+npm run bench                  # performance benchmarks (CodSpeed)
 node scripts/immersive-kit.mjs validate
 ```
 
@@ -34,7 +39,7 @@ after leaving draft state. The gate rejects moderate-or-higher dependency risk,
 runs the Chromium runtime and smoke suites serially, and retains browser
 artifacts on failure.
 
-The AI reviewer is GitHub-only; Forgejo reviews use the shared workflow. `.github/workflows/ai-review.yml` sends at most 16,000 characters from every
+`.github/workflows/ai-review.yml` sends at most 16,000 characters from every
 non-draft pull-request diff, including forks, to the free
 `nvidia/nemotron-3-ultra-550b-a55b` model (550B-parameter MoE) through
 NVIDIA's free inference-credit API. That diff cap is the largest size this
@@ -59,13 +64,23 @@ repository secret.
 - **Progressive enhancement**: persistent R3F canvases, Lenis smooth scroll,
   guided pinned-section playback, and the magnetic cursor are gated by motion
   preference, viewport proximity, and WebGL capability.
-- **Rendering continuity**: immediate SVG scene covers remain until both
-  journey canvases paint; WebGL context loss restores the cover and remounts
-  the affected canvas.
+- **Reading tour**: automatic playback allows 150 words per minute with
+  reading pauses. Scroll, touch, keyboard input, and text selection pause it;
+  the header control resumes it. Reduced motion keeps the tour opt-in.
+- **Small-screen reading**: phones use swipeable boards with scrollable long
+  content and a reversible metrics document. Service cards share a measured
+  frame on larger screens and return to page flow when they cannot fit.
+  Terminal tabs expose complete transcripts with independent scrolling.
+- **Rendering continuity**: a mission scene poster remains until both journey
+  canvases and Earth textures are ready. Nearby scenes load once and retain
+  their WebGL contexts while rendering pauses outside the viewport.
 - **Shared frame scheduler**: ordered `scroll → read → write → render` phases
   keep DOM and WebGL motion synchronized and stop when no work remains.
-- **Adaptive quality**: Drei performance monitoring reduces DPR from 2 to
-  1.25, then 1 after sustained frame-time pressure.
+- **Adaptive quality**: drawing buffers respect native display density, capped
+  at 2x on desktop and 1.5x on mobile. Performance monitoring lowers DPR in
+  0.25 steps under sustained frame-time pressure, down to 0.75x without
+  changing HTML text resolution. Scene shaders compile
+  asynchronously where supported.
 - **Reusable immersive kit**: `reuse/immersive-kit/catalog.json` describes
   transitive rendering, motion, astronaut, and tooling bundles. The CLI
   validates or exports deterministic bundles with checksums; the included
@@ -79,6 +94,25 @@ node scripts/immersive-kit.mjs list
 node scripts/immersive-kit.mjs export \
   --bundle astronaut-journey,tooling --out ../immersive-export
 ```
+
+## Deployed baseline and preserved work
+
+The application baseline is the successful GitHub Pages deployment of
+`08829666c96e93c53289de234f635cfe0620ded3`. Reconciliation retains that
+application, dependency lockfile, tests, assets, and deployment configuration;
+intermediate implementations must not replace the deployed experience.
+
+Earlier work remains preserved in the merged history, even after its branches
+are removed:
+
+- [66eb787](https://github.com/justdoGIT/KK/commit/66eb7876bc2ef0321f1ce5996fc7b17ea90c799f): Forgejo automation and its full history.
+- [552a0a9](https://github.com/justdoGIT/KK/commit/552a0a9679e67fb01af0b6bcf42a81bfc85fccf2): the original live-site README change.
+- [489e76a](https://github.com/justdoGIT/KK/commit/489e76a4a6847cff5940d4e754acb004ac6ae3cf): validation-only worktree workflows.
+- `archive/vite-upgrade-20261104`: the unapplied Vite dependency upgrade.
+
+The Forgejo and validation histories are consolidated without activating their
+intermediate workflows. The Vite upgrade remains separate in PR #64 for later
+evaluation; it is not claimed as applied to this baseline.
 
 ## Publication identity
 
@@ -94,6 +128,8 @@ The personal agent harness case study uses a strict public identity contract:
   browser-verification decisions.
 - `docs/review-remediation.md`: full-site defect, performance, and browser
   verification record.
+- `docs/performance-review.md`: measured graphics and asset savings, remaining
+  bottlenecks, and a reproducible browser profiling command.
 
 ## License
 

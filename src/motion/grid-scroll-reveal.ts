@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { toggleClass, writeStyle } from "./dom-style.ts";
 import {
   clamp01,
   easeOutCubic,
@@ -14,10 +15,10 @@ const COLUMN_STAGGER = 0.15;
 type RevealTransform = (inv: number, index: number) => string;
 
 function settle(el: HTMLElement): void {
-  el.style.setProperty("--r", "1");
-  el.style.opacity = "";
-  el.style.transform = "";
-  el.classList.add("is-open");
+  writeStyle(el, "--r", "1");
+  writeStyle(el, "opacity", "");
+  writeStyle(el, "transform", "");
+  toggleClass(el, "is-open", true);
 }
 
 /**
@@ -49,7 +50,7 @@ export function useGridScrollReveal(
     const ro = new ResizeObserver(measure);
     ro.observe(grid);
     return () => ro.disconnect();
-  }, [gridRef]);
+  }, [gridRef, enabled]);
 
   useScrollFrame(
     () => {
@@ -83,10 +84,10 @@ export function useGridScrollReveal(
           return;
         }
         const inv = 1 - t;
-        el.classList.remove("is-open");
-        el.style.setProperty("--r", t.toFixed(3));
-        el.style.opacity = t.toFixed(3);
-        el.style.transform = transform(inv, i);
+        toggleClass(el, "is-open", false);
+        writeStyle(el, "--r", t.toFixed(3));
+        writeStyle(el, "opacity", t.toFixed(3));
+        writeStyle(el, "transform", transform(inv, i));
       });
       onFrame?.(frameRef.current.opened, frameRef.current.mean);
     },

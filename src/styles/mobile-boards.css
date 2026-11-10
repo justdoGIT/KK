@@ -1,0 +1,168 @@
+@media (max-width: 767px) {
+  /* Clip offscreen artwork without creating a scroll container for sticky sections. */
+  .app-shell { overflow-x: clip; }
+
+  #main .mobile-board-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100svh - 3.5rem);
+    min-height: 0;
+    padding: 1rem 1rem .5rem;
+    margin: 2rem auto;
+    scroll-margin-top: 3.5rem;
+  }
+
+  #main .reveal:has(.mobile-board-section) { transform: none; }
+
+  .mobile-board-stage {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .mobile-board-section .section-header,
+  .mobile-board-section .board-lifecycle-header {
+    flex: none;
+    padding: 0;
+    margin: 0 0 .85rem;
+    text-align: left;
+  }
+
+  .mobile-board-section .lusion-kinetic-heading-wrap { margin: 0; }
+  .mobile-board-section .lusion-kinetic-kicker { margin-bottom: .4rem; font-size: .6rem; }
+  .mobile-board-section .lusion-kinetic-title { font-size: clamp(1.3rem, 6vw, 1.85rem); line-height: 1.12; }
+  .mobile-board-section .lusion-kinetic-subtitle { display: none; }
+
+  .mobile-board-carousel { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+  .mobile-board-viewport {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: .75rem;
+    padding: 0 1.25rem .25rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .mobile-board-viewport::-webkit-scrollbar { display: none; }
+  .mobile-board-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    border: 1px solid #263b50;
+    border-radius: 16px;
+    background: radial-gradient(circle at 90% 5%, #13304480, transparent 60%), #0c111d;
+    scrollbar-width: thin;
+    scrollbar-color: #3b607a transparent;
+  }
+  .mobile-board-slide > * { min-height: 100%; }
+  .mobile-board-controls { display: flex; align-items: center; justify-content: space-between; flex: none; gap: .75rem; padding-top: .4rem; }
+  .mobile-board-controls button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #294159;
+    border-radius: 50%;
+    background: #101b2a;
+    color: #7dd3fc;
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+  .mobile-board-controls button:disabled { opacity: .3; cursor: default; }
+  .mobile-board-pagination { display: flex; align-items: center; gap: .5rem; }
+  .mobile-board-status { display: flex; flex-direction: column; gap: .4rem; }
+  .mobile-board-position { display: flex; align-items: center; gap: .65rem; }
+  .mobile-board-progress { height: 2px; overflow: hidden; border-radius: 2px; background: #294159; }
+  .mobile-board-progress span { display: block; height: 100%; background: #7dd3fc; transform: scaleX(0); transform-origin: left; }
+  .mobile-board-dots { display: flex; gap: .35rem; }
+  .mobile-board-dots span { width: 5px; height: 5px; border-radius: 50%; background: #3b4b61; }
+  .mobile-board-dots .is-active { background: #7dd3fc; }
+  .mobile-board-count { color: #94a3b8; font: .65rem var(--font-mono); white-space: nowrap; }
+  .mobile-board-controls button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+  .mobile-board-slide:focus-visible,
+  .mobile-board-viewport:focus-visible { outline: 2px solid #7dd3fc; outline-offset: -3px; }
+
+  .mobile-board-slide .service-card-deck-item,
+  .mobile-board-slide .offer-card,
+  .mobile-board-slide .process-step-card,
+  .mobile-board-slide .system-showcase-card,
+  .mobile-board-slide .lusion-card-front,
+  .mobile-board-slide .skill-category-card,
+  .mobile-board-slide .board-lifecycle-copy {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    min-height: 100%;
+    margin: 0;
+    padding: 1.1rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+  }
+  .mobile-board-slide .service-card-topbar { gap: .5rem; margin-bottom: 1rem; }
+  .mobile-board-slide .service-card-badge-group { flex-wrap: wrap; gap: .45rem; }
+  .mobile-board-slide .service-card-watermark { font-size: 1.6rem; }
+  .mobile-board-slide .service-card-title { font-size: 1.4rem; }
+  .mobile-board-slide .service-card-desc { font-size: .85rem; }
+  .mobile-board-slide .service-capabilities-list,
+  .mobile-board-slide .service-card-matrix { grid-template-columns: minmax(0, 1fr); }
+  .mobile-board-slide .service-card-matrix { padding: .8rem; }
+  .mobile-board-slide .service-card-capabilities,
+  .mobile-board-slide .service-card-footer { margin-top: 1rem; padding-top: 1rem; }
+  .mobile-board-slide .service-capabilities-list li { font-size: .8rem; }
+  .mobile-board-slide .service-matrix-chip { font-size: .65rem; }
+
+  .mobile-board-slide .lusion-card-front { display: flex; flex-direction: column; }
+  .mobile-board-slide .card-front-scroll-body { max-height: none; overflow: visible; }
+  .mobile-board-slide .system-card-content { padding: 0; }
+  .mobile-board-slide .showcase-topbar { flex-wrap: wrap; gap: .5rem; }
+  .mobile-board-slide .showcase-title { font-size: 1.35rem; }
+  .mobile-board-slide .offer-card h3,
+  .mobile-board-slide .process-step-card h3 { font-size: 1.35rem; }
+  .mobile-board-slide .offer-topline { flex-wrap: wrap; gap: .5rem; }
+  .mobile-board-slide .offer-badges-group { flex-wrap: wrap; }
+  .mobile-board-slide .offer-link-btn { white-space: normal; }
+  .mobile-board-section .board-lifecycle-note { margin-bottom: 0; }
+  .mobile-board-scene { position: relative; flex: none; height: clamp(90px, 20svh, 160px); }
+  .mobile-board-slide .board-lifecycle-copy h3 { font-size: 1.4rem; }
+
+  .skill-domains-section .mobile-board-slide { overflow-x: hidden; overflow-y: auto; }
+  .skill-domains-section .skill-category-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    transform-style: flat;
+    will-change: auto;
+  }
+  .skill-domains-section .skill-cat-header,
+  .skill-domains-section .skill-chips-wrap { flex: none; }
+  .skill-domains-section .skill-cat-illustration-wrap {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+  }
+  .skill-domains-section .cat-illustration-svg { max-height: none; }
+
+  @media (max-height: 500px) {
+    #main .mobile-board-section { padding-top: .5rem; }
+    .mobile-board-section .lusion-kinetic-title { font-size: 1.2rem; }
+    .mobile-board-section .lusion-kinetic-kicker,
+    .mobile-board-section .board-lifecycle-note { display: none; }
+    .mobile-board-scene { height: 75px; }
+  }
+}

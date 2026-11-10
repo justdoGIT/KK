@@ -1,0 +1,40 @@
+name: Deployment bundle
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ci-standard
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.forgejo/actions/setup-node
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: Publication validation
+        run: npm run validate:publication
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Smoke test deployment bundle
+        run: npx playwright test e2e/smoke.spec.ts --workers=1
+      # GitHub Pages publishes the live website. Forgejo retains the same
+      # validated static output for a future independent hosting target.
+      - name: Publish deployment artifact
+        uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: deployment-bundle
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90

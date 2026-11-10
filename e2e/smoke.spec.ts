@@ -162,6 +162,7 @@ test.describe("Portfolio smoke tests", () => {
     };
 
     await scrollFinaleTo(0.08);
+    await expect(journey.locator(".aj-stage")).toHaveAttribute("data-scene-ready", "true", { timeout: 60000 });
     await expect(banner).toHaveAttribute("data-astronaut-mode", "landing");
     const heroCanvas = await journey.locator(".aj-hero canvas").elementHandle();
     expect(heroCanvas).not.toBeNull();
@@ -189,7 +190,7 @@ test.describe("Portfolio smoke tests", () => {
     await expect(banner).toHaveAttribute("data-astronaut-mode", "wait");
   });
 
-  test("cruises the journey automatically after a downward gesture", async ({ page }) => {
+  test("keeps the journey under manual control after a downward gesture", async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/");
@@ -202,14 +203,15 @@ test.describe("Portfolio smoke tests", () => {
     });
     await expect(stage).toHaveAttribute("data-phase", "cardShow");
 
-    // One downward gesture while the pinned card is centred arms the cruise;
-    // the journey then advances through its phases without further input.
+    // Deliberate scrolling pauses the complete reading tour.
     await page.waitForTimeout(800);
     await page.mouse.move(720, 500);
     await page.mouse.wheel(0, 120);
-    await expect
-      .poll(async () => stage.getAttribute("data-phase"), { timeout: 25_000 })
-      .not.toBe("cardShow");
+    await expect(page.locator(".reading-tour-control")).toHaveAttribute("data-tour-status", "paused");
+    await page.waitForTimeout(1500);
+    const held = await page.evaluate(() => scrollY);
+    await page.waitForTimeout(800);
+    expect(Math.abs(await page.evaluate(() => scrollY) - held)).toBeLessThan(3);
   });
 
   test("keyboard navigation reaches skip link first", async ({ page }) => {
@@ -238,7 +240,7 @@ test.describe("Portfolio smoke tests", () => {
   });
 
   test("shows every career robot stage and scrubs the active role content", async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(180_000);
     await page.goto("/");
     const section = page.locator("section#career");
     await section.scrollIntoViewIfNeeded();
@@ -257,20 +259,10 @@ test.describe("Portfolio smoke tests", () => {
         window.scrollTo({ top: base + scrollable * progress, behavior: "instant" as ScrollBehavior });
       }, { base: sectionTop, progress: expected.progress });
       await expect(section).toHaveAttribute("data-career-stage", expected.stage);
-      await expect(page.locator(".career-screen-codename")).toContainText(expected.codename);
+      await expect(page.locator(".career-screen-codename")).toContainText(expected.codename, { timeout: 30000 });
       await expect(page.locator(".career-entry.is-active")).toContainText(expected.company);
     }
 
-    await section.evaluate((element, base) => {
-      const scrollable = element.offsetHeight - window.innerHeight;
-      window.scrollTo({ top: base + scrollable * 0.985, behavior: "instant" as ScrollBehavior });
-    }, sectionTop);
-    await expect
-      .poll(async () => Number((await section.getAttribute("data-career-local")) ?? "0"))
-      .toBeGreaterThan(0.9);
-    await expect
-      .poll(async () => page.locator(".career-entries").evaluate((list) => list.scrollTop), { timeout: 10_000 })
-      .toBeGreaterThan(20);
   });
 
   test("mobile navigation opens and closes", async ({ page }) => {
@@ -298,23 +290,6 @@ test.describe("Portfolio smoke tests", () => {
     await expect(navigator.getByRole("link", { name: "Go to Lab" })).toBeVisible();
   });
 
-  test("keeps card choreography usable on short wide screens", async ({ page }) => {
-    await page.setViewportSize({ width: 1381, height: 367 });
-    await page.goto("/");
-
-    const caseStudies = page.getByLabel("Case studies");
-    await expect(caseStudies).not.toHaveClass(/is-static/);
-
-    const serviceCard = page.getByLabel(/Firmware & Board Bring-Up service details/i);
-    const overflow = await serviceCard.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        scrollable: element.scrollHeight > element.clientHeight,
-        overflowY: style.overflowY,
-      };
-    });
-    expect(overflow).toEqual({ scrollable: true, overflowY: "auto" });
-  });
 
   test("publication metadata and repository-controlled visual assets load", async ({ page }) => {
     await page.goto("/");

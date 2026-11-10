@@ -2,6 +2,8 @@ import { useRef, type JSX } from "react";
 import { useGridScrollReveal } from "../../motion/grid-scroll-reveal.ts";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { LusionKineticHeading } from "../ui/LusionKineticHeading.tsx";
+import { useMediaQuery } from "../../motion/use-media-query.ts";
+import { MOBILE_BOARD_QUERY, MobileBoardCarousel } from "../ui/MobileBoardCarousel.tsx";
 type ProcessStep = {
   number: string;
   badge: string;
@@ -61,12 +63,13 @@ function processTransform(inv: number): string {
 
 export function ProcessTimeline(): JSX.Element {
   const enhanced = useMotionMode() === "enhanced";
+  const mobile = useMediaQuery(MOBILE_BOARD_QUERY);
   const trackRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const traceRef = useRef<HTMLSpanElement>(null);
   const nodeRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
-  useGridScrollReveal(trackRef, cardRefs, processTransform, enhanced, (_opened, mean) => {
+  useGridScrollReveal(trackRef, cardRefs, processTransform, enhanced && !mobile, (_opened, mean) => {
     if (traceRef.current) {
       traceRef.current.style.transform = `scaleX(${mean.toFixed(4)})`;
     }
@@ -75,9 +78,25 @@ export function ProcessTimeline(): JSX.Element {
     });
   }, 0.2);
 
+  const cards = steps.map((step, index) => (
+    <article key={step.number} ref={(el) => { cardRefs.current[index] = el; }} className="process-step-card">
+      <div className="process-step-topline">
+        <span className="process-step-number">{step.number}</span>
+        <span className="process-step-badge">{step.badge}</span>
+      </div>
+      <p className="process-step-label">{step.label}</p>
+      <h3>{step.title}</h3>
+      <p className="process-step-detail">{step.detail}</p>
+      <div className="process-benefit-box">
+        <span className="benefit-tag">CLIENT IMPACT:</span>
+        <p className="benefit-desc">{step.clientBenefit}</p>
+      </div>
+    </article>
+  ));
+
   return (
     <section
-      className="process-section"
+      className={`process-section${mobile ? " mobile-board-section" : ""}`}
       id="approach"
       aria-label="Working approach"
       data-scroll-slow="0.6"
@@ -92,7 +111,7 @@ export function ProcessTimeline(): JSX.Element {
       </div>
 
       {/* Circuit trace: fills with scroll; each node lights as its step opens */}
-      <div className="process-circuit" aria-hidden="true">
+      {!mobile && <div className="process-circuit" aria-hidden="true">
         <span ref={traceRef} className="process-circuit-fill" />
         {steps.map((step, idx) => (
           <span
@@ -104,36 +123,14 @@ export function ProcessTimeline(): JSX.Element {
             style={{ left: `${(idx + 0.5) * (100 / steps.length)}%` }}
           />
         ))}
-      </div>
+      </div>}
 
-      <div
+      {mobile ? <MobileBoardCarousel label="Engineering approach">{cards}</MobileBoardCarousel> : <div
         ref={trackRef}
         className={`process-track ${enhanced ? "is-scroll-reveal" : ""}`}
       >
-        {steps.map((step, idx) => (
-          <article
-            key={step.number}
-            ref={(el) => {
-              cardRefs.current[idx] = el;
-            }}
-            className="process-step-card"
-          >
-            <div className="process-step-topline">
-              <span className="process-step-number">{step.number}</span>
-              <span className="process-step-badge">{step.badge}</span>
-            </div>
-
-            <p className="process-step-label">{step.label}</p>
-            <h3>{step.title}</h3>
-            <p className="process-step-detail">{step.detail}</p>
-
-            <div className="process-benefit-box">
-              <span className="benefit-tag">CLIENT IMPACT:</span>
-              <p className="benefit-desc">{step.clientBenefit}</p>
-            </div>
-          </article>
-        ))}
-      </div>
+        {cards}
+      </div>}
     </section>
   );
 }

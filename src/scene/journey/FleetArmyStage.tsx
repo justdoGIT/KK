@@ -43,7 +43,7 @@ export function FleetArmyStage({ active }: FleetArmyStageProps): JSX.Element {
     groupRef.current.scale.lerp(scaleTarget.set(1, 1, 1), Math.min(1, delta * 4.0));
 
     if (!constellationRef.current) return;
-    const time = state.clock.getElapsedTime();
+    const time = state.clock.elapsedTime;
     constellationRef.current.rotation.y = time * 0.15;
     constellationRef.current.rotation.x = Math.sin(time * 0.08) * 0.06;
   });

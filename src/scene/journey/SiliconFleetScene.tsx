@@ -23,7 +23,9 @@ export function SiliconFleetScene({ currentStage }: SiliconFleetSceneProps): JSX
       <ColdSiliconBringupStage active={currentStage === 0} />
 
       {/* 1–5: flash → bootloader → kernel → userspace → applications stack up. */}
-      {stacking && <BoardStackStage built={currentStage} />}
+      <group visible={stacking}>
+        <BoardStackStage built={currentStage} active={stacking} />
+      </group>
 
       {/* 6: the finished device multiplied into a monitored fleet (scaled to fit the half-width canvas). */}
       <group scale={0.62}>
