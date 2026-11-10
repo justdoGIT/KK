@@ -19,9 +19,18 @@ jobs:
       - name: Review dependency vulnerabilities
         run: npm audit --audit-level=moderate
   browser-review:
+    name: browser-review (${{ matrix.suite }})
     if: github.event.pull_request.draft == false
     runs-on: ci-standard
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: runtime-and-cards
+            files: e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts
+          - suite: phone-and-short-screen
+            files: e2e/mobile-layout.spec.ts
     steps:
       - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -31,15 +40,13 @@ jobs:
         run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Review runtime and card tour behavior
-        run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1 --reporter=line,html --max-failures=1
-      - name: Review phone and short-screen layout
-        run: npx playwright test e2e/mobile-layout.spec.ts --workers=1 --reporter=line,html --max-failures=1
+      - name: Review ${{ matrix.suite }}
+        run: npx playwright test ${{ matrix.files }} --workers=1 --reporter=line,html --max-failures=1
       - name: Upload browser reports
         if: always()
         uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
         with:
-          name: pr-browser-reports
+          name: pr-browser-${{ matrix.suite }}
           path: |
             playwright-report/
             test-results/

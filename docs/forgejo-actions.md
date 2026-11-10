@@ -35,6 +35,14 @@ short-screen resize does not retain an obsolete animated layout while React
 processes ongoing scroll updates. They read live query snapshots on resize
 and on the following frame, including when a retained query's notification
 is delayed.
+The desktop deck's fit check uses live viewport width and height, with
+visual-viewport and document-layout resize notifications. Chromium can retain
+the old desktop media-query result even after its layout viewport is 600px
+tall; that stale result must not keep the flying deck active on a short screen.
+The resize assertion allows 20 seconds under software-rendered CI. Recorded
+viewport events showed the correct static layout arriving near the previous
+five-second deadline. Local assertions still use five seconds, and the same
+settled-card, face visibility, and accessibility checks run after the transition.
 The existing Forgejo Semgrep workflow is also restored for pull requests,
 main pushes, and the weekly scan. The old `code-review.yml` is replaced by
 the pinned `ai-review.yml` so each PR gets one automated code review.
@@ -57,19 +65,30 @@ Every portable GitHub job has a Forgejo counterpart:
 | `deploy.yml / build` | `deploy.yml / build` |
 | `deploy.yml / deploy` | GitHub Pages is a GitHub service; Forgejo publishes the validated deployment bundle as an artifact |
 
-Forgejo jobs use `ci-standard`. The pinned AI review action retrieves the API
+Forgejo jobs use `ci-standard`. The pinned AI review script retrieves the API
 diff without executing PR source and uses the automatic run token. External
-LLM review uses the existing Gemini secret when configured; the trusted action
+LLM review uses the existing Gemini secret when configured; the trusted script
 has a rules-based fallback. Fork PRs do not receive reviewer secrets.
-The private review and scanning templates use the runner's registered instance
-URL until that registration is migrated to HTTPS. Changing only their hostname caused a
-verified `could not read Username` clone failure: the runner did not supply
-its private-action authentication for the new host. Both templates remain
-pinned to immutable commits; changing repository visibility or embedding a
-token is not required.
+The reviewer downloads its first-party script from the Forgejo HTTPS API at
+an immutable revision and verifies an independently recorded SHA-256 before
+executing it. Its automatic run token stays in an HTTP header, and redirects
+are rejected. No PR code is checked out or executed by this job. This avoids
+the runner's private-action host restriction: changing a remote action's URL
+alone caused a verified `could not read Username` clone failure while runners
+were registered at HTTP addresses. Semgrep now runs directly in this repository's
+workflow with the same pinned scanner and retained SARIF output. Both jobs
+work without changing registrations or repository visibility.
+The empty setup-node token is intentional: Node downloads are public, and
+the Forgejo token must not be sent to an external GitHub download service.
 GitHub CI and benchmarks have explicit 20-minute limits. Deployment allows
-20 minutes for its build and 10 minutes for publishing. The existing browser
-and dependency review limits remain 20 and 10 minutes respectively.
+20 minutes for its build and 10 minutes for publishing. GitHub browser and
+dependency review allow 20 and 10 minutes respectively; Forgejo allows
+30 and 15 minutes on its slower self-hosted runner.
+Forgejo runs runtime/card and phone/short-screen checks as separate matrix
+jobs with separate reports. The previous combined job spent 18 minutes on
+runtime checks and 7 minutes on mobile checks, then reached its 30-minute
+limit with setup and report uploads included. Each suite now has its own
+30-minute budget, and one failure does not cancel the other suite.
 
 GitHub jobs explicitly require `github.server_url == 'https://github.com'`.
 The live website continues to deploy through GitHub Pages when changes merge
@@ -88,7 +107,10 @@ and accepts compiled-in public CA roots. A self-signed certificate for
 The activation script in `ops/forgejo/activate-https.sh` requires an issued
 certificate and administrator access on Lenovo. It binds the proxy to the
 LAN address, preserves port 3000 for existing runner connections, and updates
-Forgejo's canonical URL. Certificate issuance uses DNS-01; manual DNS
+Forgejo's canonical URL in both `app.ini` and the container environment.
+The environment takes precedence on startup; leaving its old HTTP value
+restored the wrong URL and caused Forgejo's canonical-URL warning.
+Certificate issuance uses DNS-01; manual DNS
 validation also requires a manual renewal until a DNS API hook is configured.
 
 The prepared certificate client is installed under

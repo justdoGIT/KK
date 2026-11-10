@@ -6,6 +6,8 @@ runs:
     - uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version-file: .nvmrc
+        # Node releases are public. Never send the Forgejo run token to the
+        # external GitHub download service; this disables that default token.
         token: ""
     - name: Install stable npm
       shell: bash

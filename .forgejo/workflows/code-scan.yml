@@ -13,6 +13,54 @@ concurrency:
 jobs:
   semgrep:
     runs-on: ci-standard
-    # Private template authentication must match the registered runner instance.
-    # Migrate that registration before switching this reference to HTTPS.
-    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@83ac654c9b72024842eb7ea1163a3c403acf90d4
+    timeout-minutes: 60
+    # Keep the scan portable without fetching a private reusable workflow over
+    # the runner's old HTTP registration URL. Preserve its pinned scanner.
+    steps:
+      - name: Checkout pull request source without persisted credentials
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Semgrep
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends python3-venv
+          python3 -m venv "$RUNNER_TEMP/semgrep-env"
+          "$RUNNER_TEMP/semgrep-env/bin/pip" install --disable-pip-version-check semgrep==1.182.0
+          echo "$RUNNER_TEMP/semgrep-env/bin" >> "$GITHUB_PATH"
+      - name: Scan source and write SARIF
+        run: semgrep scan --config p/default --metrics=off --sarif --output "$RUNNER_TEMP/semgrep.sarif" .
+      - name: Summarize findings
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          sarif = Path(os.environ["RUNNER_TEMP"]) / "semgrep.sarif"
+          if sarif.is_file():
+              findings = sum(len(run.get("results", [])) for run in json.loads(sarif.read_text()).get("runs", []))
+              text = (
+                  "## Semgrep source scan\n\n"
+                  f"Findings: **{findings}**\n\n"
+                  "SARIF is attached as a workflow artifact. Findings do not fail "
+                  "the job; scanner errors do.\n"
+              )
+          else:
+              text = "## Semgrep source scan\n\nNo SARIF output was produced; inspect the failed scanner step.\n"
+          summary = os.environ.get("FORGEJO_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as output:
+                  output.write(text)
+          else:
+              print(text)
+          PY
+      - name: Retain SARIF results
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: semgrep-${{ forgejo.run_number }}
+          path: ${{ runner.temp }}/semgrep.sarif
+          if-no-files-found: ignore
+          retention-days: 90

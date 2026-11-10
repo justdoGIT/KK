@@ -82,6 +82,20 @@ for key, value in [('ROOT_URL', 'https://forgejo.kepr.dev/'), ('DOMAIN', 'forgej
     pattern = r'(?m)^\s*' + key + r'\s*=.*$'
     body = re.sub(pattern, key + ' = ' + value, body) if re.search(pattern, body) else body + key + ' = ' + value + '\n'
 path.write_text(text[:section.start(1)] + body + text[section.end(1):])
+
+# The container environment takes precedence over app.ini on every start.
+# Keep its canonical URL in sync, or recreating it restores the HTTP URL.
+compose = Path('/home/kk/.config/forgejo/compose.yaml')
+if compose.is_file():
+    config = compose.read_text()
+    updated, count = re.subn(
+        r'(?m)^(\s*FORGEJO__server__ROOT_URL\s*:\s*).*$',
+        lambda match: match.group(1) + 'https://forgejo.kepr.dev/',
+        config,
+    )
+    if count != 1:
+        raise SystemExit('Expected one container ROOT_URL override; review compose.yaml.')
+    compose.write_text(updated)
 PY
 sv restart /var/service/forgejo-local
 curl --fail --silent --show-error --retry 10 --retry-connrefused \
