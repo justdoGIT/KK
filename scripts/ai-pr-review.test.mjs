@@ -48,6 +48,33 @@ describe("AI pull-request review boundaries", () => {
     expect(comment).not.toContain("No actionable defects found");
   });
 
+  it.each(["```markdown", "```md", "```", "~~~markdown"])(
+    "renders a review enclosed by %s as Markdown",
+    (opening) => {
+      const closing = opening.startsWith("~") ? "~~~" : "```";
+      const comment = formatReviewComment(`${opening}\r\n## Reliability\r\n- Fix the handler.\r\n${closing}`);
+      expect(comment).toContain("\n\n## Reliability\r\n- Fix the handler.\n\n---");
+      expect(comment).not.toContain(opening);
+    },
+  );
+
+  it("preserves code examples inside an enclosing Markdown fence", () => {
+    const example = '```js\nthrow new Error("Failure");\n```';
+    const comment = formatReviewComment(`\`\`\`\`markdown\n## Correctness\n${example}\n\`\`\`\``);
+    expect(comment).toContain(example);
+    expect(comment).not.toContain("````markdown");
+  });
+
+  it("retains a code-only response and an unclosed Markdown fence", () => {
+    const code = '```js\nthrow new Error("Failure");\n```';
+    expect(formatReviewComment(code)).toContain(code);
+    expect(formatReviewComment("```markdown\n## Incomplete")).toContain("```markdown\n## Incomplete");
+  });
+
+  it("normalizes a fenced clean review", () => {
+    expect(formatReviewComment("```markdown\nNo actionable defects found.\n```")).toContain("\n\nNo issues found\n\n");
+  });
+
   it("keeps multibyte output within GitHub's body limit", () => {
     const comment = formatReviewComment("🧪".repeat(MAX_COMMENT_BYTES));
 
@@ -113,6 +140,17 @@ describe("AI review model chain", () => {
       model: second.id,
     });
     expect(run.asked()).toEqual([first.id, first.id, second.id]);
+  });
+
+  it("instructs every provider to verify findings against the resulting code", async () => {
+    const run = scripted({ [first.id]: [answer("No issues found")] });
+    await run.result();
+    const [system, user] = run.requests[0].body.messages;
+    expect(system.content).toContain("lines prefixed '-' are removed old code");
+    expect(system.content).toContain("A removed problem that the added code fixes is not a finding");
+    expect(system.content).toContain("quote the relevant added or unchanged code");
+    expect(user.content).toContain("Review the resulting code, not the removed '-' lines");
+    expect(user.content).toContain("a short quotation of the relevant resulting code");
   });
 
   it("retries a transient failure on the same model before moving on", async () => {
