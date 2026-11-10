@@ -18,7 +18,8 @@ jobs:
       - uses: ./.forgejo/actions/setup-node
       - name: Review dependency vulnerabilities
         run: npm audit --audit-level=moderate
-  browser-review:
+  browser-runtime:
+    name: browser-review (runtime-and-cards)
     if: github.event.pull_request.draft == false
     runs-on: ci-standard
     timeout-minutes: 30
@@ -31,15 +32,42 @@ jobs:
         run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Review runtime and card tour behavior
+      - name: Review runtime and cards
         run: npx playwright test e2e/runtime.spec.ts e2e/smoke.spec.ts e2e/card-tour-motion.spec.ts --workers=1 --reporter=line,html --max-failures=1
-      - name: Review phone and short-screen layout
+      - name: Upload browser reports
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pr-browser-runtime-and-cards
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+  browser-layout:
+    name: browser-review (phone-and-short-screen)
+    # Forgejo schedules expanded matrix jobs independently of max-parallel.
+    # A dependency prevents two software WebGL suites from competing for CPU.
+    needs: browser-runtime
+    if: always() && !cancelled() && github.event.pull_request.draft == false
+    runs-on: ci-standard
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.forgejo/actions/setup-node
+      - name: Build production site
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Review phone and short-screen layouts
         run: npx playwright test e2e/mobile-layout.spec.ts --workers=1 --reporter=line,html --max-failures=1
       - name: Upload browser reports
         if: always()
         uses: https://data.forgejo.org/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
         with:
-          name: pr-browser-reports
+          name: pr-browser-phone-and-short-screen
           path: |
             playwright-report/
             test-results/

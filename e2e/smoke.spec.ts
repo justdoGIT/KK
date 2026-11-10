@@ -145,9 +145,12 @@ test.describe("Portfolio smoke tests", () => {
   });
 
   test("keeps one astronaut through landing, greeting, and playful banner finale", async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(process.env.CI ? 180_000 : 90_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
+    await expect(page.locator(".reading-tour-control")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".reading-tour-control")).toHaveAttribute("data-tour-status", "paused");
     const journey = page.locator(".aj-section");
     const banner = journey.locator(".contact-banner");
     const heading = journey.locator(".contact-journey-heading");
@@ -159,10 +162,15 @@ test.describe("Portfolio smoke tests", () => {
           behavior: "instant",
         });
       }, progress);
+      // Wait for the shared scroll clock to consume the requested position.
+      // Software WebGL can postpone that frame beyond a default assertion.
+      await expect(journey.locator(".aj-stage")).toHaveAttribute("data-scene-ready", "true", { timeout: 60000 });
+      await expect(banner).toHaveAttribute("data-finale-progress", progress.toFixed(3), {
+        timeout: process.env.CI ? 20_000 : 5_000,
+      });
     };
 
     await scrollFinaleTo(0.08);
-    await expect(journey.locator(".aj-stage")).toHaveAttribute("data-scene-ready", "true", { timeout: 60000 });
     await expect(banner).toHaveAttribute("data-astronaut-mode", "landing");
     const heroCanvas = await journey.locator(".aj-hero canvas").elementHandle();
     expect(heroCanvas).not.toBeNull();
@@ -184,7 +192,11 @@ test.describe("Portfolio smoke tests", () => {
     expect(card!.y + card!.height).toBeLessThanOrEqual(900);
     const start = banner.getByRole("link", { name: /Start a Conversation/ });
     await start.hover();
-    await expect(banner).toHaveAttribute("data-astronaut-mode", "dance");
+    // CTA entry intentionally begins with 2.4 seconds reclining before dance.
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "lie");
+    await expect(banner).toHaveAttribute("data-astronaut-mode", "dance", {
+      timeout: process.env.CI ? 20_000 : 5_000,
+    });
     const github = banner.getByRole("link", { name: /View GitHub Repositories/ });
     await github.dispatchEvent("pointerdown");
     await expect(banner).toHaveAttribute("data-astronaut-mode", "wait");
