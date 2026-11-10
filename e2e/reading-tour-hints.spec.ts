@@ -27,6 +27,7 @@ for (const touch of [false, true]) {
       const bottom = await page.locator(".assurance-item").last().evaluate(element => element.getBoundingClientRect().bottom);
       expect(bottom).toBeLessThanOrEqual(1000);
       expect(errors).toEqual([]);
+      await page.screenshot({ path: test.info().outputPath(`collaboration-${touch ? "touch" : "hover"}.png`) });
     } finally {
       await context.close();
     }

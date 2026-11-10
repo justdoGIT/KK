@@ -1,12 +1,22 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { onFrame } from "../motion/frame.ts";
 
 /** Place inside the scene's Suspense boundary, after its assets and lights. */
 export function SchedulerFrames({ active, visible }: { active: boolean; visible?: RefObject<boolean> }): null {
-  const { advance, gl, scene, camera } = useThree();
+  const { advance, gl, scene, camera, size, viewport } = useThree();
   const [prepared, setPrepared] = useState(false);
   const elapsed = useRef(0);
+  const bufferSize = useRef({ width: size.width, height: size.height, dpr: viewport.dpr });
+
+  useLayoutEffect(() => {
+    const previous = bufferSize.current;
+    const resized = previous.width !== size.width || previous.height !== size.height || previous.dpr !== viewport.dpr;
+    bufferSize.current = { width: size.width, height: size.height, dpr: viewport.dpr };
+    // Resizing a WebGL buffer clears its last frame. Redraw before the browser
+    // paints the new size, including adaptive-resolution changes during a story.
+    if (resized && prepared && active && (!visible || visible.current)) advance(elapsed.current);
+  }, [size.width, size.height, viewport.dpr, prepared, active, visible, advance]);
 
   useEffect(() => {
     let alive = true;

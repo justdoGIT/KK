@@ -4,7 +4,7 @@ import type { FrameCallback } from "../motion/frame.ts";
 import { getReadingTour, updateReadingTour } from "../motion/reading-tour-state.ts";
 import { useReadingTourDriver } from "../motion/use-reading-tour.ts";
 
-const clock = vi.hoisted(() => ({ callbacks: new Set<FrameCallback>() }));
+const clock = vi.hoisted(() => ({ callbacks: new Set<FrameCallback>(), time: 0 }));
 vi.mock("../motion/frame.ts", () => ({ onFrame: (_phase: string, callback: FrameCallback) => {
   clock.callbacks.add(callback);
   return () => { clock.callbacks.delete(callback); };
@@ -21,13 +21,28 @@ vi.mock("../motion/tour-plan.ts", () => ({ buildTourPlan: () => [
 function Driver() { useReadingTourDriver(); return null; }
 const status = (value: "playing" | "paused") => act(() => updateReadingTour({ status: value }));
 const run = (seconds: number) => act(() => {
-  for (let t = 0; t < seconds; t += 0.05) for (const callback of clock.callbacks) callback(t * 1000, 0.05);
+  for (let t = 0; t < seconds; t += 0.05) {
+    clock.time += 50;
+    for (const callback of clock.callbacks) callback(clock.time, 0.05);
+  }
 });
 
 beforeEach(() => {
+  clock.time = 0;
   vi.stubGlobal("scrollY", 0);
   Object.defineProperty(document.documentElement, "scrollHeight", { configurable: true, value: 10000 });
   updateReadingTour({ status: "ready", step: "hero" });
+});
+
+it("keeps the reading pace when rendering falls below ten frames per second", () => {
+  render(<Driver />);
+  status("playing");
+  act(() => {
+    for (let time = 0; time <= 12000; time += 250) {
+      for (const callback of clock.callbacks) callback(time, 0.1);
+    }
+  });
+  expect(getReadingTour().step).toBe("next");
 });
 
 it("continues the remaining reading time when Resume is clicked", () => {

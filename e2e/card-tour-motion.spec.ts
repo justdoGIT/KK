@@ -45,6 +45,17 @@ test("finishes fanning before capturing wheel input and retains card content on 
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(before + 100);
   expect(await body.evaluate(el => el.scrollTop)).toBe(0);
 
+  // Keep the pointer over a nearly open card until the entire fan lands.
+  // A card must not consume the last page-wheel movement of the animation.
+  await fanPosition(page, 0.94);
+  await expect(stage).not.toHaveClass(/is-settled/);
+  const openingBox = (await body.boundingBox())!;
+  await page.mouse.move(openingBox.x + openingBox.width / 2, openingBox.y + openingBox.height / 2);
+  await page.mouse.wheel(0, 240);
+  await expect(stage).toHaveClass(/is-settled/, { timeout: 20_000 });
+  await expect(stage.locator(".lusion-card-isolated-cell--settled")).toHaveCount(4);
+  expect(await body.evaluate(el => el.scrollTop)).toBe(0);
+
   // Fan Out must settle all four at its exact rounded target.
   await fanPosition(page, 0);
   await page.getByRole("button", { name: /Fan Out/ }).click();
@@ -113,7 +124,40 @@ test("Resume reads landed cards in place and preserves manually scrolled text", 
   await page.waitForTimeout(1400);
   expect(Math.abs(await page.evaluate(() => scrollY) - y)).toBeLessThan(2);
   expect(await body.evaluate(el => el.scrollTop)).toBe(offset);
+  await tour.click();
+  await expect(tour).toHaveAttribute("data-tour-status", "paused");
   await page.screenshot({ path: test.info().outputPath("resumed.png") });
+});
+
+test("the automatic tour moves through the introduction and reaches every chapter", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.clock.install();
+  await page.goto(url);
+  const tour = page.locator(".reading-tour-control");
+  await page.clock.fastForward(1600);
+  await expect(tour).toHaveAttribute("data-tour-status", "playing", { timeout: 30_000 });
+  await page.clock.runFor(50);
+  await page.clock.fastForward(1500);
+  await page.clock.fastForward(10_000);
+  await expect(tour).toHaveAttribute("data-tour-step", "hero");
+  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(10);
+
+  const visited = new Set<string>();
+  for (let tick = 0; tick < 300; tick++) {
+    visited.add((await tour.getAttribute("data-tour-step"))!);
+    if (await tour.getAttribute("data-tour-status") === "complete") break;
+    await expect(tour).toHaveAttribute("data-tour-status", "playing");
+    // Advance reading time while still giving React and the render scheduler
+    // frames to settle each stop; do not skip directly to another section.
+    await page.clock.fastForward(60_000);
+    await page.clock.runFor(32);
+  }
+  await expect(tour).toHaveAttribute("data-tour-status", "complete");
+  for (const prefix of ["hero", "metrics", "services-", "journey-", "work-", "lab-", "approach-", "offers-", "career-", "terminal", "skills-", "contact-", "footer"]) {
+    expect([...visited].some(step => step.startsWith(prefix)), `${prefix}: ${[...visited].join(", ")}`).toBe(true);
+  }
+  await page.screenshot({ path: test.info().outputPath("tour-complete.png") });
 });
 
 test("settled grid cards receive no style mutations while scrolling elsewhere", async ({ page }) => {

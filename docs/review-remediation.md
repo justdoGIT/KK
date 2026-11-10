@@ -1,5 +1,46 @@
 # Review remediation
 
+## PR #70: root publishing and review rendering (2026-11-10)
+
+The deployment findings in the bot review at `41fdf35` were checked against
+the complete diff. They do not require the suggested changes:
+
+| Finding | Verified behavior |
+| --- | --- |
+| Missing Pages or ID-token write permissions | `.github/workflows/deploy.yml` grants `pages: write` and `id-token: write` in the deploy job. Job permissions override the read-only workflow defaults. |
+| Missing deployment repository restriction | The build job permits only KK and the root publisher. Deploy depends on that build and requires its `changed` output; a skipped build cannot authorize deployment. |
+| Incorrect root asset base | The root publisher serves the application at `/`. KK serves a separate redirect at `/KK/`. Using `/KK/` for application assets would break the root website. |
+| Incorrect artifact selection | KK uploads the redirect; the root publisher uploads `dist/`. The suggested replacement would upload the redirect for both repositories. |
+| Insecure CSP or missing own-domain source | The unchanged policy uses `'self'`, which includes the document's origin. `'wasm-unsafe-eval'` allows WebAssembly compilation, not inline scripts or general JavaScript `unsafe-eval`. |
+| Missing deployed-version, redirect, retry, or social-URL checks in earlier reviews | The added post-deploy code verifies the source commit, checks the legacy redirect, and retries publication propagation. The updated browser smoke test checks canonical and social URLs. |
+
+The reviewer unwraps enclosing Markdown fences while retaining code examples.
+Same-repository push reviews use the current script; fork reviews use the
+trusted default-branch script. PR-number concurrency prevents an older job
+from overwriting the refreshed comment. Responses cut off at the model's
+token limit are retried or passed to the next provider instead of published.
+The GitHub-rendered comment was checked after the refreshed job completed.
+
+Validation: 33 reviewer tests, ESLint, and actionlint pass. The model's input
+is bounded; the resolution above uses the complete code and diff.
+
+The resumed motion pass eases the card fan into its final pose and waits for
+the whole deck to settle before the tour reads an individual card. The
+introduction has visible, gradual travel; reading time follows elapsed time
+in the visible tab instead of a physics delta capped at ten frames per second.
+Settled collaboration layers avoid unchanged DOM writes, and cleared WebGL
+buffers redraw after size or adaptive-DPR changes before the next paint.
+
+Motion validation: 187 unit tests and 15 headless Chromium browser tests pass,
+including the entire automatic tour through every chapter to the footer,
+hovered-card wheel input through final settlement, retained reading positions,
+mobile board navigation, reduced motion, collaboration hover/touch, and
+offscreen WebGL lifetime. Typecheck, lint, production build, publication checks,
+and bundle budgets pass. Screenshots are saved in
+`~/.local/state/kk-pr70-evidence/`.
+
+## Full-site audit (2026-10-02)
+
 - **Date:** 2026-10-02
 - **Scope:** full-site review pass — scene artwork, missing objects, autoscroll,
   scroll/render performance, defects, console noise.

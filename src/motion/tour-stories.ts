@@ -37,7 +37,10 @@ export function caseSteps(): TourStep[] {
   const animated = !!one("#work:not(.is-static)");
   return all("#work .lusion-card-front").map((_, i) => ({
     ...flowStep(`work-${i}`, "#work", "#work .lusion-card-front", i),
-    ...(animated ? { target: () => pinnedY("#work", 0.76), end: undefined } : {}),
+    ...(animated ? {
+      target: () => pinnedY("#work", 0.76), end: undefined,
+      ready: () => !!one("#work .lusion-cards-stage.is-settled"),
+    } : {}),
     travelSeconds: animated && i === 0 ? 12 : 0,
     inner: () => all("#work .card-front-scroll-body")[i] ?? null,
   }));

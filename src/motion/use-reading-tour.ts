@@ -23,6 +23,7 @@ export function useReadingTourDriver() {
     let resizeTimer = 0;
     let startTimer = 0;
     let blocked = false;
+    let lastFrameTime: number | undefined;
     let checkpoint: { y: number; inner: HTMLElement | null; top: number; viewport: HTMLElement | null; left: number } | undefined;
 
     const pause = () => {
@@ -55,6 +56,7 @@ export function useReadingTourDriver() {
         if (same >= 0) index = same;
       }
       expected = scrollY;
+      lastFrameTime = undefined;
       const unchanged = checkpoint && Math.abs(scrollY - checkpoint.y) < 3
         && Math.abs((checkpoint.inner?.scrollTop ?? 0) - checkpoint.top) < 2
         && Math.abs((checkpoint.viewport?.scrollLeft ?? 0) - checkpoint.left) < 2;
@@ -69,11 +71,15 @@ export function useReadingTourDriver() {
         changed: (step) => updateReadingTour({ step: step.id, label: step.label }),
         complete: () => updateReadingTour({ status: "complete" }),
       }, index, !replay && scrollY > 120);
-      stop = onFrame("scroll", (_time, delta) => {
+      stop = onFrame("scroll", (time, delta) => {
+        // Physics uses a capped frame delta; reading time follows the visible
+        // tab's real clock so a busy renderer cannot stretch a pause indefinitely.
+        const elapsed = lastFrameTime === undefined ? delta : Math.max(0, (time - lastFrameTime) / 1000);
+        lastFrameTime = time;
         if (document.hidden || resizing || blocked) return;
         // Includes scrollbar dragging, find-in-page and anchor navigation.
         if (Math.abs(scrollY - expected) > 3) { pause(); return; }
-        engine?.tick(delta);
+        engine?.tick(elapsed);
       });
     };
     const unsubscribe = subscribeReadingTour(() => {
@@ -96,6 +102,7 @@ export function useReadingTourDriver() {
       else pause();
     };
     const selection = () => { if (!window.getSelection()?.isCollapsed) pause(); };
+    const visibility = () => { lastFrameTime = undefined; };
     const resize = () => {
       resizing = true;
       window.clearTimeout(resizeTimer);
@@ -114,6 +121,7 @@ export function useReadingTourDriver() {
     const events = ["wheel", "touchstart", "pointerdown", "keydown", "focusin"];
     events.forEach((type) => window.addEventListener(type, input, { capture: true, passive: true }));
     document.addEventListener("selectionchange", selection);
+    document.addEventListener("visibilitychange", visibility);
     window.addEventListener("resize", resize);
     stopCruise();
     if (!enhanced) updateReadingTour({ status: "ready" });
@@ -135,6 +143,7 @@ export function useReadingTourDriver() {
       unsubscribe(); freeze(); release(); overlays.disconnect();
       events.forEach((type) => window.removeEventListener(type, input, true));
       document.removeEventListener("selectionchange", selection);
+      document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("resize", resize);
     };
   }, [enhanced]);
