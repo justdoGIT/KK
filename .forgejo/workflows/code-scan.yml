@@ -13,4 +13,6 @@ concurrency:
 jobs:
   semgrep:
     runs-on: ci-standard
-    uses: https://forgejo.kepr.dev/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@83ac654c9b72024842eb7ea1163a3c403acf90d4
+    # Private template authentication must match the registered runner instance.
+    # Migrate that registration before switching this reference to HTTPS.
+    uses: http://192.168.1.4:3000/justdoGIT/ci-templates/.forgejo/workflows/reusable-code-scan.yml@83ac654c9b72024842eb7ea1163a3c403acf90d4

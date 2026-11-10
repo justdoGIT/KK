@@ -18,6 +18,7 @@ jobs:
   build:
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -56,6 +57,7 @@ jobs:
     if: github.server_url == 'https://github.com'
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
