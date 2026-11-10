@@ -1,26 +1,21 @@
 # Embedded Systems Portfolio
 
-[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/justdoGIT/KK-Github-Portfolio?utm_source=badge)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/justdoGIT/justdogit.github.io?utm_source=badge)
 
 Static GitHub Pages portfolio for Kamal Pandey — Embedded Software & Systems Engineer.
 
 **Live site:** https://justdogit.github.io/
 
-The website and its shared deployment workflow live in `KK-Github-Portfolio`.
-GitHub requires the `justdogit.github.io` repository to serve this root URL;
-its small workflow calls the portfolio's pinned `.github/workflows/deploy.yml`
-with `source_ref: main`. It publishes on configuration changes or manual runs,
-and checks hourly for new commits on the portfolio's main branch. Unchanged
-scheduled releases skip the build and deploy. No cross-repository deployment
-token is required.
+The website source and deployment workflow live in `justdogit.github.io`,
+the repository name GitHub requires to serve this root URL. Every push to
+`main` publishes the portfolio directly through `.github/workflows/deploy.yml`;
+the workflow can also be run manually.
 
 Production assets use `/`, and canonical and social URLs point to the root
-website. The portfolio's own Pages deployment serves a redirect from
-`https://justdogit.github.io/KK-Github-Portfolio/`. Both deployments run typecheck,
-lint, tests, publication validation, and bundle budgets. The root publisher
-records the exact portfolio repository and commit in `source-version.json`
-and verifies them after deployment. Update the caller's immutable workflow
-pin when changing the shared deployment workflow.
+website. Deployment runs typecheck, lint, tests, publication validation, and
+bundle budgets, then uploads `dist/` to GitHub Pages. It records the exact
+repository and commit in `source-version.json` and verifies the root URL,
+application HTML, and source record after deployment.
 
 Built with React 19, Vite, TypeScript, Tailwind CSS 4, Three.js (R3F/Drei), Lenis, and GSAP.
 
@@ -121,9 +116,9 @@ intermediate implementations must not replace the deployed experience.
 Earlier work remains preserved in the merged history, even after its branches
 are removed:
 
-- [66eb787](https://github.com/justdoGIT/KK-Github-Portfolio/commit/66eb7876bc2ef0321f1ce5996fc7b17ea90c799f): Forgejo automation and its full history.
-- [552a0a9](https://github.com/justdoGIT/KK-Github-Portfolio/commit/552a0a9679e67fb01af0b6bcf42a81bfc85fccf2): the original live-site README change.
-- [489e76a](https://github.com/justdoGIT/KK-Github-Portfolio/commit/489e76a4a6847cff5940d4e754acb004ac6ae3cf): validation-only worktree workflows.
+- [66eb787](https://github.com/justdoGIT/justdogit.github.io/commit/66eb7876bc2ef0321f1ce5996fc7b17ea90c799f): Forgejo automation and its full history.
+- [552a0a9](https://github.com/justdoGIT/justdogit.github.io/commit/552a0a9679e67fb01af0b6bcf42a81bfc85fccf2): the original live-site README change.
+- [489e76a](https://github.com/justdoGIT/justdogit.github.io/commit/489e76a4a6847cff5940d4e754acb004ac6ae3cf): validation-only worktree workflows.
 - `archive/vite-upgrade-20261104`: the unapplied Vite dependency upgrade.
 
 The Forgejo and validation histories are consolidated without activating their

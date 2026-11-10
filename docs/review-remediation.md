@@ -1,5 +1,15 @@
 # Review remediation
 
+## Direct root-site deployment (2026-11-10)
+
+The portfolio repository is now `justdoGIT/justdogit.github.io`. Its deployment
+workflow checks out the triggering commit from this repository and publishes
+`dist/` directly at `https://justdogit.github.io/` on pushes to `main` or manual
+runs. Root asset paths and canonical URLs remain `/`. The post-deploy check
+requires the application HTML and the exact repository and source commit in
+`source-version.json`. This replaces the separate publisher and project-site
+redirect described in the earlier review below.
+
 ## PR #70: root publishing and review rendering (2026-11-10)
 
 The deployment findings in the bot review at `41fdf35` were checked against
