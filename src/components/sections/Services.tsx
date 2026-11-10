@@ -178,7 +178,7 @@ export function Services(): JSX.Element {
         <div className="section-header">
           <LusionKineticHeading kicker="Areas of Expertise" text="Systems Consultancy & Architecture" />
         </div>
-        <MobileBoardCarousel label="Service domains">
+        <MobileBoardCarousel label="Service domains" motion="stack">
           {services.map((service, index) => (
             <article key={service.id} className="service-card-deck-item card-focused" aria-label={`${service.title} service details`}>
               <ServiceCardBody service={service} index={index} />

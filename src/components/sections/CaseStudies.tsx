@@ -283,7 +283,7 @@ export function CaseStudies(): JSX.Element {
         <div className="section-header">
           <LusionKineticHeading kicker="Selected Missions" text="Products with a pulse." variant="cascade" />
         </div>
-        <MobileBoardCarousel label="Case studies">
+        <MobileBoardCarousel label="Case studies" motion="flip">
           {studies.map((study, index) => (
             <article key={study.record.slug} className="lusion-card-face lusion-card-front lusion-card-front--static">
               <CardFrontContent study={study} idx={index} category={categories[index]} onExpand={() => openArchitectureModal(study, index)} />

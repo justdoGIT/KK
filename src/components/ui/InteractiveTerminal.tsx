@@ -5,8 +5,10 @@ import { useMediaQuery } from "../../motion/use-media-query.ts";
 import { clamp01, useScrollFrame } from "../../motion/scroll-frame.ts";
 import { LusionKineticHeading } from "./LusionKineticHeading.tsx";
 import { TERMINAL_COMMANDS } from "../../content/terminal.ts";
-import { REVEAL_FRACTION, terminalState, type TerminalState } from "./terminal-runner.ts";
+import { REVEAL_FRACTION, TYPE_FRACTION, terminalState, type TerminalState } from "./terminal-runner.ts";
 import { getReadingTour, subscribeReadingTour } from "../../motion/reading-tour-state.ts";
+import { useChapterScroll } from "../../motion/use-chapter-scroll.ts";
+import { scrollToY } from "../../motion/smooth-scroll.ts";
 
 const TOTAL_SCROLL = 5.5;
 
@@ -18,11 +20,13 @@ const INITIAL_REVEAL_STYLE: CSSProperties = {
   transform: "perspective(1200px) translate3d(-120.0px, 90.0px, -40.0px) scale(0.420) rotateX(14.00deg) rotateY(-9.00deg)",
   clipPath: "inset(0% 20.0% 25.0% 0% round 0.0px)",
 };
+const MOBILE_REVEAL_STYLE: CSSProperties = { opacity: .1, transform: "translateY(24px)" };
 
 export function InteractiveTerminal(): JSX.Element {
   const motionMode = useMotionMode();
   const desktopStage = useMediaQuery("(min-width: 1024px) and (min-height: 720px)");
-  const enhanced = motionMode === "enhanced" && desktopStage;
+  const mobile = useMediaQuery("(max-width: 767px)");
+  const enhanced = motionMode === "enhanced" && (desktopStage || mobile);
   const [activeCmdIdx, setActiveCmdIdx] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -37,6 +41,7 @@ export function InteractiveTerminal(): JSX.Element {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const manualOverrideRef = useRef(false);
+  useChapterScroll(bodyRef, mobile && enhanced && !isMinimized, .55);
   useEffect(() => subscribeReadingTour(() => {
     if (getReadingTour().status !== "playing") return;
     manualOverrideRef.current = false;
@@ -59,7 +64,7 @@ export function InteractiveTerminal(): JSX.Element {
   // commit. Only the terminal script's text content (typed command,
   // visible output lines, active tab) is state, and only changes at the
   // discrete steps the script advances through.
-  const progressRef = useRef({ raw: 0, pop: 0 });
+  const progressRef = useRef({ raw: 0, pop: 0, overflow: 0 });
   useScrollFrame(
     () => {
       const el = sectionRef.current;
@@ -69,6 +74,8 @@ export function InteractiveTerminal(): JSX.Element {
       const raw = clamp01(-el.getBoundingClientRect().top / scrollable);
       progressRef.current.raw = raw;
       progressRef.current.pop = Math.min(1, raw / REVEAL_FRACTION);
+      const body = bodyRef.current;
+      progressRef.current.overflow = body ? Math.max(0, body.scrollHeight - body.clientHeight) : 0;
     },
     () => {
       const { raw, pop: popProgress } = progressRef.current;
@@ -79,6 +86,10 @@ export function InteractiveTerminal(): JSX.Element {
         if (popProgress >= 0.999) {
           wrapper.style.opacity = "1";
           wrapper.style.transform = "none";
+          wrapper.style.clipPath = "none";
+        } else if (mobile) {
+          wrapper.style.opacity = (0.1 + popProgress * 0.9).toFixed(3);
+          wrapper.style.transform = `translateY(${(invReveal * 24).toFixed(1)}px)`;
           wrapper.style.clipPath = "none";
         } else {
           wrapper.style.opacity = (0.1 + popProgress * 0.9).toFixed(3);
@@ -93,6 +104,11 @@ export function InteractiveTerminal(): JSX.Element {
       const next = terminalState(raw, scriptRef.current, TERMINAL_COMMANDS);
       scriptRef.current = next;
       const cmd = TERMINAL_COMMANDS[next.cmdIndex];
+      if (mobile && bodyRef.current && getReadingTour().status !== "playing") {
+        const script = clamp01((raw - REVEAL_FRACTION) / (1 - REVEAL_FRACTION));
+        const local = script * TERMINAL_COMMANDS.length - next.cmdIndex;
+        bodyRef.current.scrollTop = progressRef.current.overflow * clamp01((local - TYPE_FRACTION) / (1 - TYPE_FRACTION));
+      }
       if (next.cmdIndex !== activeCmdIdx) setActiveCmdIdx(next.cmdIndex);
 
       const typed = next.typedChars === null ? "" : cmd.command.slice(0, next.typedChars);
@@ -107,6 +123,15 @@ export function InteractiveTerminal(): JSX.Element {
   );
 
   const handleTabClick = (idx: number) => {
+    if (mobile && enhanced && sectionRef.current) {
+      const section = sectionRef.current;
+      const progress = REVEAL_FRACTION + (1 - REVEAL_FRACTION) * (idx + .8) / TERMINAL_COMMANDS.length;
+      manualOverrideRef.current = false;
+      setManualOverride(false);
+      scrollToY(window.scrollY + section.getBoundingClientRect().top
+        + (section.offsetHeight - innerHeight) * progress, { immediate: true });
+      return;
+    }
     // Reading takes precedence over the scroll-driven demo until the next
     // visit. Never replace a selected tab on a timer while it is being read.
     setManualOverride(true);
@@ -122,6 +147,7 @@ export function InteractiveTerminal(): JSX.Element {
   };
 
   const handleReadOutput = () => {
+    if (mobile && enhanced) return;
     if (!manualOverrideRef.current) handleTabClick(activeCmdIdx);
   };
 
@@ -140,7 +166,7 @@ export function InteractiveTerminal(): JSX.Element {
   const outputComplete = visibleOutput.length >= activeCommand.output.length && (!enhanced || showOutput);
 
   return (
-    <div ref={sectionRef} className={`terminal-scroll-section${enhanced ? "" : " terminal-flow"}`} style={enhanced ? { height: `${TOTAL_SCROLL * 100}vh` } : undefined}>
+    <div ref={sectionRef} data-scroll-slow={enhanced ? ".55" : undefined} className={`terminal-scroll-section${enhanced ? "" : " terminal-flow"}${mobile && enhanced ? " terminal-mobile-sequence" : ""}`} style={enhanced ? { height: `${(mobile ? 8 : TOTAL_SCROLL) * 100}${mobile ? "svh" : "vh"}` } : undefined}>
       <div className="terminal-sticky-stage">
         <div className="section-header terminal-pinned-heading">
           <LusionKineticHeading
@@ -152,7 +178,7 @@ export function InteractiveTerminal(): JSX.Element {
         <div
           ref={wrapperRef}
           className={`interactive-terminal-wrapper ${isExpanded ? "terminal-expanded-mode" : ""} ${isMinimized ? "terminal-minimized-mode" : ""}`}
-          style={!enhanced || isMinimized ? undefined : INITIAL_REVEAL_STYLE}
+          style={!enhanced || isMinimized ? undefined : mobile ? MOBILE_REVEAL_STYLE : INITIAL_REVEAL_STYLE}
         >
           <div className="terminal-window">
             {/* Terminal Title Bar */}
@@ -229,7 +255,7 @@ export function InteractiveTerminal(): JSX.Element {
                   role="tabpanel"
                   tabIndex={0}
                   aria-labelledby={`terminal-tab-${activeCommand.id}`}
-                  data-lenis-prevent={manualOverride || !enhanced ? "" : undefined}
+                  data-lenis-prevent={mobile || manualOverride || !enhanced ? "" : undefined}
                   onPointerDown={handleReadOutput}
                   onFocus={handleReadOutput}
                 >

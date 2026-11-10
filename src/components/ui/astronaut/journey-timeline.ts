@@ -84,6 +84,11 @@ export type FrameRect = {
 };
 
 export function cardRect(width: number, height: number): FrameRect {
+  if (width < 768) {
+    const w = Math.min(width * .88, height * .58);
+    const h = w / 1.32;
+    return { x: (width - w) / 2, y: Math.min(height - h - 24, Math.max(172, height * .23)), width: w, height: h, radius: 18, rotation: 0 };
+  }
   let w = Math.min(width * 0.46, 860);
   let h = w / 1.43;
   if (h > height * 0.56) {

@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import { useArchitectureDialog } from "./useArchitectureDialog.ts";
+import { ArchitectureDiagramViewport } from "./ArchitectureDiagramViewport.tsx";
 
 export type ArchitectureDetail = {
   title: string;
@@ -115,6 +116,13 @@ export function ArchitectureModal({
       };
     }),
   ).filter((e): e is NonNullable<typeof e> => e !== null);
+  // Crop empty canvas margins while retaining full-size labels.
+  const points = architecture.nodes.map(node => ({ x: node.x / 100 * VIEW_W, y: node.y / 100 * VIEW_H }));
+  const left = Math.min(...points.map(point => point.x)) - NODE_BOX_HALF - 18;
+  const top = Math.min(...points.map(point => point.y)) - 40;
+  const diagramWidth = Math.max(...points.map(point => point.x)) + NODE_BOX_HALF + 18 - left;
+  const diagramHeight = Math.max(...points.map(point => point.y)) + 40 - top;
+  const viewBox = points.length ? `${left} ${top} ${diagramWidth} ${diagramHeight}` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
   return (
     <div
@@ -169,7 +177,8 @@ export function ArchitectureModal({
         <div className="arch-modal-body">
           {viewMode === "visual" ? (
             <div className="arch-visual-stage">
-              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="arch-modal-svg" role="group" aria-label="Expanded Architecture Flow">
+              <ArchitectureDiagramViewport width={points.length ? diagramWidth : VIEW_W} height={points.length ? diagramHeight : VIEW_H}>
+              <svg viewBox={viewBox} data-diagram-viewbox={viewBox} className="arch-modal-svg" role="group" aria-label="Expanded Architecture Flow">
                 <defs>
                   <linearGradient id="busGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
@@ -306,6 +315,7 @@ export function ArchitectureModal({
                   );
                 })}
               </svg>
+              </ArchitectureDiagramViewport>
 
               {/* Node Inspector Floating Pill */}
               <div className="arch-inspector-pill">
@@ -315,7 +325,7 @@ export function ArchitectureModal({
                     {selectedNodeInfo.protocol && <span>| <b>BUS:</b> {selectedNodeInfo.protocol}</span>}
                   </span>
                 ) : (
-                  <span>Hover over any hardware node or bus wire to inspect data flow</span>
+                  <span>Select a node to inspect its data flow</span>
                 )}
               </div>
             </div>

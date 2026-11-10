@@ -70,12 +70,10 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
     [],
   );
   const { near, active, worldActive } = useJourneyDriver(els, sceneReady && playbackReady);
-  // On phones and short screens the card cannot be shown at readable size
-  // inside the pinned stage: fitting it to the stage height scaled it to 0.54
-  // on an iPhone 13 (201px wide, 9px text, 32px buttons). Show the contact
-  // banner in normal page flow after the journey instead, as the other
-  // pinned sections do below 1024x720.
-  const flowContact = useMediaQuery("(max-width: 767px), (max-height: 719px)");
+  const compact = useMediaQuery("(max-width: 767px), (max-width: 1023px) and (max-height: 719px)");
+  // The compact finale scrolls its card contents while preserving the landing
+  // panel, full-size text, and touch-triggered astronaut interactions.
+  const flowContact = useMediaQuery("(min-width: 1024px) and (max-height: 719px)");
 
   const setInteraction = (interaction: ContactInteraction) => {
     const finale = clock.current.finale;
@@ -118,8 +116,8 @@ function ImmersiveJourney({ children }: { children?: ReactNode }): JSX.Element {
     <>
       <div
         ref={section}
-        className="aj-section"
-        style={{ height: `${JOURNEY_VIEWPORTS * 100}vh` }}
+        className={`aj-section${compact ? " aj-section--compact" : ""}`}
+        style={{ height: `${JOURNEY_VIEWPORTS * 100}${compact ? "svh" : "vh"}` }}
         aria-label="Mission launch sequence"
         role="region"
      >

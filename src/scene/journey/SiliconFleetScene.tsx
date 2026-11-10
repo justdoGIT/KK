@@ -4,14 +4,14 @@ import { BoardStackStage } from "./BoardStackStage.tsx";
 import { FleetArmyStage } from "./FleetArmyStage.tsx";
 import { SceneEnvironment } from "../SceneEnvironment.tsx";
 
-type SiliconFleetSceneProps = { currentStage: number }; // index into boardLifecycle (0–6)
+type SiliconFleetSceneProps = { currentStage: number; compact?: boolean }; // index into boardLifecycle (0–6)
 
-export function SiliconFleetScene({ currentStage }: SiliconFleetSceneProps): JSX.Element {
+export function SiliconFleetScene({ currentStage, compact = false }: SiliconFleetSceneProps): JSX.Element {
   const stacking = currentStage >= 1 && currentStage <= 5;
   return (
     <>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[5, 8, 6]} intensity={1.6} />
+      <ambientLight intensity={compact ? 1.3 : 0.7} />
+      <directionalLight position={[5, 8, 6]} intensity={compact ? 2.1 : 1.6} />
       {/* Scaled for physically-correct inverse-square falloff at each
           light's actual distance (three r155+ default): the previous
           intensities of ~1.1-1.3 contributed only ~0.03 illuminance at
@@ -24,7 +24,7 @@ export function SiliconFleetScene({ currentStage }: SiliconFleetSceneProps): JSX
 
       {/* 1–5: flash → bootloader → kernel → userspace → applications stack up. */}
       <group visible={stacking}>
-        <BoardStackStage built={currentStage} active={stacking} />
+        <BoardStackStage built={currentStage} active={stacking} compact={compact} />
       </group>
 
       {/* 6: the finished device multiplied into a monitored fleet (scaled to fit the half-width canvas). */}

@@ -4,6 +4,7 @@ import { smoothstep } from "../../../scene/career/career-timeline.ts";
 import type { CareerEntry } from "../../../content/career.ts";
 import { onFrame } from "../../../motion/frame.ts";
 import { Disclosure } from "../../ui/Disclosure.tsx";
+import { useChapterScroll } from "../../../motion/use-chapter-scroll.ts";
 
 type CareerEntryListProps = {
   /** Entries in journey order (oldest first). */
@@ -12,6 +13,7 @@ type CareerEntryListProps = {
   openId: string | null;
   clock: CareerClockRef;
   animated: boolean;
+  manualScroll?: boolean;
   onOpenChange: (id: string, open: boolean) => void;
 };
 
@@ -21,9 +23,14 @@ type CareerEntryListProps = {
 const CONVERGE_EPSILON = 0.5;
 
 /** Left column: every role stays in the DOM; the active role scrolls into the viewport and expands. */
-export function CareerEntryList({ entries, activeId, openId, clock, animated, onOpenChange }: CareerEntryListProps): JSX.Element {
+export function CareerEntryList({ entries, activeId, openId, clock, animated, manualScroll = false, onOpenChange }: CareerEntryListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
   const activeRef = useRef<HTMLLIElement>(null);
+  useChapterScroll(listRef, animated && manualScroll, .55);
+
+  useEffect(() => {
+    if (manualScroll && listRef.current) listRef.current.scrollTop = 0;
+  }, [activeId, manualScroll]);
 
   useEffect(() => {
     if (!animated) return;
@@ -51,7 +58,8 @@ export function CareerEntryList({ entries, activeId, openId, clock, animated, on
   }, [activeId, clock, animated]);
 
   return (
-    <ol ref={listRef} className="career-entries">
+    <ol ref={listRef} className="career-entries" data-lenis-prevent={manualScroll || undefined}
+      tabIndex={manualScroll ? 0 : undefined} aria-label={manualScroll ? "Career role details" : undefined}>
       {entries.map((entry, index) => (
         <li
           ref={entry.id === activeId ? activeRef : undefined}

@@ -6,12 +6,14 @@ export function buildTourPlan(enhanced: boolean): TourStep[] {
   // Begin moving through the introduction while keeping its reading time.
   // A long stationary first window otherwise makes automatic playback look stuck.
   const hero = flowStep("hero", "#hero", "#hero");
+  const mobileHero = !!one(".hero-mobile-art");
   const steps: TourStep[] = [{
     ...hero,
     continuous: enhanced,
+    inner: () => mobileHero ? one(".hero-details") : null,
     // A viewport-height introduction has almost no natural overflow. Give
     // its reading pass visible travel while gradually revealing the next section.
-    end: () => Math.max(hero.end?.() ?? 0, hero.target() + innerHeight * 0.22),
+    end: () => mobileHero ? hero.target() : Math.max(hero.end?.() ?? 0, hero.target() + innerHeight * 0.22),
   }];
   if (one(".metrics-document-animated")) {
     const position = (p: number) => {

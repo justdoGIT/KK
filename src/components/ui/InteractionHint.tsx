@@ -8,14 +8,16 @@ export function InteractionHint({ pointer, touch, className = "" }: { pointer: s
 
 export function AstronautInvitation() {
   const hover = useMediaQuery("(hover: hover) and (pointer: fine)");
+  const compact = useMediaQuery("(max-width: 767px), (max-width: 1023px) and (max-height: 719px)");
+  const preview = compact || !hover;
   return (
     <div className="astronaut-invitation">
       <p id="astronaut-invitation">
-        {hover
+        {!preview
           ? <>Hover over “Start a Conversation” and watch the astronaut light up with joy. You’ll feel it, too. If a hover can make him this happy, imagine a conversation with you. Go ahead—give it a chance.</>
           : <>A little tap, a lot of joy. Make the astronaut happy below. If a tap can make him this happy, imagine a conversation with you. Go ahead—give it a chance.</>}
       </p>
-      {!hover && <button type="button" className="astronaut-preview" data-astronaut-preview data-astronaut-action="dance">Make him happy ✨</button>}
+      {preview && <button type="button" className="astronaut-preview" data-astronaut-preview data-astronaut-action="dance">Make him happy ✨</button>}
     </div>
   );
 }

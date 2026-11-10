@@ -25,7 +25,13 @@ export function orbit(
 /** Changes focal length per shot without reallocating the shared camera. */
 export function cinematicLens(camera: Camera, fov: number): void {
   const perspective = camera as PerspectiveCamera;
-  if (!perspective.isPerspectiveCamera || Math.abs(perspective.fov - fov) < 0.01) return;
-  perspective.fov = fov;
+  if (!perspective.isPerspectiveCamera) return;
+  // Phone scenes need the width of the authored chase shots, including the
+  // quadruped's forward-looking camera, inside their nearly square viewport.
+  const framingAspect = perspective.userData.framingAspect ?? 1;
+  const fittedFov = 2 * Math.atan(Math.tan(fov * Math.PI / 360)
+    * Math.max(1, framingAspect / Math.max(0.45, perspective.aspect))) * 180 / Math.PI;
+  if (Math.abs(perspective.fov - fittedFov) < 0.01) return;
+  perspective.fov = fittedFov;
   perspective.updateProjectionMatrix();
 }

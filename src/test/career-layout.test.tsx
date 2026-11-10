@@ -12,9 +12,10 @@ vi.mock("../components/sections/career/useCareerDriver.ts", () => ({
 
 afterEach(() => vi.restoreAllMocks());
 
-function layoutQuery(matches: boolean): void {
+function layoutQuery(flow: boolean, mobile = false): void {
   vi.spyOn(window, "matchMedia").mockImplementation((media) => ({
-    matches, media, onchange: null,
+    matches: media === "(max-width: 767px), (max-width: 1023px) and (max-height: 719px)" ? mobile : flow,
+    media, onchange: null,
     addEventListener: vi.fn(), removeEventListener: vi.fn(),
     addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: () => false,
   }));
@@ -55,6 +56,19 @@ describe("responsive career layout", () => {
     expect(section).not.toHaveClass("career-journey--static");
     expect(section.style.height).toBe("1200vh");
     expect(section.querySelector(".career-screen")).not.toBeNull();
+    expect(vi.mocked(useCareerDriver).mock.lastCall?.[1]).toBe(true);
+  });
+
+  it("keeps the film and all five role controls on phones", () => {
+    layoutQuery(true, true);
+    render(<CareerTimeline />);
+    const section = screen.getByLabelText("Career timeline");
+    expect(section).toHaveClass("career-journey--mobile");
+    expect(section).not.toHaveClass("career-journey--static");
+    expect(section.style.height).toBe("1200svh");
+    expect(section.querySelector(".career-screen")).not.toBeNull();
+    expect(within(screen.getByLabelText("Career evolution stages")).getAllByRole("button")).toHaveLength(5);
+    expect(screen.getByLabelText("Career role details")).toHaveAttribute("tabindex", "0");
     expect(vi.mocked(useCareerDriver).mock.lastCall?.[1]).toBe(true);
   });
 });

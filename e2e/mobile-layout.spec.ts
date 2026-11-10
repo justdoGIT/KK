@@ -118,6 +118,14 @@ function probeLayout(): string[] {
       const rect = element.getBoundingClientRect();
       if (!shown(element, rect) || ownText(element).length < 2) continue;
       if (rect.right <= 0 || rect.left >= vw) continue;
+      // Long role/card copy intentionally scrolls within a visible pane.
+      // Its offscreen paragraphs are reachable by scrolling that pane.
+      let scrollableCopy = false;
+      for (let parent = element.parentElement; parent && parent !== stage; parent = parent.parentElement) {
+        if (/auto|scroll/.test(getComputedStyle(parent).overflowY)
+          && parent.scrollHeight > parent.clientHeight + 1) { scrollableCopy = true; break; }
+      }
+      if (scrollableCopy) continue;
       const where = `${path(stage)} :: ${path(element)}`;
       if (rect.top < vh && rect.bottom > bottom + 2 && rect.top < bottom) {
         findings.push(`text clipped by the stage bottom: ${where} by ${Math.round(rect.bottom - bottom)}px`);
@@ -159,9 +167,17 @@ test.describe("Phone and short-screen layout", () => {
           }
         }
 
-        const contactHeading = page.locator(".aj-contact-flow .contact-journey-heading");
+        if (await page.locator(".aj-section--compact").count()) {
+          await page.locator(".aj-section").evaluate(element => window.scrollTo({
+            top: scrollY + element.getBoundingClientRect().top + (element.offsetHeight - innerHeight) * 0.9,
+            behavior: "instant",
+          }));
+          await expect(page.locator(".aj-stage")).toHaveAttribute("data-scene-ready", "true", { timeout: 60000 });
+          await page.waitForTimeout(600);
+        }
+        const contactHeading = page.locator(".contact-journey-heading");
         await expect(contactHeading).toHaveCount(1);
-        await contactHeading.scrollIntoViewIfNeeded();
+        if (await page.locator(".aj-contact-flow").count()) await contactHeading.scrollIntoViewIfNeeded();
         const contactHeadingRect = await contactHeading.evaluate((element) => {
           const rect = element.getBoundingClientRect();
           return { left: rect.left, right: rect.right, viewport: window.innerWidth };

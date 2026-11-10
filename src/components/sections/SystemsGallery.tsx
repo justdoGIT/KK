@@ -113,7 +113,7 @@ export function SystemsGallery(): JSX.Element {
 
       {/* Interactive Architecture Cards Grid */}
       {mobile ? (
-        <MobileBoardCarousel label="Industrial architectures" onIndexChange={(index) => setActiveSystemId(gallerySystems[index].id)}>{cards}</MobileBoardCarousel>
+        <MobileBoardCarousel label="Industrial architectures" motion="push" onIndexChange={(index) => setActiveSystemId(gallerySystems[index].id)}>{cards}</MobileBoardCarousel>
       ) : <div className="systems-gallery-grid" role="list">{cards}</div>}
     </section>
   );

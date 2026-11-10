@@ -2,6 +2,8 @@ import { Children, useEffect, useId, useRef, useState, type ReactNode } from "re
 import { Pause, Play } from "lucide-react";
 import { useMotionMode } from "../../motion/use-motion-mode.ts";
 import { toggleReadingTour, useReadingTour } from "../../motion/reading-tour-state.ts";
+import { useMobileBoardMotion, type MobileBoardMotion } from "../../motion/use-mobile-board-motion.ts";
+import { CardBackArtwork } from "./CardBackArtwork.tsx";
 import "../../styles/mobile-boards.css";
 
 export const MOBILE_BOARD_QUERY = "(max-width: 767px)";
@@ -10,10 +12,11 @@ type MobileBoardCarouselProps = {
   label: string;
   children: ReactNode;
   onIndexChange?: (index: number) => void;
+  motion?: MobileBoardMotion;
 };
 
 /** Native touch scrolling keeps horizontal swipes independent of page scrolling. */
-export function MobileBoardCarousel({ label, children, onIndexChange }: MobileBoardCarouselProps) {
+export function MobileBoardCarousel({ label, children, onIndexChange, motion = "slide" }: MobileBoardCarouselProps) {
   const slides = Children.toArray(children);
   const carouselRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -23,6 +26,7 @@ export function MobileBoardCarousel({ label, children, onIndexChange }: MobileBo
   const paused = status !== "playing";
   const viewportId = useId();
   const enhanced = useMotionMode() === "enhanced";
+  useMobileBoardMotion(viewportRef, motion, enhanced);
 
   const goTo = (index: number) => {
     const viewport = viewportRef.current;
@@ -45,7 +49,8 @@ export function MobileBoardCarousel({ label, children, onIndexChange }: MobileBo
 
 
   return (
-    <div ref={carouselRef} className="mobile-board-carousel" role="region" aria-roledescription="carousel" aria-label={label}>
+    <div ref={carouselRef} className={`mobile-board-carousel mobile-board-carousel--${motion}${enhanced ? " is-motion-enabled" : ""}`} role="region" aria-roledescription="carousel" aria-label={label}>
+      <div className="mobile-board-shell">
       <div
         ref={viewportRef}
         id={viewportId}
@@ -90,9 +95,15 @@ export function MobileBoardCarousel({ label, children, onIndexChange }: MobileBo
             aria-label={`${index + 1} of ${slides.length}`}
             tabIndex={0}
           >
-            {slide}
+            {motion === "slide" ? slide : (
+              <div className="mobile-board-motion">
+                <div className="mobile-board-front">{slide}</div>
+                {motion === "flip" && <div className="mobile-board-back" aria-hidden="true"><CardBackArtwork /><div className="mobile-mission-prompt"><span>FROM BRIEF TO BUILD</span><strong>Meet the systems<br />behind the results.</strong><span>Scroll to reveal · Swipe to explore</span></div></div>}
+              </div>
+            )}
           </div>
         ))}
+      </div>
       </div>
       <div className="mobile-board-controls">
         <button type="button" aria-label="Previous board" aria-controls={viewportId} disabled={active === 0} onClick={() => goTo(active - 1)}>←</button>

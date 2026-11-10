@@ -10,7 +10,7 @@ import { CAREER_STAGES } from "./stages/registry.ts";
 import { useAdaptiveDpr } from "../AdaptiveDpr.tsx";
 import { SchedulerFrames } from "../SchedulerFrames.tsx";
 
-type CareerJourneyCanvasProps = { clock: CareerClockRef; active: boolean };
+type CareerJourneyCanvasProps = { clock: CareerClockRef; active: boolean; compact?: boolean };
 
 /** Locally built studio environment: no HDR downloads (CSP connect-src 'self'). */
 function StudioEnvironment(): JSX.Element {
@@ -24,7 +24,7 @@ function StudioEnvironment(): JSX.Element {
   );
 }
 
-export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps): JSX.Element {
+export function CareerJourneyCanvas({ clock, active, compact = false }: CareerJourneyCanvasProps): JSX.Element {
   const { dpr, monitor } = useAdaptiveDpr();
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function CareerJourneyCanvas({ clock, active }: CareerJourneyCanvasProps)
       // filtering and its Firefox warning; one sample also costs less to draw.
       shadows={{ type: BasicShadowMap }}
       gl={{ antialias: false, powerPreference: "high-performance" }}
-      camera={{ fov: 42, near: 0.03, far: 80, position: [0, 5, 5] }}
+      camera={{ fov: 42, near: 0.03, far: 80, position: [0, 5, 5], userData: { framingAspect: compact ? 1.4 : 1 } }}
     >
       {monitor}
       <color attach="background" args={["#02040a"]} />

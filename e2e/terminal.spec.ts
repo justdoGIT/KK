@@ -13,7 +13,8 @@ async function revealTerminal(page: Page) {
 test.describe("Mobile terminal output", () => {
   test.use({ viewport: { width: 414, height: 736 }, isMobile: true, hasTouch: true });
 
-  test("shows every tab's complete transcript and keeps the controls in frame", async ({ page }) => {
+  test("keeps complete transcripts and controls available with reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await revealTerminal(page);
     const panel = page.getByRole("tabpanel");
 
@@ -47,7 +48,8 @@ test.describe("Mobile terminal output", () => {
     await page.getByRole("button", { name: "Restore terminal size", exact: true }).click();
   });
 
-  test("scrolls the transcript with touch and wheel without advancing the page", async ({ page, context }) => {
+  test("scrolls reduced-motion transcripts with touch and wheel", async ({ page, context }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     // Use a short screen so this transcript actually has content to scroll.
     await page.setViewportSize({ width: 320, height: 480 });
     await revealTerminal(page);
@@ -111,8 +113,9 @@ test("advances through all terminal pages when scrolling over the transcript", a
   const box = (await panel.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 
+  const travel = await section.evaluate(el => (el.clientHeight - innerHeight) * .7);
   for (let step = 0; step < 12; step++) {
-    await page.mouse.wheel(0, 600);
+    await page.mouse.wheel(0, Math.ceil(travel / (.55 * 12)));
     await page.waitForTimeout(100);
   }
 
