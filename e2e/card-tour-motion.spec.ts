@@ -130,33 +130,62 @@ test("Resume reads landed cards in place and preserves manually scrolled text", 
 });
 
 test("the automatic tour moves through the introduction and reaches every chapter", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.clock.install();
+  type TourTestWindow = Window & {
+    tourTestClock: { speed: number; time: number; last: number | undefined };
+    tourTestVisited: Set<string>;
+    tourTestProgress: { step: string; seconds: number }[];
+  };
+  await page.addInitScript(() => {
+    const testWindow = window as TourTestWindow;
+    const nativeFrame = window.requestAnimationFrame.bind(window);
+    const clock = { speed: 1, time: 0, last: undefined as number | undefined };
+    testWindow.tourTestClock = clock;
+    // Keep browser rendering, observers, shader preparation, and asset loading
+    // on native frames. Accelerate elapsed timestamps instead of scheduling.
+    window.requestAnimationFrame = callback => nativeFrame(time => {
+      clock.time = clock.last === undefined ? time : clock.time + (time - clock.last) * clock.speed;
+      clock.last = time;
+      callback(clock.time);
+    });
+  });
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
   await page.goto(url);
   const tour = page.locator(".reading-tour-control");
-  await page.clock.fastForward(1600);
   await expect(tour).toHaveAttribute("data-tour-status", "playing", { timeout: 30_000 });
-  await page.clock.runFor(50);
-  await page.clock.fastForward(1500);
-  await page.clock.fastForward(10_000);
+  await expect.poll(() => page.evaluate(() => scrollY), { timeout: 15_000 }).toBeGreaterThan(10);
   await expect(tour).toHaveAttribute("data-tour-step", "hero");
-  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(10);
 
-  const visited = new Set<string>();
-  for (let tick = 0; tick < 300; tick++) {
-    visited.add((await tour.getAttribute("data-tour-step"))!);
-    if (await tour.getAttribute("data-tour-status") === "complete") break;
-    await expect(tour).toHaveAttribute("data-tour-status", "playing");
-    // Advance reading time while still giving React and the render scheduler
-    // frames to settle each stop; do not skip directly to another section.
-    await page.clock.fastForward(60_000);
-    await page.clock.runFor(32);
+  await tour.evaluate(element => {
+    const testWindow = window as TourTestWindow;
+    const visited = new Set([element.getAttribute("data-tour-step")!]);
+    testWindow.tourTestVisited = visited;
+    const started = performance.now();
+    const progress = [{ step: element.getAttribute("data-tour-step")!, seconds: 0 }];
+    testWindow.tourTestProgress = progress;
+    new MutationObserver(() => {
+      const step = element.getAttribute("data-tour-step")!;
+      visited.add(step);
+      progress.push({ step, seconds: Math.round((performance.now() - started) / 1000) });
+    })
+      .observe(element, { attributes: true, attributeFilter: ["data-tour-step"] });
+    testWindow.tourTestClock.speed = 180;
+  });
+  try {
+    // The tour has dozens of real render/commit stops. Give software WebGL
+    // time to finish them; accelerated reading time cannot replace those frames.
+    await expect(tour).toHaveAttribute("data-tour-status", "complete", { timeout: 240_000 });
+  } finally {
+    const progress = await page.evaluate(() => (window as TourTestWindow).tourTestProgress);
+    await test.info().attach("tour-progress", { body: JSON.stringify(progress, null, 2), contentType: "application/json" });
   }
-  await expect(tour).toHaveAttribute("data-tour-status", "complete");
+  const visited = await page.evaluate(() => [...(window as TourTestWindow).tourTestVisited]);
   for (const prefix of ["hero", "metrics", "services-", "journey-", "work-", "lab-", "approach-", "offers-", "career-", "terminal", "skills-", "contact-", "footer"]) {
-    expect([...visited].some(step => step.startsWith(prefix)), `${prefix}: ${[...visited].join(", ")}`).toBe(true);
+    expect(visited.some(step => step.startsWith(prefix)), `${prefix}: ${visited.join(", ")}`).toBe(true);
   }
+  expect(errors).toEqual([]);
   await page.screenshot({ path: test.info().outputPath("tour-complete.png") });
 });
 
