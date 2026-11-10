@@ -4,11 +4,20 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: KK branch or commit to publish at the root site
+        type: string
+        default: main
+        required: false
+
+env:
+  SITE_URL: https://justdogit.github.io/
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  pages: read
 
 concurrency:
   group: pages
@@ -16,48 +25,134 @@ concurrency:
 
 jobs:
   build:
-    if: github.server_url == 'https://github.com'
+    if: >-
+      github.server_url == 'https://github.com' &&
+      (github.repository == 'justdoGIT/KK' ||
+      github.repository == 'justdoGIT/justdogit.github.io')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      changed: ${{ steps.source.outputs.changed }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: justdoGIT/KK
+          ref: ${{ inputs.source_ref || github.sha }}
+          persist-credentials: false
+
+      - name: Check published source
+        id: source
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ROOT_PUBLISHER: ${{ github.repository == 'justdoGIT/justdogit.github.io' }}
+        run: |
+          set -euo pipefail
+          source_sha=$(git rev-parse HEAD)
+          changed=true
+          if [[ "$ROOT_PUBLISHER" == true && "$EVENT_NAME" == schedule ]]; then
+            if published_sha=$(curl --fail --silent --show-error --max-time 15 "${SITE_URL}source-version.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])'); then
+              if [[ "$source_sha" == "$published_sha" ]]; then
+                changed=false
+              fi
+            fi
+          fi
+          printf 'source_sha=%s\nchanged=%s\n' "$source_sha" "$changed" >> "$GITHUB_OUTPUT"
+          printf 'Source commit: %s; deployment needed: %s\n' "$source_sha" "$changed"
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.source.outputs.changed == 'true'
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
+        if: steps.source.outputs.changed == 'true'
         run: npm ci
 
       - name: Typecheck
+        if: steps.source.outputs.changed == 'true'
         run: npm run typecheck
 
       - name: Lint
+        if: steps.source.outputs.changed == 'true'
         run: npm run lint
 
       - name: Production build
-        run: npm run build
+        if: steps.source.outputs.changed == 'true'
+        run: npm run build -- --base=/
 
       - name: Unit tests
+        if: steps.source.outputs.changed == 'true'
         run: npm test
 
       - name: Publication validation
+        if: steps.source.outputs.changed == 'true'
         run: npm run validate:publication
 
+      - name: Check bundle budgets
+        if: steps.source.outputs.changed == 'true'
+        run: node scripts/check-bundle-budgets.mjs
+
+      - name: Record published source
+        if: steps.source.outputs.changed == 'true'
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          Path("dist/source-version.json").write_text(
+              json.dumps({"repository": "justdoGIT/KK", "commit": os.environ["SOURCE_SHA"]}) + "\n"
+          )
+          PY
+
+      - name: Redirect the legacy project site to the root website
+        if: steps.source.outputs.changed == 'true' && github.repository == 'justdoGIT/KK'
+        run: |
+          python3 - <<'PY'
+          from html import escape
+          import os
+          from pathlib import Path
+
+          destination = escape(os.environ["SITE_URL"], quote=True)
+          output = Path(os.environ["RUNNER_TEMP"]) / "portfolio-redirect"
+          output.mkdir(parents=True, exist_ok=True)
+          (output / "index.html").write_text(f'''<!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'self'; form-action 'none'">
+              <meta http-equiv="refresh" content="0; url={destination}">
+              <link rel="canonical" href="{destination}">
+              <title>Kamal Pandey — Portfolio</title>
+            </head>
+            <body><p>The portfolio is at <a href="{destination}">justdogit.github.io</a>.</p></body>
+          </html>
+          ''')
+          PY
+
       - name: Setup Pages
+        if: steps.source.outputs.changed == 'true'
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
       - name: Upload Pages artifact
+        if: steps.source.outputs.changed == 'true'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: dist/
+          path: ${{ github.repository == 'justdoGIT/KK' && format('{0}/portfolio-redirect', runner.temp) || 'dist/' }}
 
   deploy:
-    if: github.server_url == 'https://github.com'
+    if: github.server_url == 'https://github.com' && needs.build.outputs.changed == 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -67,28 +162,39 @@ jobs:
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
       - name: Post-deploy smoke test
+        env:
+          DEPLOYED_URL: ${{ steps.deploy.outputs.page_url }}
+          ROOT_PUBLISHER: ${{ github.repository == 'justdoGIT/justdogit.github.io' }}
+          SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
         run: |
-          url="${{ steps.deploy.outputs.page_url }}"
-          echo "Deployed URL: $url"
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          from urllib.request import urlopen
 
-          status=$(curl -sL -o /dev/null -w "%{http_code}" "$url")
-          echo "HTTP status: $status"
-
-          if [ "$status" != "200" ]; then
-            echo "FAIL: deployed site returned $status"
-            exit 1
-          fi
-
-          body=$(curl -sL "$url")
-
-          if echo "$body" | grep -qi "grok-build"; then
-            echo "FAIL: prohibited term found in deployed output"
-            exit 1
-          fi
-
-          if echo "$body" | grep -q "/home/"; then
-            echo "FAIL: local path found in deployed output"
-            exit 1
-          fi
-
-          echo "PASS: post-deploy smoke test"
+          root = os.environ["SITE_URL"]
+          is_root = os.environ["ROOT_PUBLISHER"] == "true"
+          deployed = os.environ["DEPLOYED_URL"]
+          if is_root and deployed.rstrip("/") != root.rstrip("/"):
+              raise RuntimeError("The publisher must deploy to the root website")
+          for attempt in range(6):
+              try:
+                  with urlopen(deployed + "?commit=" + os.environ["SOURCE_SHA"], timeout=20) as response:
+                      body = response.read().decode("utf-8")
+                  if "grok-build" in body.lower() or "/home/" in body:
+                      raise RuntimeError("Private or prohibited content in the deployed HTML")
+                  if is_root:
+                      with urlopen(root + "source-version.json?commit=" + os.environ["SOURCE_SHA"], timeout=20) as response:
+                          version = json.load(response)
+                      if version != {"repository": "justdoGIT/KK", "commit": os.environ["SOURCE_SHA"]}:
+                          raise RuntimeError("The root site has not served the expected source commit yet")
+                  elif f'content="0; url={root}"' not in body:
+                      raise RuntimeError("The project site must redirect to the root website")
+                  print("PASS: root website" if is_root else "PASS: legacy project-site redirect")
+                  break
+              except (OSError, ValueError, RuntimeError):
+                  if attempt == 5:
+                      raise
+                  time.sleep(10)
+          PY
