@@ -46,8 +46,8 @@ jobs:
                   raise RuntimeError("Private Forgejo HTTPS readiness check failed")
           print("Private Forgejo HTTPS route ready")
           ROUTE
-      # Fetch trusted code directly: automatic private-action authentication
-      # only works at a runner's registered URL, which may still use HTTP.
+      # Fetch the public template with Forgejo's action-token-aware file route.
+      # Its REST API rejects job tokens for other repositories, even public ones.
       # The immutable revision and independently verified digest pin the code.
       - name: Fetch pinned trusted reviewer over HTTPS
         env:
@@ -64,7 +64,7 @@ jobs:
                   raise RuntimeError("Refusing to redirect the authenticated reviewer download")
 
           revision = "0f717bda569cb145441d925e690c18ca0b7c4223"
-          url = f"https://forgejo.kepr.dev/api/v1/repos/justdoGIT/ci-templates/raw/scripts/pr-review.py?ref={revision}"
+          url = f"https://forgejo.kepr.dev/justdoGIT/ci-templates/raw/commit/{revision}/scripts/pr-review.py"
           request = Request(url, headers={"Authorization": "token " + os.environ["FORGEJO_TOKEN"]})
           with build_opener(NoRedirect).open(request, timeout=30) as response:
               source = response.read(256 * 1024)
