@@ -24,7 +24,9 @@ openssl x509 -in "$cert_root/cert.pem" -noout -checkend 86400
 openssl verify -CAfile /etc/ssl/certs/ca-certificates.crt \
   -untrusted "$cert_root/chain.pem" "$cert_root/cert.pem"
 
-xbps-install -Sy caddy
+if ! command -v caddy >/dev/null 2>&1; then
+  xbps-install -Sy caddy
+fi
 install -d -m 700 /etc/caddy/forgejo-tls
 install -m 644 "$cert_root/fullchain.pem" /etc/caddy/forgejo-tls/fullchain.pem
 install -m 600 "$cert_root/privkey.pem" /etc/caddy/forgejo-tls/privkey.pem
@@ -40,6 +42,7 @@ https://forgejo.kepr.dev {
 }
 CADDY
 chmod 644 "$config_path"
+caddy fmt --overwrite "$config_path"
 caddy validate --config "$config_path" --adapter caddyfile
 
 install -d -m 755 "$service_dir"
@@ -52,7 +55,15 @@ chmod 755 "$service_dir/run"
 if [[ ! -e /var/service/forgejo-https ]]; then
   ln -s "$service_dir" /var/service/forgejo-https
 fi
-sv up /var/service/forgejo-https
+for ((attempt=0; attempt<30; attempt++)); do
+  [[ -p "$service_dir/supervise/control" ]] && break
+  sleep 1
+done
+if [[ ! -p "$service_dir/supervise/control" ]]; then
+  echo 'Runit did not start supervising the HTTPS service within 30 seconds.' >&2
+  exit 1
+fi
+sv -w 30 up /var/service/forgejo-https
 curl --fail --silent --show-error --retry 5 --retry-connrefused \
   --resolve "$site_host:443:$lan_addr" "https://$site_host/user/login" -o /dev/null
 
