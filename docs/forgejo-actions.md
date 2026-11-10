@@ -61,8 +61,13 @@ Forgejo jobs use `ci-standard`. The pinned AI review action retrieves the API
 diff without executing PR source and uses the automatic run token. External
 LLM review uses the existing Gemini secret when configured; the trusted action
 has a rules-based fallback. Fork PRs do not receive reviewer secrets.
-The internal review and scanning templates use the trusted HTTPS endpoint at
-`https://forgejo.kepr.dev`; they remain pinned to immutable commits.
+The scanning template uses the trusted HTTPS endpoint at `https://forgejo.kepr.dev`.
+The private review action must use the runner's registered instance URL until
+that registration is migrated to HTTPS. Changing only its hostname caused a
+verified `could not read Username` clone failure: the runner did not supply
+its private-action authentication for the new host. Both templates remain
+pinned to immutable commits; changing repository visibility or embedding a
+token is not required.
 
 GitHub jobs explicitly require `github.server_url == 'https://github.com'`.
 The live website continues to deploy through GitHub Pages when changes merge

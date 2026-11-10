@@ -14,8 +14,10 @@ jobs:
     steps:
       # This pinned action fetches only the API diff. It does not check out or
       # execute PR source while it has the reviewer credentials.
+      # Private action authentication must match the runner's registered instance
+      # URL. Switch to HTTPS after migrating that registration, not before.
       - name: Run trusted Forgejo PR reviewer
-        uses: https://forgejo.kepr.dev/justdoGIT/ci-templates@0f717bda569cb145441d925e690c18ca0b7c4223
+        uses: http://192.168.1.4:3000/justdoGIT/ci-templates@0f717bda569cb145441d925e690c18ca0b7c4223
         env:
           FORGEJO_TOKEN: ${{ github.token }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
